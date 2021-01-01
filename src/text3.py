@@ -1,13 +1,13 @@
 import os
 
-from power.classifier.power_classifier import PowerClassifier
+from power.classifier import Classifier
 
 
 def main():
     if not os.path.isdir('data/'):
         os.mkdir('data/')
 
-    power_classifier = PowerClassifier()
+    classifier = Classifier()
 
 
 if __name__ == '__main__':
