@@ -1,7 +1,7 @@
 from pytorch_lightning import LightningModule
 
 
-class Classifier(LightningModule):
+class PowerClassifier(LightningModule):
     def __init__(self):
         super().__init__()
 
