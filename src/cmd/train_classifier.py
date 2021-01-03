@@ -43,7 +43,7 @@ def main():
         trainer = Trainer(gpus=gpus)
     else:
         trainer = Trainer()
-    
+
     trainer.fit(classifier, data_module)
 
 

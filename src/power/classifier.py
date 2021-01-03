@@ -32,7 +32,7 @@ class Classifier(LightningModule):
     def training_step(self, batch, batch_idx):
         text_batch, offsets_batch, labels_batch = batch
 
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([10., 10., 10., 10.]).cuda())
+        criterion = nn.BCEWithLogitsLoss()
 
         output_batch = self(text_batch, offsets_batch)
         loss = criterion(output_batch, labels_batch)
