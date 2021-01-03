@@ -11,7 +11,7 @@ def main():
                             embed_dim=32,
                             num_class=4)
 
-    trainer = Trainer()
+    trainer = Trainer(gpus=1)
     trainer.fit(classifier, data_module)
 
 

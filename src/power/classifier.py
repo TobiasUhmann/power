@@ -21,7 +21,7 @@ class Classifier(LightningModule):
         self.fc.weight.data.uniform_(-initrange, initrange)
         self.fc.bias.data.zero_()
 
-    def configure_optimizers(self,):
+    def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=4.0)
 
     def forward(self, text_batch, offsets_batch):
@@ -32,7 +32,7 @@ class Classifier(LightningModule):
     def training_step(self, batch, batch_idx):
         text_batch, offsets_batch, labels_batch = batch
 
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([10., 10., 10., 10.]))
+        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([10., 10., 10., 10.]).cuda())
 
         output_batch = self(text_batch, offsets_batch)
         loss = criterion(output_batch, labels_batch)
