@@ -12,7 +12,7 @@ class Classifier(LightningModule):
         super().__init__()
 
         # Create layers
-        self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
+        self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=False)
         self.fc = nn.Linear(embed_dim, num_class)
 
         # Init weights
