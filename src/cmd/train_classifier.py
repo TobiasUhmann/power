@@ -52,17 +52,18 @@ def main():
 
 
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
-    data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64)
+    # Setup DataModule manually to be able to access #classes later
+    dm = DataModule(data_dir=ower_dataset_dir, batch_size=64)
+    dm.prepare_data()
+    dm.setup('fit')
 
-    classifier = Classifier(vocab_size=100000,
-                            embed_dim=32,
-                            num_class=4)
+    classifier = Classifier(vocab_size=100000, embed_dim=32, num_class=dm.num_classes)
     if gpus:
         trainer = Trainer(gpus=gpus)
     else:
         trainer = Trainer()
 
-    trainer.fit(classifier, data_module)
+    trainer.fit(classifier, dm)
 
 
 if __name__ == '__main__':
