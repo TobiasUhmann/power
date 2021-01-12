@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Dict, Set
 
 
-def load_contexts(contexts_txt: str) -> Dict[int, Set[str]]:
+def read_contexts_txt(contexts_txt: str) -> Dict[int, Set[str]]:
 
     ent_to_contexts: Dict[int, Set[str]] = defaultdict(set)
 

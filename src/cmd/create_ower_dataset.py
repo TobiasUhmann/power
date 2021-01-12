@@ -5,11 +5,11 @@ from os.path import isdir, isfile
 from sqlite3 import connect
 from typing import List, Tuple, Dict, Set
 
-from dao.classes_tsv import load_classes
-from dao.contexts_txt import load_contexts
-from dao.output_txt import save_outputs
+from dao.classes_tsv import read_classes_tsv
+from dao.contexts_txt import read_contexts_txt
+from dao.ower_tsv import write_ower_tsv
 from dao.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
-from dao.triples_txt import load_triples
+from dao.triples_txt import read_triples_txt
 
 
 def main() -> None:
@@ -121,9 +121,9 @@ def create_ower_dataset(
     print()
     print('Load triples from Triples TXTs...')
 
-    train_triples: List[Tuple[int, int, int]] = load_triples(ryn_dataset_files['train_triples_txt'])
-    valid_triples: List[Tuple[int, int, int]] = load_triples(ryn_dataset_files['valid_triples_txt'])
-    test_triples: List[Tuple[int, int, int]] = load_triples(ryn_dataset_files['test_triples_txt'])
+    train_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['train_triples_txt'])
+    valid_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['valid_triples_txt'])
+    test_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['test_triples_txt'])
 
     print('Done')
 
@@ -158,9 +158,9 @@ def create_ower_dataset(
     print()
     print('Load contexts from Contexts TXTs...')
 
-    train_contexts: Dict[int, Set[str]] = load_contexts(ryn_dataset_files['train_contexts_txt'])
-    valid_contexts: Dict[int, Set[str]] = load_contexts(ryn_dataset_files['valid_contexts_txt'])
-    test_contexts: Dict[int, Set[str]] = load_contexts(ryn_dataset_files['test_contexts_txt'])
+    train_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['train_contexts_txt'])
+    valid_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['valid_contexts_txt'])
+    test_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['test_contexts_txt'])
 
     print('Done')
 
@@ -171,7 +171,7 @@ def create_ower_dataset(
     print()
     print('Load contexts from Contexts TXTs...')
 
-    classes: List[Tuple[int, int]] = load_classes(classes_tsv)
+    classes: List[Tuple[int, int]] = read_classes_tsv(classes_tsv)
 
     train_class_to_entities = defaultdict(set)
     valid_class_to_entities = defaultdict(set)
@@ -224,9 +224,9 @@ def create_ower_dataset(
 
         test_tsv_rows.append(test_tsv_row)
 
-    save_outputs(ower_dataset_files['train_tsv'], train_tsv_rows)
-    save_outputs(ower_dataset_files['valid_tsv'], valid_tsv_rows)
-    save_outputs(ower_dataset_files['test_tsv'], test_tsv_rows)
+    write_ower_tsv(ower_dataset_files['train_tsv'], train_tsv_rows)
+    write_ower_tsv(ower_dataset_files['valid_tsv'], valid_tsv_rows)
+    write_ower_tsv(ower_dataset_files['test_tsv'], test_tsv_rows)
 
     print('Done')
 
