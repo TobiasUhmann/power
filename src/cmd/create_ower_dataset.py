@@ -60,13 +60,13 @@ def main() -> None:
         exit()
 
     ryn_dataset_files = {
-        'train_triples_txt': path.join(ryn_dataset_dir, 'split', 'cw.train2id.txt'),
-        'valid_triples_txt': path.join(ryn_dataset_dir, 'split', 'ow.valid2id.txt'),
-        'test_triples_txt': path.join(ryn_dataset_dir, 'split', 'ow.test2id.txt'),
+        'triples_train_txt': path.join(ryn_dataset_dir, 'split', 'cw.train2id.txt'),
+        'triples_valid_txt': path.join(ryn_dataset_dir, 'split', 'ow.valid2id.txt'),
+        'triples_test_txt': path.join(ryn_dataset_dir, 'split', 'ow.test2id.txt'),
 
-        'train_contexts_txt': path.join(ryn_dataset_dir, 'text', 'cw.train-sentences.txt'),
-        'valid_contexts_txt': path.join(ryn_dataset_dir, 'text', 'ow.valid-sentences.txt'),
-        'test_contexts_txt': path.join(ryn_dataset_dir, 'text', 'ow.test-sentences.txt'),
+        'contexts_train_txt': path.join(ryn_dataset_dir, 'text', 'cw.train-sentences.txt'),
+        'contexts_valid_txt': path.join(ryn_dataset_dir, 'text', 'ow.valid-sentences.txt'),
+        'contexts_test_txt': path.join(ryn_dataset_dir, 'text', 'ow.test-sentences.txt'),
     }
 
     #
@@ -84,9 +84,9 @@ def main() -> None:
     makedirs(ower_dataset_dir, exist_ok=True)
 
     ower_dataset_files = {
-        'train_tsv': path.join(ower_dataset_dir, 'train.tsv'),
-        'valid_tsv': path.join(ower_dataset_dir, 'valid.tsv'),
-        'test_tsv': path.join(ower_dataset_dir, 'test.tsv'),
+        'samples_train_tsv': path.join(ower_dataset_dir, 'samples-v1-train.tsv'),
+        'samples_valid_tsv': path.join(ower_dataset_dir, 'samples-v1-valid.tsv'),
+        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v1-test.tsv'),
     }
 
     #
@@ -96,9 +96,9 @@ def main() -> None:
     makedirs(work_dir, exist_ok=True)
 
     work_dir_files = {
-        'train_triples_db': path.join(work_dir, 'train_triples.db'),
-        'valid_triples_db': path.join(work_dir, 'valid_triples.db'),
-        'test_triples_db': path.join(work_dir, 'test_triples.db'),
+        'triples_train_db': path.join(work_dir, 'triples-v1-train.db'),
+        'triples_valid_db': path.join(work_dir, 'triples-v1-valid.db'),
+        'triples_test_db': path.join(work_dir, 'triples-v1-test.db'),
     }
 
     #
@@ -121,9 +121,9 @@ def create_ower_dataset(
     print()
     print('Load triples from Triples TXTs...')
 
-    train_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['train_triples_txt'])
-    valid_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['valid_triples_txt'])
-    test_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['test_triples_txt'])
+    train_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['triples_train_txt'])
+    valid_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['triples_valid_txt'])
+    test_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['triples_test_txt'])
 
     print('Done')
 
@@ -134,17 +134,17 @@ def create_ower_dataset(
     print()
     print('Save triples to Triples DBs...')
 
-    with connect(work_dir_files['train_triples_db']) as conn:
+    with connect(work_dir_files['triples_train_db']) as conn:
         create_triples_table(conn)
         for triple in train_triples:
             insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
 
-    with connect(work_dir_files['valid_triples_db']) as conn:
+    with connect(work_dir_files['triples_valid_db']) as conn:
         create_triples_table(conn)
         for triple in valid_triples:
             insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
 
-    with connect(work_dir_files['test_triples_db']) as conn:
+    with connect(work_dir_files['triples_test_db']) as conn:
         create_triples_table(conn)
         for triple in test_triples:
             insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
@@ -158,9 +158,9 @@ def create_ower_dataset(
     print()
     print('Load contexts from Contexts TXTs...')
 
-    train_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['train_contexts_txt'])
-    valid_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['valid_contexts_txt'])
-    test_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['test_contexts_txt'])
+    train_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['contexts_train_txt'])
+    valid_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['contexts_valid_txt'])
+    test_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['contexts_test_txt'])
 
     print('Done')
 
@@ -177,15 +177,15 @@ def create_ower_dataset(
     valid_class_to_entities = defaultdict(set)
     test_class_to_entities = defaultdict(set)
 
-    with connect(work_dir_files['train_triples_db']) as conn:
+    with connect(work_dir_files['triples_train_db']) as conn:
         for class_ in classes:
             train_class_to_entities[class_] = select_entities_with_class(conn, class_)
 
-    with connect(work_dir_files['valid_triples_db']) as conn:
+    with connect(work_dir_files['triples_valid_db']) as conn:
         for class_ in classes:
             valid_class_to_entities[class_] = select_entities_with_class(conn, class_)
 
-    with connect(work_dir_files['test_triples_db']) as conn:
+    with connect(work_dir_files['triples_test_db']) as conn:
         for class_ in classes:
             test_class_to_entities[class_] = select_entities_with_class(conn, class_)
 
@@ -224,9 +224,9 @@ def create_ower_dataset(
 
         test_tsv_rows.append(test_tsv_row)
 
-    write_ower_tsv(ower_dataset_files['train_tsv'], train_tsv_rows)
-    write_ower_tsv(ower_dataset_files['valid_tsv'], valid_tsv_rows)
-    write_ower_tsv(ower_dataset_files['test_tsv'], test_tsv_rows)
+    write_ower_tsv(ower_dataset_files['samples_train_tsv'], train_tsv_rows)
+    write_ower_tsv(ower_dataset_files['samples_valid_tsv'], valid_tsv_rows)
+    write_ower_tsv(ower_dataset_files['samples_test_tsv'], test_tsv_rows)
 
     print('Done')
 
