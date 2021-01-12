@@ -46,6 +46,10 @@ def main() -> None:
         print('Ryn Dataset Directory not found')
         exit()
 
+    train_triples_txt = path.join(ryn_dataset_dir, 'split', 'ow.train2id.txt')
+    valid_triples_txt = path.join(ryn_dataset_dir, 'split', 'ow.valid2id.txt')
+    test_triples_txt = path.join(ryn_dataset_dir, 'split', 'ow.test2id.txt')
+
     train_contexts_txt = path.join(ryn_dataset_dir, 'text', 'cw.train-sentences.txt')
     valid_contexts_txt = path.join(ryn_dataset_dir, 'text', 'cw.valid-sentences.txt')
     test_contexts_txt = path.join(ryn_dataset_dir, 'text', 'cw.test-sentences.txt')
@@ -64,18 +68,20 @@ def main() -> None:
     # Run actual program
     #
 
-    create_ower_dataset(ryn_dataset_dir, train_contexts_txt, valid_contexts_txt, test_contexts_txt, train_triples_db,
-                        valid_triples_db, test_triples_db)
+    create_ower_dataset(train_triples_txt, valid_triples_txt, test_triples_txt, train_contexts_txt, valid_contexts_txt,
+                        test_contexts_txt, train_triples_db, valid_triples_db, test_triples_db)
 
 
 def create_ower_dataset(
-        ryn_dataset_dir: str,
+        train_triples_txt: str,
+        valid_triples_txt: str,
+        test_triples_txt: str,
         train_contexts_txt: str,
         valid_contexts_txt: str,
         test_contexts_txt: str,
         train_triples_db: str,
         valid_triples_db: str,
-        test_triples_db: str,
+        test_triples_db: str
 ) -> None:
     #
     # Load triples from Triples TXTs
@@ -84,13 +90,9 @@ def create_ower_dataset(
     print()
     print('Load triples from Triples TXTs...')
 
-    train_triples_file = f'{ryn_dataset_dir}/split/cw.train2id.txt'
-    valid_triples_file = f'{ryn_dataset_dir}/split/ow.valid2id.txt'
-    test_triples_file = f'{ryn_dataset_dir}/split/ow.test2id.txt'
-
-    train_triples: List[Tuple[int, int, int]] = load_triples(train_triples_file)
-    valid_triples: List[Tuple[int, int, int]] = load_triples(valid_triples_file)
-    test_triples: List[Tuple[int, int, int]] = load_triples(test_triples_file)
+    train_triples: List[Tuple[int, int, int]] = load_triples(train_triples_txt)
+    valid_triples: List[Tuple[int, int, int]] = load_triples(valid_triples_txt)
+    test_triples: List[Tuple[int, int, int]] = load_triples(test_triples_txt)
 
     print('Done')
 
