@@ -2,16 +2,16 @@ from typing import Dict
 
 from ryn.graphs.split import Dataset
 
-from src.dao.mid2rid_txt import read_mid2rid_txt
+from src.dao.oid_to_rid_txt import read_oid_to_rid_txt
 
 if __name__ == '__main__':
     dataset = Dataset.load(path='data/oke.fb15k237_30061990_50')
     id2rel = dataset.id2rel
 
-    mid2rid: Dict[str, int] = read_mid2rid_txt('data/entity2id.txt')
-    rid2mid = {rid: mid for mid, rid in mid2rid.items()}
+    oid_to_rid: Dict[str, int] = read_oid_to_rid_txt('data/entity2id.txt')
+    rid_to_oid = {rid: oid for oid, rid in oid_to_rid.items()}
 
-    with open('data/train.txt', 'w', encoding='utf-8') as train_fh:
+    with open('data/train.txt', 'w', encoding='utf-8') as f:
         for triple in dataset.cw_train.triples:
-            train_fh.write('{}\t{}\t{}\n'.format(
-                rid2mid[triple[0]], id2rel[triple[2]], rid2mid[triple[1]]))
+            f.write('{}\t{}\t{}\n'.format(
+                rid_to_oid[triple[0]], id2rel[triple[2]], rid_to_oid[triple[1]]))
