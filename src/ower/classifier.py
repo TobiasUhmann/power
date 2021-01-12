@@ -36,21 +36,31 @@ class Classifier(LightningModule):
         return self.fc(embedded)
 
     def training_step(self, batch, batch_idx):
-        text_batch, offsets_batch, labels_batch = batch
+        ent_batch, text_batch, offsets_batch, labels_batch = batch
 
-        criterion = nn.BCEWithLogitsLoss()
+        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([10] * 100).cuda())
 
         output_batch = self(text_batch, offsets_batch)
         loss = criterion(output_batch, labels_batch)
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        ent_batch, text_batch, offsets_batch, labels_batch = batch
+
+        output_batch = self(text_batch, offsets_batch)
+
+        print()
+        print(ent_batch[0])
+        print((output_batch[0][:10] > 0.5).int())
+        print(labels_batch[0][:10].int())
 
         # Update metrics
         self.prec(output_batch, labels_batch)
         self.recall(output_batch, labels_batch)
         self.f1(output_batch, labels_batch)
 
-        return loss
-
-    def training_epoch_end(self, outs):
+    def validation_epoch_end(self, outs):
         print()
         print('Precision', self.prec.compute())
         print('Recall', self.recall.compute())
