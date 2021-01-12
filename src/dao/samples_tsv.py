@@ -1,8 +1,8 @@
 from typing import List
 
 
-def write_ower_tsv(ower_tsv: str, rows: List) -> None:
-    with open(ower_tsv, 'w', encoding='utf-8') as f:
+def write_samples_tsv(samples_tsv: str, rows: List) -> None:
+    with open(samples_tsv, 'w', encoding='utf-8') as f:
         for row in rows:
             ent = row[0]
             classes = row[1:-1]

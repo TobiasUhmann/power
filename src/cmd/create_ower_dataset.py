@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict, Set
 
 from dao.classes_tsv import read_classes_tsv
 from dao.contexts_txt import read_contexts_txt
-from dao.ower_tsv import write_ower_tsv
+from dao.samples_tsv import write_samples_tsv
 from dao.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
 from dao.triples_txt import read_triples_txt
 
@@ -84,9 +84,9 @@ def main() -> None:
     makedirs(ower_dataset_dir, exist_ok=True)
 
     ower_dataset_files = {
-        'samples_train_tsv': path.join(ower_dataset_dir, 'samples-v1-train.tsv'),
-        'samples_valid_tsv': path.join(ower_dataset_dir, 'samples-v1-valid.tsv'),
-        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v1-test.tsv'),
+        'samples_train_tsv': path.join(ower_dataset_dir, 'train.tsv'),
+        'samples_valid_tsv': path.join(ower_dataset_dir, 'valid.tsv'),
+        'samples_test_tsv': path.join(ower_dataset_dir, 'test.tsv'),
     }
 
     #
@@ -224,9 +224,9 @@ def create_ower_dataset(
 
         test_tsv_rows.append(test_tsv_row)
 
-    write_ower_tsv(ower_dataset_files['samples_train_tsv'], train_tsv_rows)
-    write_ower_tsv(ower_dataset_files['samples_valid_tsv'], valid_tsv_rows)
-    write_ower_tsv(ower_dataset_files['samples_test_tsv'], test_tsv_rows)
+    write_samples_tsv(ower_dataset_files['samples_train_tsv'], train_tsv_rows)
+    write_samples_tsv(ower_dataset_files['samples_valid_tsv'], valid_tsv_rows)
+    write_samples_tsv(ower_dataset_files['samples_test_tsv'], test_tsv_rows)
 
     print('Done')
 
