@@ -1,8 +1,11 @@
 from argparse import ArgumentParser
 from os.path import isdir
+from typing import List, Tuple
+
+from dao.triples_txt import load_triples
 
 
-def main():
+def main() -> None:
     #
     # Parse args
     #
@@ -36,11 +39,26 @@ def main():
     # Run actual program
     #
 
-    create_ower_dataset()
+    create_ower_dataset(ryn_dataset_dir)
 
 
-def create_ower_dataset():
-    pass
+def create_ower_dataset(ryn_dataset_dir: str) -> None:
+    #
+    # Load triples from Triples TXTs
+    #
+
+    print()
+    print('Load triples...')
+
+    train_triples_file = f'{ryn_dataset_dir}/split/cw.train2id.txt'
+    valid_triples_file = f'{ryn_dataset_dir}/split/ow.valid2id.txt'
+    test_triples_file = f'{ryn_dataset_dir}/split/ow.test2id.txt'
+
+    train_triples: List[Tuple[int, int, int]] = load_triples(train_triples_file)
+    valid_triples: List[Tuple[int, int, int]] = load_triples(valid_triples_file)
+    test_triples: List[Tuple[int, int, int]] = load_triples(test_triples_file)
+
+    print('Done')
 
 
 if __name__ == '__main__':
