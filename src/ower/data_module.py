@@ -1,3 +1,4 @@
+from os import path
 from typing import Optional, List, Tuple
 
 import torch
@@ -29,26 +30,31 @@ class DataModule(LightningDataModule):
 
         self.data_dir = data_dir
         self.batch_size = batch_size
+        self.num_classes: int
 
     def setup(self, stage: Optional[str] = None):
         #
         # Read dataset TSV
         #
 
-        tokenize = lambda x: x.split()
+        samples_train_tsv = path.join(self.data_dir, 'samples-v1-train.tsv')
+        with open(samples_train_tsv, encoding='utf-8') as f:
+            header = f.readline()
 
-        is_male_field = Field(sequential=False, use_vocab=False)
-        is_married_field = Field(sequential=False, use_vocab=False)
-        is_american_field = Field(sequential=False, use_vocab=False)
-        is_actor_field = Field(sequential=False, use_vocab=False)
-        context_field = Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True)
+        header_length = len(header.split('\t'))
+        self.num_classes = header_length - 2
 
-        fields = [('entity', None),
-                  ('is_male', is_male_field),
-                  ('is_married', is_married_field),
-                  ('is_american', is_american_field),
-                  ('is_actor', is_actor_field),
-                  ('context', context_field)]
+        fields = [('entity', None)]
+
+        for i in range(header_length - 2):
+            fields.append((str(i), Field(sequential=False, use_vocab=False)))
+
+        context_field = Field(sequential=True,
+                              use_vocab=True,
+                              tokenize=lambda x: x.split(),
+                              lower=True)
+
+        fields.append(('context', context_field))
 
         #
         # Split full dataset into train/val/test
@@ -58,7 +64,7 @@ class DataModule(LightningDataModule):
                                                                 train='samples-v1-train.tsv',
                                                                 test='samples-v1-test.tsv',
                                                                 format='tsv',
-                                                                skip_header=True,
+                                                                skip_header=False,
                                                                 fields=fields)
 
         train_val_len = len(train_val_dataset)
@@ -75,19 +81,19 @@ class DataModule(LightningDataModule):
         vocab = context_field.vocab
 
         transformed_train_dataset = [(
-            [float(x.is_male), float(x.is_married), float(x.is_american), float(x.is_actor)],
-            torch.tensor([vocab[t] for t in x.context])
-        ) for x in train_dataset]
+            [float(getattr(sample, str(i))) for i in range(header_length - 2)],
+            torch.tensor([vocab[t] for t in sample.context])
+        ) for sample in train_dataset]
 
         transformed_val_dataset = [(
-            [float(x.is_male), float(x.is_married), float(x.is_american), float(x.is_actor)],
-            torch.tensor([vocab[t] for t in x.context])
-        ) for x in val_dataset]
+            [float(getattr(sample, str(i))) for i in range(header_length - 2)],
+            torch.tensor([vocab[t] for t in sample.context])
+        ) for sample in val_dataset]
 
         transformed_test_dataset = [(
-            [float(x.is_male), float(x.is_married), float(x.is_american), float(x.is_actor)],
-            torch.tensor([vocab[t] for t in x.context])
-        ) for x in test_dataset]
+            [float(getattr(sample, str(i))) for i in range(header_length - 2)],
+            torch.tensor([vocab[t] for t in sample.context])
+        ) for sample in test_dataset]
 
         #
         # Store datasets
