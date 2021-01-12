@@ -8,13 +8,15 @@ from torchtext.data import TabularDataset, Field
 
 
 def generate_batch(batch):
-    label = torch.tensor([entry[0] for entry in batch])
-    text = [entry[1] for entry in batch]
+    ent = torch.tensor([entry[0] for entry in batch])
+    label = torch.tensor([entry[1] for entry in batch])
+    text = [entry[2] for entry in batch]
     offsets = [0] + [len(entry) for entry in text]
 
     offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
     text = torch.cat(text)
-    return text, offsets, label
+
+    return ent, text, offsets, label
 
 
 class DataModule(LightningDataModule):
@@ -44,7 +46,7 @@ class DataModule(LightningDataModule):
         header_length = len(header.split('\t'))
         self.num_classes = header_length - 2
 
-        fields = [('entity', None)]
+        fields = [('entity', Field(sequential=False, use_vocab=False))]
 
         for i in range(header_length - 2):
             fields.append((str(i), Field(sequential=False, use_vocab=False)))
@@ -81,16 +83,19 @@ class DataModule(LightningDataModule):
         vocab = context_field.vocab
 
         transformed_train_dataset = [(
+            float(getattr(sample, 'entity')),
             [float(getattr(sample, str(i))) for i in range(header_length - 2)],
             torch.tensor([vocab[t] for t in sample.context])
         ) for sample in train_dataset]
 
         transformed_val_dataset = [(
+            float(getattr(sample, 'entity')),
             [float(getattr(sample, str(i))) for i in range(header_length - 2)],
             torch.tensor([vocab[t] for t in sample.context])
         ) for sample in val_dataset]
 
         transformed_test_dataset = [(
+            float(getattr(sample, 'entity')),
             [float(getattr(sample, str(i))) for i in range(header_length - 2)],
             torch.tensor([vocab[t] for t in sample.context])
         ) for sample in test_dataset]
