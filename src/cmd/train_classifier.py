@@ -30,15 +30,18 @@ def main():
     print()
 
     #
-    # Train classifier
+    # Run actual program
     #
 
+    train_classifier(gpus)
+
+
+def train_classifier(gpus: int) -> None:
     data_module = DataModule(data_dir='data/', batch_size=64)
 
     classifier = Classifier(vocab_size=100000,
                             embed_dim=32,
                             num_class=4)
-
     if gpus:
         trainer = Trainer(gpus=gpus)
     else:
