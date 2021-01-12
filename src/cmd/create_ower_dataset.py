@@ -2,8 +2,9 @@ from argparse import ArgumentParser
 from os import makedirs, path
 from os.path import isdir
 from sqlite3 import connect
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Set
 
+from dao.contexts_txt import load_contexts
 from dao.triples_db import create_triples_table, insert_triple, DbTriple
 from dao.triples_txt import load_triples
 
@@ -20,7 +21,7 @@ def main() -> None:
 
     default_work_dir = 'work/'
     parser.add_argument('--work-dir', metavar='STR', default=default_work_dir,
-                        help='Working Directory (default: {})'.format(default_work_dir))
+                        help='Path to (output) Working Directory (default: {})'.format(default_work_dir))
 
     args = parser.parse_args()
 
@@ -45,8 +46,12 @@ def main() -> None:
         print('Ryn Dataset Directory not found')
         exit()
 
+    train_contexts_txt = path.join(ryn_dataset_dir, 'text', 'cw.train-sentences.txt')
+    valid_contexts_txt = path.join(ryn_dataset_dir, 'text', 'cw.valid-sentences.txt')
+    test_contexts_txt = path.join(ryn_dataset_dir, 'text', 'cw.test-sentences.txt')
+
     #
-    # Create Working Directory if it does not exist already
+    # Create (output) Working Directory if it does not exist already
     #
 
     makedirs(work_dir, exist_ok=True)
@@ -59,14 +64,18 @@ def main() -> None:
     # Run actual program
     #
 
-    create_ower_dataset(ryn_dataset_dir, train_triples_db, valid_triples_db, test_triples_db)
+    create_ower_dataset(ryn_dataset_dir, train_contexts_txt, valid_contexts_txt, test_contexts_txt, train_triples_db,
+                        valid_triples_db, test_triples_db)
 
 
 def create_ower_dataset(
         ryn_dataset_dir: str,
+        train_contexts_txt: str,
+        valid_contexts_txt: str,
+        test_contexts_txt: str,
         train_triples_db: str,
         valid_triples_db: str,
-        test_triples_db: str
+        test_triples_db: str,
 ) -> None:
     #
     # Load triples from Triples TXTs
@@ -106,6 +115,19 @@ def create_ower_dataset(
         create_triples_table(conn)
         for triple in test_triples:
             insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
+
+    print('Done')
+
+    #
+    # Load contexts from Contexts TXTs
+    #
+
+    print()
+    print('Load contexts from Contexts TXTs...')
+
+    train_contexts: Dict[int, Set[str]] = load_contexts(train_contexts_txt)
+    valid_contexts: Dict[int, Set[str]] = load_contexts(valid_contexts_txt)
+    test_contexts: Dict[int, Set[str]] = load_contexts(test_contexts_txt)
 
     print('Done')
 
