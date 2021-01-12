@@ -55,8 +55,8 @@ class DataModule(LightningDataModule):
         #
 
         train_val_dataset, test_dataset = TabularDataset.splits(path=self.data_dir,
-                                                                train='train_outputs.tsv',
-                                                                test='test_outputs.tsv',
+                                                                train='samples-v1-train.tsv',
+                                                                test='samples-v1-test.tsv',
                                                                 format='tsv',
                                                                 skip_header=True,
                                                                 fields=fields)

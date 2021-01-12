@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from os.path import isdir
 
 from pytorch_lightning import Trainer
 
@@ -13,12 +14,16 @@ def main():
 
     parser = ArgumentParser()
 
+    parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
+                        help='Path to (input) OWER Dataset Directory')
+
     default_gpus = None
     parser.add_argument('--gpus', type=int, metavar='INT', default=default_gpus,
                         help='Train on ... GPUs (default: {})'.format(default_gpus))
 
     args = parser.parse_args()
 
+    ower_dataset_dir = args.ower_dataset_dir
     gpus = args.gpus
 
     #
@@ -26,18 +31,28 @@ def main():
     #
 
     print('Applied config:')
+    print('    {:20} {}'.format('ower-dataset-dir', ower_dataset_dir))
+    print()
     print('    {:20} {}'.format('--gpus', gpus))
     print()
+
+    #
+    # Assert that (input) OWER Dataset Directory exists
+    #
+
+    if not isdir(ower_dataset_dir):
+        print('OWER Dataset Directory not found')
+        exit()
 
     #
     # Run actual program
     #
 
-    train_classifier(gpus)
+    train_classifier(ower_dataset_dir, gpus)
 
 
-def train_classifier(gpus: int) -> None:
-    data_module = DataModule(data_dir='data/', batch_size=64)
+def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
+    data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64)
 
     classifier = Classifier(vocab_size=100000,
                             embed_dim=32,

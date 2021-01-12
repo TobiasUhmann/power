@@ -28,7 +28,7 @@ def main() -> None:
     parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
                         help='Path to (output) OWER Dataset Directory')
 
-    default_work_dir = 'work/'
+    default_work_dir = 'work-v1/'
     parser.add_argument('--work-dir', metavar='STR', default=default_work_dir,
                         help='Path to (output) Working Directory (default: {})'.format(default_work_dir))
 
@@ -84,9 +84,9 @@ def main() -> None:
     makedirs(ower_dataset_dir, exist_ok=True)
 
     ower_dataset_files = {
-        'samples_train_tsv': path.join(ower_dataset_dir, 'train.tsv'),
-        'samples_valid_tsv': path.join(ower_dataset_dir, 'valid.tsv'),
-        'samples_test_tsv': path.join(ower_dataset_dir, 'test.tsv'),
+        'samples_train_tsv': path.join(ower_dataset_dir, 'samples-v1-train.tsv'),
+        'samples_valid_tsv': path.join(ower_dataset_dir, 'samples-v1-valid.tsv'),
+        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v1-test.tsv'),
     }
 
     #
