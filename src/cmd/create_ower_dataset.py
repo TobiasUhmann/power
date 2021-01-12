@@ -7,6 +7,7 @@ from typing import List, Tuple, Dict, Set
 
 from dao.classes_tsv import load_classes
 from dao.contexts_txt import load_contexts
+from dao.output_txt import save_outputs
 from dao.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
 from dao.triples_txt import load_triples
 
@@ -187,6 +188,47 @@ def create_ower_dataset(
     with connect(work_dir_files['test_triples_db']) as conn:
         for class_ in classes:
             test_class_to_entities[class_] = select_entities_with_class(conn, class_)
+
+    #
+    # Save OWER TSVs
+    #
+
+    print()
+    print('Save OWER TSVs...')
+
+    train_tsv_rows = []
+    valid_tsv_rows = []
+    test_tsv_rows = []
+
+    for ent in train_contexts:
+        train_tsv_row = [ent]
+        for class_ in classes:
+            train_tsv_row.append(int(ent in train_class_to_entities[class_]))
+        train_tsv_row.append(list(train_contexts[ent])[0].strip())
+
+        train_tsv_rows.append(train_tsv_row)
+
+    for ent in valid_contexts:
+        valid_tsv_row = [ent]
+        for class_ in classes:
+            valid_tsv_row.append(int(ent in valid_class_to_entities[class_]))
+        valid_tsv_row.append(list(valid_contexts[ent])[0].strip())
+
+        valid_tsv_rows.append(valid_tsv_row)
+
+    for ent in test_contexts:
+        test_tsv_row = [ent]
+        for class_ in classes:
+            test_tsv_row.append(int(ent in test_class_to_entities[class_]))
+        test_tsv_row.append(list(test_contexts[ent])[0].strip())
+
+        test_tsv_rows.append(test_tsv_row)
+
+    save_outputs(ower_dataset_files['train_tsv'], train_tsv_rows)
+    save_outputs(ower_dataset_files['valid_tsv'], valid_tsv_rows)
+    save_outputs(ower_dataset_files['test_tsv'], test_tsv_rows)
+
+    print('Done')
 
 
 if __name__ == '__main__':
