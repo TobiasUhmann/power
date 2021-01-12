@@ -59,11 +59,13 @@ def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
 
     classifier = Classifier(vocab_size=100000, embed_dim=32, num_class=dm.num_classes)
     if gpus:
-        trainer = Trainer(gpus=gpus)
+        trainer = Trainer(max_epochs=50, gpus=gpus)
     else:
-        trainer = Trainer()
+        trainer = Trainer(max_epochs=50)
 
     trainer.fit(classifier, dm)
+
+    trainer.save_checkpoint('data/ower.ckpt')
 
 
 if __name__ == '__main__':
