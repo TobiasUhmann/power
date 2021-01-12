@@ -1,7 +1,7 @@
 from pytorch_lightning import Trainer
 
-from power.classifier import Classifier
-from power.data_module import DataModule
+from ower.classifier import Classifier
+from ower.data_module import DataModule
 
 
 def main():
