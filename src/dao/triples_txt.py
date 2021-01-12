@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 
-def load_triples(triples_txt: str) -> List[Tuple[int, int, int]]:
+def read_triples_txt(triples_txt: str) -> List[Tuple[int, int, int]]:
     triples: List[Tuple[int, int, int]] = []
 
     with open(triples_txt, encoding='utf-8') as f:

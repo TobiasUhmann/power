@@ -2,13 +2,13 @@ from typing import Dict
 
 from ryn.graphs.split import Dataset
 
-from src.dao.mid2rid_txt import load_mid2rid
+from src.dao.mid2rid_txt import read_mid2rid_txt
 
 if __name__ == '__main__':
     dataset = Dataset.load(path='data/oke.fb15k237_30061990_50')
     id2rel = dataset.id2rel
 
-    mid2rid: Dict[str, int] = load_mid2rid('data/entity2id.txt')
+    mid2rid: Dict[str, int] = read_mid2rid_txt('data/entity2id.txt')
     rid2mid = {rid: mid for mid, rid in mid2rid.items()}
 
     with open('data/train.txt', 'w', encoding='utf-8') as train_fh:

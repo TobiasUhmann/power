@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from sqlite3 import Connection
-from typing import List
+from typing import List, Tuple, Set
 
 
 @dataclass
@@ -66,3 +66,18 @@ def select_triples_by_head_rel_and_tail(conn: Connection, head: int, rel: int, t
     cursor.close()
 
     return [DbTriple(row[0], row[1], row[2]) for row in rows]
+
+
+def select_entities_with_class(conn: Connection, class_: Tuple[int, int]) -> Set[int]:
+    sql = '''
+            SELECT head
+            FROM triples
+            WHERE rel = ? AND tail = ?
+        '''
+
+    cursor = conn.cursor()
+    cursor.execute(sql, (class_[0], class_[1]))
+    rows = cursor.fetchall()
+    cursor.close()
+
+    return {row[0] for row in rows}
