@@ -204,7 +204,7 @@ def create_ower_dataset(
         train_tsv_row = [ent]
         for class_ in classes:
             train_tsv_row.append(int(ent in train_class_to_entities[class_]))
-        train_tsv_row.append(list(train_contexts[ent])[0].strip())
+        train_tsv_row.append(' '.join(train_contexts[ent]))
 
         train_tsv_rows.append(train_tsv_row)
 
@@ -212,7 +212,7 @@ def create_ower_dataset(
         valid_tsv_row = [ent]
         for class_ in classes:
             valid_tsv_row.append(int(ent in valid_class_to_entities[class_]))
-        valid_tsv_row.append(list(valid_contexts[ent])[0].strip())
+        valid_tsv_row.append(' '.join(valid_contexts[ent]))
 
         valid_tsv_rows.append(valid_tsv_row)
 
@@ -220,7 +220,7 @@ def create_ower_dataset(
         test_tsv_row = [ent]
         for class_ in classes:
             test_tsv_row.append(int(ent in test_class_to_entities[class_]))
-        test_tsv_row.append(list(test_contexts[ent])[0].strip())
+        test_tsv_row.append(' '.join(test_contexts[ent]))
 
         test_tsv_rows.append(test_tsv_row)
 

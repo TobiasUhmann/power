@@ -11,6 +11,6 @@ def read_contexts_txt(contexts_txt: str) -> Dict[int, Set[str]]:
 
     for line in lines[1:]:
         ent, _, context = line.split(' | ')
-        ent_to_contexts[int(ent)].add(context)
+        ent_to_contexts[int(ent)].add(context.strip())
 
     return ent_to_contexts
