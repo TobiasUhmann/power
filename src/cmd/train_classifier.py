@@ -4,7 +4,7 @@ from os.path import isdir
 from pytorch_lightning import Trainer
 
 from ower.old_classifier import OldClassifier
-from ower.data_module import DataModule
+from ower.old_data_module import OldDataModule
 
 
 def main():
@@ -53,7 +53,7 @@ def main():
 
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
-    dm = DataModule(data_dir=ower_dataset_dir, batch_size=64)
+    dm = OldDataModule(data_dir=ower_dataset_dir, batch_size=64)
     dm.prepare_data()
     dm.setup('fit')
 

@@ -1,11 +1,11 @@
 from pytorch_lightning import Trainer
 
 from ower.old_classifier import OldClassifier
-from ower.data_module import DataModule
+from ower.old_data_module import OldDataModule
 
 
 def main():
-    data_module = DataModule(data_dir='data/', batch_size=64)
+    data_module = OldDataModule(data_dir='data/', batch_size=64)
 
     classifier = OldClassifier(vocab_size=100000,
                                embed_dim=32,

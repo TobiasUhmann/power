@@ -19,7 +19,7 @@ def generate_batch(batch):
     return ent, text, offsets, label
 
 
-class DataModule(LightningDataModule):
+class OldDataModule(LightningDataModule):
     data_dir: str
     batch_size: int
 
