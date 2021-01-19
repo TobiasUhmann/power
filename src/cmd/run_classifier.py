@@ -4,7 +4,7 @@ from os import path
 
 import yaml
 
-from ower.classifier import Classifier
+from ower.old_classifier import OldClassifier
 
 
 def main() -> None:
@@ -60,11 +60,11 @@ def run_classifier(experiment_dir: str) -> None:
         if sentence == 'q':
             break
 
-        pred = classifier.predict({'sentence': sentence})
+        pred = classifier.predict(sentence)
         print(pred)
 
 
-def load_classifier_from_experiment(experiment_dir: str) -> Classifier:
+def load_classifier_from_experiment(experiment_dir: str) -> OldClassifier:
     """
     Load the classifier from the latest checkpoint in an experiment directory.
     """
@@ -82,11 +82,11 @@ def load_classifier_from_experiment(experiment_dir: str) -> Classifier:
 
     latest_classifier_ckpt = path.join(checkpoints_dir, checkpoints[-1])
 
-    classifier = Classifier.load_from_checkpoint(latest_classifier_ckpt,
-                                                 hparams=Namespace(**hparams),
-                                                 vocab_size=100000,
-                                                 embed_dim=32,
-                                                 num_class=100)
+    classifier = OldClassifier.load_from_checkpoint(latest_classifier_ckpt,
+                                                    hparams=Namespace(**hparams),
+                                                    vocab_size=100000,
+                                                    embed_dim=32,
+                                                    num_class=100)
 
     return classifier
 

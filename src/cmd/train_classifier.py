@@ -3,7 +3,7 @@ from os.path import isdir
 
 from pytorch_lightning import Trainer
 
-from ower.classifier import Classifier
+from ower.old_classifier import OldClassifier
 from ower.data_module import DataModule
 
 
@@ -57,7 +57,7 @@ def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     dm.prepare_data()
     dm.setup('fit')
 
-    classifier = Classifier(vocab_size=100000, embed_dim=32, num_class=dm.num_classes)
+    classifier = OldClassifier(vocab_size=100000, embed_dim=32, num_class=dm.num_classes)
     if gpus:
         trainer = Trainer(max_epochs=50, gpus=gpus)
     else:
