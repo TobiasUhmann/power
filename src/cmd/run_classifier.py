@@ -8,7 +8,7 @@ from ower.classifier import Classifier
 from ower.data_module import DataModule
 
 
-def main():
+def main() -> None:
     #
     # Parse args
     #
@@ -16,34 +16,27 @@ def main():
     parser = ArgumentParser('Load a trained classifier and run an interactive'
                             ' prompt that lets you query the classifier')
 
-    parser.add_argument('experiment',
+    parser.add_argument('experiment_dir', metavar='experiment-dir',
                         help="Path to (input) experiment directory that contains"
                              " the classifier's checkpoints")
 
-    default_gpus = None
-    parser.add_argument('--gpus', type=int, metavar='INT', default=default_gpus,
-                        help='Train on ... GPUs (default: {})'.format(default_gpus))
-
     args = parser.parse_args()
 
-    experiment = args.experiment
-    gpus = args.gpus
+    experiment_dir = args.experiment_dir
 
     #
     # Print applied config
     #
 
     print('Applied config:')
-    print('    {:20} {}'.format('experiment', experiment))
-    print()
-    print('    {:20} {}'.format('--gpus', gpus))
+    print('    {:20} {}'.format('experiment-dir', experiment_dir))
     print()
 
     #
     # Assert that (input) experiment directory exists
     #
 
-    if not path.isdir(experiment):
+    if not path.isdir(experiment_dir):
         print('Experiment directory not found')
         exit()
 
@@ -51,12 +44,12 @@ def main():
     # Run actual program
     #
 
-    train_classifier(experiment, gpus)
+    run_classifier(experiment_dir)
 
 
-def train_classifier(experiment: str, gpus: int) -> None:
+def run_classifier(experiment_dir: str) -> None:
     # Setup DataModule manually to be able to access #classes later
-    dm = DataModule(data_dir=experiment, batch_size=64)
+    dm = DataModule(data_dir=experiment_dir, batch_size=64)
     dm.prepare_data()
     dm.setup('fit')
 
