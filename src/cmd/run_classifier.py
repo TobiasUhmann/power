@@ -5,7 +5,6 @@ from os import path
 import yaml
 
 from ower.classifier import Classifier
-from ower.data_module import DataModule
 
 
 def main() -> None:
@@ -48,16 +47,21 @@ def main() -> None:
 
 
 def run_classifier(experiment_dir: str) -> None:
-    # Setup DataModule manually to be able to access #classes later
-    dm = DataModule(data_dir=experiment_dir, batch_size=64)
-    dm.prepare_data()
-    dm.setup('fit')
+    classifier = load_classifier_from_experiment(experiment_dir)
 
-    classifier = Classifier.load_from_checkpoint('data/ower.ckpt')
+    # Put classifier into prediction mode
     classifier.eval()
+    classifier.freeze()
 
-    valid_loader = dm.val_dataloader()
-    sample = valid_loader.dataset[0]
+    while True:
+        print("Enter sentence or 'q' to quit")
+
+        sentence = input('> ')
+        if sentence == 'q':
+            break
+
+        pred = classifier.predict({'sentence': sentence})
+        print(pred)
 
 
 def load_classifier_from_experiment(experiment_dir: str) -> Classifier:
@@ -79,7 +83,10 @@ def load_classifier_from_experiment(experiment_dir: str) -> Classifier:
     latest_classifier_ckpt = path.join(checkpoints_dir, checkpoints[-1])
 
     classifier = Classifier.load_from_checkpoint(latest_classifier_ckpt,
-                                                 hparams=Namespace(**hparams))
+                                                 hparams=Namespace(**hparams),
+                                                 vocab_size=100000,
+                                                 embed_dim=32,
+                                                 num_class=100)
 
     return classifier
 
