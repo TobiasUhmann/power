@@ -1,5 +1,8 @@
-from argparse import ArgumentParser
-from os.path import isdir
+import os
+from argparse import ArgumentParser, Namespace
+from os import path
+
+import yaml
 
 from ower.classifier import Classifier
 from ower.data_module import DataModule
@@ -40,7 +43,7 @@ def main():
     # Assert that (input) experiment directory exists
     #
 
-    if not isdir(experiment):
+    if not path.isdir(experiment):
         print('Experiment directory not found')
         exit()
 
@@ -62,6 +65,30 @@ def train_classifier(experiment: str, gpus: int) -> None:
 
     valid_loader = dm.val_dataloader()
     sample = valid_loader.dataset[0]
+
+
+def load_classifier_from_experiment(experiment_dir: str) -> Classifier:
+    """
+    Load the classifier from the latest checkpoint in an experiment directory.
+    """
+
+    hparams_yaml = path.join(experiment_dir, 'hparams.yaml')
+    with open(hparams_yaml, encoding='utf-8') as f:
+        hparams = yaml.load(f.read(), Loader=yaml.FullLoader)
+
+    checkpoints_dir = path.join(experiment_dir, 'checkpoints')
+    checkpoints = [
+        file
+        for file in os.listdir(checkpoints_dir)
+        if file.endswith('.ckpt')
+    ]
+
+    latest_classifier_ckpt = path.join(checkpoints_dir, checkpoints[-1])
+
+    classifier = Classifier.load_from_checkpoint(latest_classifier_ckpt,
+                                                 hparams=Namespace(**hparams))
+
+    return classifier
 
 
 if __name__ == '__main__':
