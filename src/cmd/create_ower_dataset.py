@@ -9,7 +9,7 @@ from dao.classes_tsv import read_classes_tsv
 from dao.contexts_txt import read_contexts_txt
 from dao.samples_tsv import write_samples_tsv
 from dao.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
-from dao.triples_txt import read_triples_txt
+from dao.ryn.triples_txt import load
 
 
 def main() -> None:
@@ -121,9 +121,9 @@ def create_ower_dataset(
     print()
     print('Load triples from Triples TXTs...')
 
-    train_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['triples_train_txt'])
-    valid_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['triples_valid_txt'])
-    test_triples: List[Tuple[int, int, int]] = read_triples_txt(ryn_dataset_files['triples_test_txt'])
+    train_triples: List[Tuple[int, int, int]] = load(ryn_dataset_files['triples_train_txt'])
+    valid_triples: List[Tuple[int, int, int]] = load(ryn_dataset_files['triples_valid_txt'])
+    test_triples: List[Tuple[int, int, int]] = load(ryn_dataset_files['triples_test_txt'])
 
     print('Done')
 
