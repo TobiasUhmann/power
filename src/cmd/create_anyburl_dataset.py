@@ -174,10 +174,10 @@ def create_anyburl_dataset(files: Dict) -> None:
     #
 
     def ent_lbl(ent: int) -> str:
-        return entity_rid_to_label[ent].replace(' ', '_')
+        return str(ent) + '_' + entity_rid_to_label[ent].replace(' ', '_')
 
     def rel_lbl(rel: int) -> str:
-        return relation_rid_to_label[rel].replace(' ', '_')
+        return str(rel) + '_' + relation_rid_to_label[rel].replace(' ', '_')
 
     train_lbl_triples = [(ent_lbl(head), rel_lbl(rel), ent_lbl(tail))
                          for head, rel, tail in train_rid_triples]
