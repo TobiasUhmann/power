@@ -1,10 +1,10 @@
 import random
 from argparse import ArgumentParser
-from os import makedirs, path, remove
-from os.path import isdir, isfile
 from typing import List, Dict
 
+from dao.anyburl.dir import assert_not_existing
 from dao.anyburl.triples_txt import save_triples
+from dao.ryn.dir import assert_existing
 from dao.ryn.label_rid_txt import load_rid_to_label
 from dao.ryn.triples_txt import load_triples
 
@@ -44,81 +44,12 @@ def main() -> None:
     print()
 
     #
-    # Assert that (input) 'Ryn Split Directory' exists
+    # Check files
     #
 
-    files = {'ryn_split': {}}
-    if not isdir(ryn_split_dir):
-        print("'Ryn Split Directory' not found")
-        exit()
-
-    cw_train_txt = path.join(ryn_split_dir, 'cw.train2id.txt')
-    files['ryn_split']['cw_train_txt'] = cw_train_txt
-    if not isfile(cw_train_txt):
-        print("'Ryn Split Directory' / 'CW Train TXT' not found")
-        exit()
-
-    cw_valid_txt = path.join(ryn_split_dir, 'cw.valid2id.txt')
-    files['ryn_split']['cw_valid_txt'] = cw_valid_txt
-    if not isfile(cw_valid_txt):
-        print("'Ryn Split Directory' / 'CW Valid TXT' not found")
-        exit()
-
-    relation_label_to_rid_txt = path.join(ryn_split_dir, 'relation2id.txt')
-    files['ryn_split']['relation_label_to_rid_txt'] = relation_label_to_rid_txt
-    if not isfile(relation_label_to_rid_txt):
-        print("'Ryn Split Directory' / 'Relation Label-to-RID TXT' not found")
-        exit()
-
-    entity_label_to_rid_txt = path.join(ryn_split_dir, 'entity2id.txt')
-    files['ryn_split']['entity_label_to_rid_txt'] = entity_label_to_rid_txt
-    if not isfile(entity_label_to_rid_txt):
-        print("'Ryn Split Directory' / 'Entity Label-to-RID TXT' not found")
-        exit()
-
-    #
-    # Check (output) 'AnyBURL Dataset Directory'
-    # - Create it if it does not already exist
-    # - Assert that its files do not already exist
-    #
-
-    makedirs(anyburl_dataset_dir, exist_ok=True)
-    files['anyburl'] = {}
-
-    train_txt = path.join(anyburl_dataset_dir, 'train.txt')
-    if isfile(train_txt):
-        if overwrite:
-            remove(train_txt)
-        else:
-            print("'AnyBURL Dataset Directory' / 'Train TXT' already exists"
-                  ", use --overwrite to overwrite it")
-            exit()
-
-    files['anyburl']['train_txt'] = train_txt
-
-    makedirs(anyburl_dataset_dir, exist_ok=True)
-
-    valid_txt = path.join(anyburl_dataset_dir, 'valid.txt')
-    if isfile(valid_txt):
-        if overwrite:
-            remove(valid_txt)
-        else:
-            print("'AnyBURL Dataset Directory' / 'Valid TXT' already exists"
-                  ", use --overwrite to overwrite it")
-            exit()
-
-    files['anyburl']['valid_txt'] = valid_txt
-
-    test_txt = path.join(anyburl_dataset_dir, 'test.txt')
-    if isfile(test_txt):
-        if overwrite:
-            remove(test_txt)
-        else:
-            print("'AnyBURL Dataset Directory' / 'Test TXT' already exists"
-                  ", use --overwrite to overwrite it")
-            exit()
-
-    files['anyburl']['test_txt'] = test_txt
+    files = {}
+    assert_existing(files, ryn_split_dir)
+    assert_not_existing(anyburl_dataset_dir, files, overwrite)
 
     #
     # Run actual program
