@@ -1,7 +1,7 @@
 from typing import Dict
 
 
-def load(oid_to_rid_txt: str) -> Dict[str, int]:
+def load_oid_to_rid(oid_to_rid_txt: str) -> Dict[str, int]:
     """
     :param oid_to_rid_txt: path to OID-to-RID TXT
     :return: dict: OID -> RID
