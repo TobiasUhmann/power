@@ -10,9 +10,7 @@ import torch
 import torch.nn as nn
 import torchtext
 from torch import Tensor, optim
-from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.types import Device
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
@@ -23,8 +21,8 @@ from torchtext.vocab import Vocab
 
 BATCH_SIZE = 16
 EMBED_DIM = 32
-EPOCH_COUNT = 5
 NGRAMS = 2
+NUM_EPOCHS = 5
 
 
 #
@@ -53,13 +51,13 @@ class TextSentiment(nn.Module):
 
     def forward(self, concated_token_lists: List[int], offsets: List[int]) -> Tensor:
         """
-        :return: Shape [batch_size][class_count]
+        :return: Shape [batch_size][num_classes]
         """
 
         # Shape [batch_size][embed_dim]
         embeddings: Tensor = self.embedding(concated_token_lists, offsets)
 
-        # Shape [batch_size][class_count]
+        # Shape [batch_size][num_classes]
         outputs: Tensor = self.fc(embeddings)
 
         return outputs
@@ -83,9 +81,9 @@ def main():
     #
 
     vocab_size = len(train_valid_dataset.get_vocab())
-    class_count = len(train_valid_dataset.get_labels())
+    num_classes = len(train_valid_dataset.get_labels())
 
-    model = TextSentiment(vocab_size, EMBED_DIM, class_count).to(device)
+    model = TextSentiment(vocab_size, EMBED_DIM, num_classes).to(device)
 
     #
     # Split the dataset and run the model
@@ -99,7 +97,7 @@ def main():
     valid_len = len(train_valid_dataset) - train_len
     train_dataset, valid_dataset = random_split(train_valid_dataset, [train_len, valid_len])
 
-    for epoch in range(EPOCH_COUNT):
+    for epoch in range(NUM_EPOCHS):
         start_time = time.time()
 
         train_loss, train_acc = train_func(device, model, criterion, optimizer, scheduler, train_dataset)
@@ -177,9 +175,9 @@ def generate_batch(
     label_batch = torch.tensor([entry[0] for entry in label_tokens_batch])
     tokens_batch = [entry[1] for entry in label_tokens_batch]
 
-    token_count_batch = [len(tokens) for tokens in tokens_batch]
+    num_tokens_batch = [len(tokens) for tokens in tokens_batch]
 
-    offset_batch = torch.tensor([0] + token_count_batch[:-1]).cumsum(dim=0)
+    offset_batch = torch.tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
     concated_tokens_batch = torch.cat(tokens_batch)
 
     return concated_tokens_batch, offset_batch, label_batch
@@ -188,9 +186,9 @@ def generate_batch(
 def train_func(
         device: Device,
         model: nn.Module,
-        criterion: _Loss,
+        criterion,
         optimizer: Optimizer,
-        scheduler: _LRScheduler,
+        scheduler,
         dataset: Dataset
 ) -> Tuple[float, float]:
     """
@@ -208,7 +206,7 @@ def train_func(
         offset_batch = offset_batch.to(device)
         label_batch = label_batch.to(device)
 
-        # Shape [batch_size][class_count]
+        # Shape [batch_size][num_classes]
         output_batch = model(concated_tokens_batch, offset_batch)
 
         loss = criterion(output_batch, label_batch)
@@ -229,7 +227,7 @@ def train_func(
 def test(
         device: Device,
         model: nn.Module,
-        criterion: _Loss,
+        criterion,
         dataset: Dataset
 ) -> Tuple[float, float]:
     """

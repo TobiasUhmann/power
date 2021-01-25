@@ -9,12 +9,12 @@ class SimpleClassifier(LightningModule):
     embedding: nn.EmbeddingBag
     fc: nn.Linear
 
-    def __init__(self, vocab_size: int, embed_dim: int, num_class: int):
+    def __init__(self, vocab_size: int, embed_dim: int, num_classes: int):
         super().__init__()
 
         # Create layers
         self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
-        self.fc = nn.Linear(embed_dim, num_class)
+        self.fc = nn.Linear(embed_dim, num_classes)
 
         # Init weights
         initrange = 0.5

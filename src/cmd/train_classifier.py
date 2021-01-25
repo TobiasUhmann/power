@@ -57,7 +57,7 @@ def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     dm.prepare_data()
     dm.setup('fit')
 
-    classifier = SimpleClassifier(vocab_size=100000, embed_dim=32, num_class=dm.num_classes)
+    classifier = SimpleClassifier(vocab_size=100000, embed_dim=32, num_classes=dm.num_classes)
     if gpus:
         trainer = Trainer(max_epochs=50, gpus=gpus)
     else:
