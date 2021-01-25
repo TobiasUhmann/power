@@ -3,10 +3,11 @@
 #
 
 import os
-from typing import List
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torchtext.datasets import text_classification
 
 BATCH_SIZE = 16
@@ -50,16 +51,16 @@ class TextSentiment(nn.Module):
         self.fc.weight.data.uniform_(-initrange, initrange)
         self.fc.bias.data.zero_()
 
-    def forward(self, concated_token_lists: List[int], offsets: List[int]) -> torch.Tensor:
+    def forward(self, concated_token_lists: List[int], offsets: List[int]) -> Tensor:
         """
         :return: Shape [batch_size][class_count]
         """
 
         # Shape [batch_size][embed_dim]
-        embeddings: torch.Tensor = self.embedding(concated_token_lists, offsets)
+        embeddings: Tensor = self.embedding(concated_token_lists, offsets)
 
         # Shape [batch_size][class_count]
-        outputs: torch.Tensor = self.fc(embeddings)
+        outputs: Tensor = self.fc(embeddings)
 
         return outputs
 
@@ -78,17 +79,25 @@ model = TextSentiment(vocab_size, EMBED_DIM, class_count).to(device)
 # Functions used to generate batch
 #
 
-def generate_batch(batch):
-    label = torch.tensor([entry[0] for entry in batch])
-    text = [entry[1] for entry in batch]
-    offsets = [0] + [len(entry) for entry in text]
-    # torch.Tensor.cumsum returns the cumulative sum
-    # of elements in the dimension dim.
-    # torch.Tensor([1.0, 2.0, 3.0]).cumsum(dim=0)
+def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) \
+        -> Tuple[Tensor, Tensor, Tensor]:
+    """
+    Split (label, tokens) batch and transform tokens into EmbeddingBag format.
 
-    offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
-    text = torch.cat(text)
-    return text, offsets, label
+    :return: 1. Concated tokens of all texts, Tensor[]
+             2. Token offsets where texts begin, Tensor[batch_size]
+             3. Labels for texts, Tensor[batch_size]
+    """
+
+    label_batch = torch.tensor([entry[0] for entry in label_tokens_batch])
+    tokens_batch = [entry[1] for entry in label_tokens_batch]
+
+    token_count_batch = [len(tokens) for tokens in tokens_batch]
+
+    offset_batch = torch.tensor([0] + token_count_batch[:-1]).cumsum(dim=0)
+    concated_tokens_batch = torch.cat(tokens_batch)
+
+    return concated_tokens_batch, offset_batch, label_batch
 
 
 #
