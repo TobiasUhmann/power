@@ -10,6 +10,7 @@ import torch.nn as nn
 from torchtext.datasets import text_classification
 
 BATCH_SIZE = 16
+EMBED_DIM = 32
 NGRAMS = 2
 
 #
@@ -41,7 +42,7 @@ class TextSentiment(nn.Module):
 
         self.init_weights()
 
-    def init_weights(self):
+    def init_weights(self) -> None:
         initrange = 0.5
 
         self.embedding.weight.data.uniform_(-initrange, initrange)
@@ -49,7 +50,11 @@ class TextSentiment(nn.Module):
         self.fc.weight.data.uniform_(-initrange, initrange)
         self.fc.bias.data.zero_()
 
-    def forward(self, concated_token_lists: List[int], offsets: List[int]):
+    def forward(self, concated_token_lists: List[int], offsets: List[int]) -> torch.Tensor:
+        """
+        :return: Shape [batch_size][class_count]
+        """
+
         # Shape [batch_size][embed_dim]
         embeddings: torch.Tensor = self.embedding(concated_token_lists, offsets)
 
@@ -63,10 +68,10 @@ class TextSentiment(nn.Module):
 # Instantiate the instance
 #
 
-VOCAB_SIZE = len(train_dataset.get_vocab())
-EMBED_DIM = 32
-NUN_CLASS = len(train_dataset.get_labels())
-model = TextSentiment(VOCAB_SIZE, EMBED_DIM, NUN_CLASS).to(device)
+vocab_size = len(train_dataset.get_vocab())
+class_count = len(train_dataset.get_labels())
+
+model = TextSentiment(vocab_size, EMBED_DIM, class_count).to(device)
 
 
 #
