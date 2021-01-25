@@ -10,6 +10,10 @@ import torch
 import torch.nn as nn
 import torchtext
 from torch import Tensor, optim
+from torch.nn.modules.loss import _Loss
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
+from torch.types import Device
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataset import random_split
@@ -159,8 +163,9 @@ def main():
     print(f'This is a {pred_label} news')
 
 
-def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) \
-        -> Tuple[Tensor, Tensor, Tensor]:
+def generate_batch(
+        label_tokens_batch: List[Tuple[int, Tensor]]
+) -> Tuple[Tensor, Tensor, Tensor]:
     """
     Split (label, tokens) batch and transform tokens into EmbeddingBag format.
 
@@ -180,8 +185,14 @@ def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) \
     return concated_tokens_batch, offset_batch, label_batch
 
 
-def train_func(device, model, criterion, optimizer, scheduler, dataset: Dataset) \
-        -> Tuple[float, float]:
+def train_func(
+        device: Device,
+        model: nn.Module,
+        criterion: _Loss,
+        optimizer: Optimizer,
+        scheduler: _LRScheduler,
+        dataset: Dataset
+) -> Tuple[float, float]:
     """
     :return: 1. Epoch loss
              2. Epoch accuracy
@@ -215,7 +226,12 @@ def train_func(device, model, criterion, optimizer, scheduler, dataset: Dataset)
     return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
 
 
-def test(device, model, criterion, dataset: Dataset) -> Tuple[float, float]:
+def test(
+        device: Device,
+        model: nn.Module,
+        criterion: _Loss,
+        dataset: Dataset
+) -> Tuple[float, float]:
     """
     :return: 1. Epoch loss
              2. Epoch accuracy
