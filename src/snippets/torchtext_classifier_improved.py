@@ -112,12 +112,13 @@ def train_func(dataset: Dataset) -> Tuple[float, float]:
              2. Epoch accuracy
     """
 
-    epoch_loss: float = 0
-    epoch_acc: float = 0
+    epoch_loss_sum: float = 0
+    epoch_acc_sum: float = 0
 
     data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
 
     for concated_tokens_batch, offset_batch, label_batch, in data:
+
         concated_tokens_batch = concated_tokens_batch.to(device)
         offset_batch = offset_batch.to(device)
         label_batch = label_batch.to(device)
@@ -131,28 +132,41 @@ def train_func(dataset: Dataset) -> Tuple[float, float]:
         loss.backward()
         optimizer.step()
 
-        epoch_loss += loss.item()
-        epoch_acc += (output_batch.argmax(1) == label_batch).sum().item()
+        epoch_loss_sum += loss.item()
+        epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
 
     # Adjust the learning rate
     scheduler.step()
 
-    return epoch_loss / len(dataset), epoch_acc / len(dataset)
+    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
 
 
-def test(data_):
-    loss = 0
-    acc = 0
-    data = DataLoader(data_, batch_size=BATCH_SIZE, collate_fn=generate_batch)
-    for text, offsets, cls in data:
-        text, offsets, cls = text.to(device), offsets.to(device), cls.to(device)
+def test(dataset: Dataset) -> Tuple[float, float]:
+    """
+    :return: 1. Epoch loss
+             2. Epoch accuracy
+    """
+
+    epoch_loss_sum = 0
+    epoch_acc_sum = 0
+
+    data = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=generate_batch)
+
+    for concated_tokens_batch, offset_batch, label_batch in data:
+
+        concated_tokens_batch = concated_tokens_batch.to(device)
+        offset_batch = offset_batch.to(device)
+        label_batch = label_batch.to(device)
+
         with torch.no_grad():
-            output = model(text, offsets)
-            loss = criterion(output, cls)
-            loss += loss.item()
-            acc += (output.argmax(1) == cls).sum().item()
+            output_batch = model(concated_tokens_batch, offset_batch)
 
-    return loss / len(data_), acc / len(data_)
+            loss = criterion(output_batch, label_batch)
+
+            epoch_loss_sum += loss.item()
+            epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
+
+    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
 
 
 #
