@@ -8,6 +8,8 @@ from typing import List, Tuple
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.data import DataLoader
+from torch.utils.data.dataset import Dataset
 from torchtext.datasets import text_classification
 
 BATCH_SIZE = 16
@@ -104,29 +106,38 @@ def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) \
 # Define functions to train the model and evaluate results
 #
 
-from torch.utils.data import DataLoader
+def train_func(dataset: Dataset) -> Tuple[float, float]:
+    """
+    :return: 1. Epoch loss
+             2. Epoch accuracy
+    """
 
+    epoch_loss: float = 0
+    epoch_acc: float = 0
 
-def train_func(sub_train_):
-    # Train the model
-    train_loss = 0
-    train_acc = 0
-    data = DataLoader(sub_train_, batch_size=BATCH_SIZE, shuffle=True,
-                      collate_fn=generate_batch)
-    for i, (text, offsets, cls) in enumerate(data):
+    data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
+
+    for concated_tokens_batch, offset_batch, label_batch, in data:
+        concated_tokens_batch = concated_tokens_batch.to(device)
+        offset_batch = offset_batch.to(device)
+        label_batch = label_batch.to(device)
+
+        # Shape [batch_size][class_count]
+        output_batch = model(concated_tokens_batch, offset_batch)
+
+        loss = criterion(output_batch, label_batch)
+
         optimizer.zero_grad()
-        text, offsets, cls = text.to(device), offsets.to(device), cls.to(device)
-        output = model(text, offsets)
-        loss = criterion(output, cls)
-        train_loss += loss.item()
         loss.backward()
         optimizer.step()
-        train_acc += (output.argmax(1) == cls).sum().item()
+
+        epoch_loss += loss.item()
+        epoch_acc += (output_batch.argmax(1) == label_batch).sum().item()
 
     # Adjust the learning rate
     scheduler.step()
 
-    return train_loss / len(sub_train_), train_acc / len(sub_train_)
+    return epoch_loss / len(dataset), epoch_acc / len(dataset)
 
 
 def test(data_):
