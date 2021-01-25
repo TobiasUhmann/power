@@ -1,29 +1,34 @@
 #
-# https://pytorch.org/tutorials/beginner/text_sentiment_ngrams_tutorial.html
+# Tidied up version of torchtext_classifier_improved.py
 #
+
+import os
+
+import torch
+from torchtext.datasets import text_classification
+
+BATCH_SIZE = 16
+NGRAMS = 2
 
 #
 # Load data with ngrams
 #
 
-import torch
-import torchtext
-from torchtext.datasets import text_classification
-NGRAMS = 2
-import os
-if not os.path.isdir('./.data'):
-    os.mkdir('./.data')
-train_dataset, test_dataset = text_classification.DATASETS['AG_NEWS'](
-    root='./.data', ngrams=NGRAMS, vocab=None)
-BATCH_SIZE = 16
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if not os.path.isdir('data/'):
+    os.mkdir('data/')
+
+ag_news = text_classification.DATASETS['AG_NEWS']
+train_dataset, test_dataset = ag_news(root='data/', ngrams=NGRAMS, vocab=None)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #
 # Define the model
 #
 
 import torch.nn as nn
-import torch.nn.functional as F
+
+
 class TextSentiment(nn.Module):
     def __init__(self, vocab_size, embed_dim, num_class):
         super().__init__()
@@ -41,6 +46,7 @@ class TextSentiment(nn.Module):
         embedded = self.embedding(text, offsets)
         return self.fc(embedded)
 
+
 #
 # Instantiate the instance
 #
@@ -49,6 +55,7 @@ VOCAB_SIZE = len(train_dataset.get_vocab())
 EMBED_DIM = 32
 NUN_CLASS = len(train_dataset.get_labels())
 model = TextSentiment(VOCAB_SIZE, EMBED_DIM, NUN_CLASS).to(device)
+
 
 #
 # Functions used to generate batch
@@ -66,14 +73,15 @@ def generate_batch(batch):
     text = torch.cat(text)
     return text, offsets, label
 
+
 #
 # Define functions to train the model and evaluate results
 #
 
 from torch.utils.data import DataLoader
 
-def train_func(sub_train_):
 
+def train_func(sub_train_):
     # Train the model
     train_loss = 0
     train_acc = 0
@@ -94,6 +102,7 @@ def train_func(sub_train_):
 
     return train_loss / len(sub_train_), train_acc / len(sub_train_)
 
+
 def test(data_):
     loss = 0
     acc = 0
@@ -108,12 +117,14 @@ def test(data_):
 
     return loss / len(data_), acc / len(data_)
 
+
 #
 # Split the dataset and run the model
 #
 
 import time
 from torch.utils.data.dataset import random_split
+
 N_EPOCHS = 5
 min_valid_loss = float('inf')
 
@@ -126,7 +137,6 @@ sub_train_, sub_valid_ = \
     random_split(train_dataset, [train_len, len(train_dataset) - train_len])
 
 for epoch in range(N_EPOCHS):
-
     start_time = time.time()
     train_loss, train_acc = train_func(sub_train_)
     valid_loss, valid_acc = test(sub_valid_)
@@ -135,7 +145,7 @@ for epoch in range(N_EPOCHS):
     mins = secs / 60
     secs = secs % 60
 
-    print('Epoch: %d' %(epoch + 1), " | time in %d minutes, %d seconds" %(mins, secs))
+    print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
     print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc * 100:.1f}%(train)')
     print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc * 100:.1f}%(valid)')
 
@@ -151,22 +161,23 @@ print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc * 100:.1f}%(test)')
 # Test on a random news
 #
 
-import re
 from torchtext.data.utils import ngrams_iterator
 from torchtext.data.utils import get_tokenizer
 
-ag_news_label = {1 : "World",
-                 2 : "Sports",
-                 3 : "Business",
-                 4 : "Sci/Tec"}
+ag_news_label = {1: "World",
+                 2: "Sports",
+                 3: "Business",
+                 4: "Sci/Tec"}
+
 
 def predict(text, model, vocab, ngrams):
     tokenizer = get_tokenizer("basic_english")
     with torch.no_grad():
         text = torch.tensor([vocab[token]
-                            for token in ngrams_iterator(tokenizer(text), ngrams)])
+                             for token in ngrams_iterator(tokenizer(text), ngrams)])
         output = model(text, torch.tensor([0]))
         return output.argmax(1).item() + 1
+
 
 ex_text_str = "MEMPHIS, Tenn. – Four days ago, Jon Rahm was \
     enduring the season’s worst weather conditions on Sunday at The \
@@ -183,4 +194,4 @@ ex_text_str = "MEMPHIS, Tenn. – Four days ago, Jon Rahm was \
 vocab = train_dataset.get_vocab()
 model = model.to("cpu")
 
-print("This is a %s news" %ag_news_label[predict(ex_text_str, model, vocab, 2)])
+print("This is a %s news" % ag_news_label[predict(ex_text_str, model, vocab, 2)])
