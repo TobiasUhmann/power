@@ -2,7 +2,6 @@
 # PyTorch Lightning version of torchtext_classifier_refactored.py
 #
 
-import os
 import time
 from typing import List, Tuple
 
@@ -11,15 +10,14 @@ import torch.nn as nn
 import torchtext
 from pytorch_lightning import LightningModule
 from torch import Tensor, optim
+from torch.nn import EmbeddingBag, Linear
 from torch.optim import Optimizer
 from torch.types import Device
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataset import random_split
 from torchtext.data.utils import ngrams_iterator
-from torchtext.datasets import text_classification
 from torchtext.vocab import Vocab
-from torch.nn import EmbeddingBag, Linear
 
 
 class TextSentiment(LightningModule):
@@ -57,29 +55,13 @@ class TextSentiment(LightningModule):
         return class_logits
 
 
-
-BATCH_SIZE = 16
 EMBED_DIM = 32
 EPOCH_COUNT = 5
-NGRAMS = 2
 
 
 def main():
-    #
-    # Load data with ngrams
-    #
-
-    if not os.path.isdir('data/'):
-        os.mkdir('data/')
-
-    ag_news = text_classification.DATASETS['AG_NEWS']
-    train_valid_dataset, test_dataset = ag_news(root='data/', ngrams=NGRAMS, vocab=None)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    #
-    # Instantiate the instance
-    #
 
     vocab_size = len(train_valid_dataset.get_vocab())
     class_count = len(train_valid_dataset.get_labels())
@@ -94,9 +76,7 @@ def main():
     optimizer = optim.SGD(model.parameters(), lr=4.0)
     scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.9)
 
-    train_len = int(len(train_valid_dataset) * 0.95)
-    valid_len = len(train_valid_dataset) - train_len
-    train_dataset, valid_dataset = random_split(train_valid_dataset, [train_len, valid_len])
+
 
     for epoch in range(EPOCH_COUNT):
         start_time = time.time()
@@ -162,26 +142,7 @@ def main():
     print(f'This is a {pred_label} news')
 
 
-def generate_batch(
-        label_tokens_batch: List[Tuple[int, Tensor]]
-) -> Tuple[Tensor, Tensor, Tensor]:
-    """
-    Split (label, tokens) batch and transform tokens into EmbeddingBag format.
 
-    :return: 1. Concated tokens of all texts, Tensor[]
-             2. Token offsets where texts begin, Tensor[batch_size]
-             3. Labels for texts, Tensor[batch_size]
-    """
-
-    label_batch = torch.tensor([entry[0] for entry in label_tokens_batch])
-    tokens_batch = [entry[1] for entry in label_tokens_batch]
-
-    token_count_batch = [len(tokens) for tokens in tokens_batch]
-
-    offset_batch = torch.tensor([0] + token_count_batch[:-1]).cumsum(dim=0)
-    concated_tokens_batch = torch.cat(tokens_batch)
-
-    return concated_tokens_batch, offset_batch, label_batch
 
 
 def train_func(
