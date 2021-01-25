@@ -1,3 +1,6 @@
+data/
+lightning_logs/
+src/snippets/.data/
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm,venv
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,pycharm,venv
@@ -258,6 +261,3 @@ pyvenv.cfg
 pip-selfcheck.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm,venv
-
-data/
-lightning_logs/
