@@ -1,6 +1,8 @@
 from typing import List
 
+import torch
 from torch import nn
+from torchtext.datasets import text_classification, TextClassificationDataset
 
 
 class TextSentiment(nn.Module):
@@ -32,9 +34,25 @@ class TextSentiment(nn.Module):
 
 
 def main():
-    text_sentiment = TextSentiment(1000, 100, 2)
+    #
+    # Get AG_NEWS dataset
+    #
 
-    return
+    train_dataset: TextClassificationDataset
+    test_dataset: TextClassificationDataset
+    train_dataset, test_dataset = text_classification.DATASETS['AG_NEWS'](root='data/', ngrams=2, vocab=None)
+
+    #
+    # Build model
+    #
+
+    vocab_size = len(train_dataset.get_vocab())
+    embed_dim = 32
+    num_classes = len(train_dataset.get_labels())
+
+    text_sentiment = TextSentiment(vocab_size, embed_dim, num_classes)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 if __name__ == '__main__':
