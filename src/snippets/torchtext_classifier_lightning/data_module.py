@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List, Optional, Tuple, Any
+from typing import List, Optional, Tuple, Any
 
 import torch
 from pytorch_lightning import LightningDataModule
@@ -8,22 +8,39 @@ from torch.types import Device
 from torch.utils.data import DataLoader, random_split
 from torchtext.data import Dataset
 from torchtext.datasets import text_classification
-
-BATCH_SIZE = 16
-NGRAMS = 2
+from torchtext.vocab import Vocab
 
 
 class DataModule(LightningDataModule):
+    data_dir: str
+    batch_size: int
+    ngrams: int
+
+    vocab: Vocab
+
     train_dataset: Dataset
     valid_dataset: Dataset
     test_dataset: Dataset
 
-    def prepare_data(self, pre_process: Callable[[str], List[int]]):
-        if not os.path.isdir('data/'):
-            os.mkdir('data/')
+    def __init__(self, data_dir: str, batch_size: int, ngrams: int):
+        super().__init__()
+
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.ngrams = ngrams
+
+    #
+    # Prepare and setup data
+    #
+
+    def prepare_data(self):
+        if not os.path.isdir(self.data_dir):
+            os.mkdir(self.data_dir)
 
         ag_news = text_classification.DATASETS['AG_NEWS']
-        train_valid_set, test_set = ag_news(root='data/', ngrams=NGRAMS, vocab=None)
+        train_valid_set, test_set, = ag_news(root='data/', ngrams=self.ngrams, vocab=None)
+
+        self.vocab = train_valid_set.get_vocab()
 
         train_len = int(len(train_valid_set) * 0.7)
         valid_len = len(train_valid_set) - train_len
@@ -41,13 +58,13 @@ class DataModule(LightningDataModule):
     #
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=generate_batch)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.valid_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
+        return DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=generate_batch)
 
     def test_dataloader(self) -> DataLoader:
-        return DataLoader(self.test_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=generate_batch)
 
     #
     # Other methods

@@ -2,6 +2,7 @@
 # PyTorch Lightning version of torchtext_classifier_refactored.py
 #
 
+import pickle
 import time
 from typing import List, Tuple
 
@@ -12,38 +13,56 @@ from torch import Tensor, optim
 from torch.optim import Optimizer
 from torch.types import Device
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
 from torchtext.data.utils import ngrams_iterator
 from torchtext.vocab import Vocab
+from tqdm import tqdm
 
+from snippets.torchtext_classifier_lightning.classifier import Classifier
+
+BATCH_SIZE = 16
 EMBED_DIM = 32
-EPOCH_COUNT = 5
+NGRAMS = 2
+NUM_EPOCHS = 5
 
 
 def main():
+    #
+    # Load data and instantiate classifier
+    #
+
+    # data_module = DataModule(data_dir='data/', batch_size=BATCH_SIZE, ngrams=NGRAMS)
+    # data_module.prepare_data()
+    #
+    # with open('data/data_module.pkl', 'wb') as f:
+    #     pickle.dump(data_module, f)
+
+    with open('data/data_module.pkl', 'rb') as f:
+        data_module = pickle.load(f)
+
+    train_loader = data_module.train_dataloader()
+    valid_loader = data_module.val_dataloader()
+    test_loader = data_module.test_dataloader()
+
+    vocab_size = len(data_module.vocab)
+    class_count = len(data_module.vocab)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    vocab_size = len(train_valid_dataset.get_vocab())
-    class_count = len(train_valid_dataset.get_labels())
 
     model = Classifier(vocab_size, EMBED_DIM, class_count).to(device)
 
     #
-    # Split the dataset and run the model
+    # Train
     #
 
     criterion = nn.CrossEntropyLoss().to(device)
     optimizer = optim.SGD(model.parameters(), lr=4.0)
     scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.9)
 
-
-
-    for epoch in range(EPOCH_COUNT):
+    for epoch in range(NUM_EPOCHS):
         start_time = time.time()
 
-        train_loss, train_acc = train_func(device, model, criterion, optimizer, scheduler, train_dataset)
-        valid_loss, valid_acc = test(device, model, criterion, valid_dataset)
+        train_loss, train_acc = train_func(device, model, criterion, optimizer, scheduler, train_loader)
+        valid_loss, valid_acc = test(device, model, criterion, valid_loader)
 
         total_secs = int(time.time() - start_time)
         mins = int(total_secs / 60)
@@ -58,7 +77,7 @@ def main():
     # Evaluate the model with test dataset
     #
 
-    test_loss, test_acc = test(device, model, criterion, test_dataset)
+    test_loss, test_acc = test(device, model, criterion, test_loader)
 
     print()
     print('Checking the results of test dataset ...')
@@ -94,7 +113,7 @@ def main():
                   " never played the front nine at TPC Southwind."
 
     model = model.to('cpu')
-    vocab = train_valid_dataset.get_vocab()
+    vocab = data_module.vocab
 
     pred_class = predict(ex_text_str, model, vocab, ngrams=2)
     pred_label = class_to_label[pred_class]
@@ -103,16 +122,13 @@ def main():
     print(f'This is a {pred_label} news')
 
 
-
-
-
 def train_func(
         device: Device,
         model: nn.Module,
         criterion,
         optimizer: Optimizer,
         scheduler,
-        dataset: Dataset
+        data: DataLoader
 ) -> Tuple[float, float]:
     """
     :return: 1. Epoch loss
@@ -120,11 +136,9 @@ def train_func(
     """
 
     epoch_loss_sum: float = 0
-    epoch_acc_sum: float = 0
+    epoch_acc_sum: int = 0
 
-    data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
-
-    for concated_tokens_batch, offset_batch, label_batch, in data:
+    for concated_tokens_batch, offset_batch, label_batch, in tqdm(data):
         concated_tokens_batch = concated_tokens_batch.to(device)
         offset_batch = offset_batch.to(device)
         label_batch = label_batch.to(device)
@@ -144,14 +158,14 @@ def train_func(
     # Adjust the learning rate
     scheduler.step()
 
-    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
+    return epoch_loss_sum / len(data), epoch_acc_sum / len(data)
 
 
 def test(
         device: Device,
         model: nn.Module,
         criterion,
-        dataset: Dataset
+        data: DataLoader
 ) -> Tuple[float, float]:
     """
     :return: 1. Epoch loss
@@ -161,9 +175,7 @@ def test(
     epoch_loss_sum = 0
     epoch_acc_sum = 0
 
-    data = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=generate_batch)
-
-    for concated_tokens_batch, offset_batch, label_batch in data:
+    for concated_tokens_batch, offset_batch, label_batch in tqdm(data):
         concated_tokens_batch = concated_tokens_batch.to(device)
         offset_batch = offset_batch.to(device)
         label_batch = label_batch.to(device)
@@ -176,7 +188,7 @@ def test(
             epoch_loss_sum += loss.item()
             epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
 
-    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
+    return epoch_loss_sum / len(data), epoch_acc_sum / len(data)
 
 
 if __name__ == '__main__':
