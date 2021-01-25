@@ -1,5 +1,5 @@
 #
-# Tidied up version of torchtext_classifier_improved.py
+# Refactored version of torchtext_classifier.py
 #
 
 import os
@@ -84,93 +84,6 @@ def main():
     model = TextSentiment(vocab_size, EMBED_DIM, class_count).to(device)
 
     #
-    # Functions used to generate batch
-    #
-
-    def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) \
-            -> Tuple[Tensor, Tensor, Tensor]:
-        """
-        Split (label, tokens) batch and transform tokens into EmbeddingBag format.
-
-        :return: 1. Concated tokens of all texts, Tensor[]
-                 2. Token offsets where texts begin, Tensor[batch_size]
-                 3. Labels for texts, Tensor[batch_size]
-        """
-
-        label_batch = torch.tensor([entry[0] for entry in label_tokens_batch])
-        tokens_batch = [entry[1] for entry in label_tokens_batch]
-
-        token_count_batch = [len(tokens) for tokens in tokens_batch]
-
-        offset_batch = torch.tensor([0] + token_count_batch[:-1]).cumsum(dim=0)
-        concated_tokens_batch = torch.cat(tokens_batch)
-
-        return concated_tokens_batch, offset_batch, label_batch
-
-    #
-    # Define functions to train the model and evaluate results
-    #
-
-    def train_func(dataset: Dataset) -> Tuple[float, float]:
-        """
-        :return: 1. Epoch loss
-                 2. Epoch accuracy
-        """
-
-        epoch_loss_sum: float = 0
-        epoch_acc_sum: float = 0
-
-        data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
-
-        for concated_tokens_batch, offset_batch, label_batch, in data:
-            concated_tokens_batch = concated_tokens_batch.to(device)
-            offset_batch = offset_batch.to(device)
-            label_batch = label_batch.to(device)
-
-            # Shape [batch_size][class_count]
-            output_batch = model(concated_tokens_batch, offset_batch)
-
-            loss = criterion(output_batch, label_batch)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            epoch_loss_sum += loss.item()
-            epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
-
-        # Adjust the learning rate
-        scheduler.step()
-
-        return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
-
-    def test(dataset: Dataset) -> Tuple[float, float]:
-        """
-        :return: 1. Epoch loss
-                 2. Epoch accuracy
-        """
-
-        epoch_loss_sum = 0
-        epoch_acc_sum = 0
-
-        data = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=generate_batch)
-
-        for concated_tokens_batch, offset_batch, label_batch in data:
-            concated_tokens_batch = concated_tokens_batch.to(device)
-            offset_batch = offset_batch.to(device)
-            label_batch = label_batch.to(device)
-
-            with torch.no_grad():
-                output_batch = model(concated_tokens_batch, offset_batch)
-
-                loss = criterion(output_batch, label_batch)
-
-                epoch_loss_sum += loss.item()
-                epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
-
-        return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
-
-    #
     # Split the dataset and run the model
     #
 
@@ -185,11 +98,11 @@ def main():
     for epoch in range(EPOCH_COUNT):
         start_time = time.time()
 
-        train_loss, train_acc = train_func(train_dataset)
-        valid_loss, valid_acc = test(valid_dataset)
+        train_loss, train_acc = train_func(device, model, criterion, optimizer, scheduler, train_dataset)
+        valid_loss, valid_acc = test(device, model, criterion, valid_dataset)
 
         total_secs = int(time.time() - start_time)
-        mins = total_secs / 60
+        mins = int(total_secs / 60)
         secs = total_secs % 60
 
         print()
@@ -201,7 +114,7 @@ def main():
     # Evaluate the model with test dataset
     #
 
-    test_loss, test_acc = test(test_dataset)
+    test_loss, test_acc = test(device, model, criterion, test_dataset)
 
     print()
     print('Checking the results of test dataset ...')
@@ -242,7 +155,91 @@ def main():
     pred_class = predict(ex_text_str, model, vocab, ngrams=2)
     pred_label = class_to_label[pred_class]
 
+    print()
     print(f'This is a {pred_label} news')
+
+
+def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) \
+        -> Tuple[Tensor, Tensor, Tensor]:
+    """
+    Split (label, tokens) batch and transform tokens into EmbeddingBag format.
+
+    :return: 1. Concated tokens of all texts, Tensor[]
+             2. Token offsets where texts begin, Tensor[batch_size]
+             3. Labels for texts, Tensor[batch_size]
+    """
+
+    label_batch = torch.tensor([entry[0] for entry in label_tokens_batch])
+    tokens_batch = [entry[1] for entry in label_tokens_batch]
+
+    token_count_batch = [len(tokens) for tokens in tokens_batch]
+
+    offset_batch = torch.tensor([0] + token_count_batch[:-1]).cumsum(dim=0)
+    concated_tokens_batch = torch.cat(tokens_batch)
+
+    return concated_tokens_batch, offset_batch, label_batch
+
+
+def train_func(device, model, criterion, optimizer, scheduler, dataset: Dataset) \
+        -> Tuple[float, float]:
+    """
+    :return: 1. Epoch loss
+             2. Epoch accuracy
+    """
+
+    epoch_loss_sum: float = 0
+    epoch_acc_sum: float = 0
+
+    data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
+
+    for concated_tokens_batch, offset_batch, label_batch, in data:
+        concated_tokens_batch = concated_tokens_batch.to(device)
+        offset_batch = offset_batch.to(device)
+        label_batch = label_batch.to(device)
+
+        # Shape [batch_size][class_count]
+        output_batch = model(concated_tokens_batch, offset_batch)
+
+        loss = criterion(output_batch, label_batch)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        epoch_loss_sum += loss.item()
+        epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
+
+    # Adjust the learning rate
+    scheduler.step()
+
+    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
+
+
+def test(device, model, criterion, dataset: Dataset) -> Tuple[float, float]:
+    """
+    :return: 1. Epoch loss
+             2. Epoch accuracy
+    """
+
+    epoch_loss_sum = 0
+    epoch_acc_sum = 0
+
+    data = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=generate_batch)
+
+    for concated_tokens_batch, offset_batch, label_batch in data:
+        concated_tokens_batch = concated_tokens_batch.to(device)
+        offset_batch = offset_batch.to(device)
+        label_batch = label_batch.to(device)
+
+        with torch.no_grad():
+            output_batch = model(concated_tokens_batch, offset_batch)
+
+            loss = criterion(output_batch, label_batch)
+
+            epoch_loss_sum += loss.item()
+            epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
+
+    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
 
 
 if __name__ == '__main__':
