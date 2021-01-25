@@ -8,52 +8,13 @@ from typing import List, Tuple
 import torch
 import torch.nn as nn
 import torchtext
-from pytorch_lightning import LightningModule
 from torch import Tensor, optim
-from torch.nn import EmbeddingBag, Linear
 from torch.optim import Optimizer
 from torch.types import Device
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
-from torch.utils.data.dataset import random_split
 from torchtext.data.utils import ngrams_iterator
 from torchtext.vocab import Vocab
-
-
-class TextSentiment(LightningModule):
-
-    embedding: EmbeddingBag
-    fc: Linear
-
-    def __init__(self, vocab_size: int, embed_dim: int, num_classes: int):
-        super().__init__()
-
-        # Create layers
-        self.embedding = EmbeddingBag(vocab_size, embed_dim, sparse=True)
-        self.fc = Linear(embed_dim, num_classes)
-
-        # Init weights
-        initrange = 0.5
-        self.embedding.weight.data.uniform_(-initrange, initrange)
-        self.fc.weight.data.uniform_(-initrange, initrange)
-        self.fc.bias.data.zero_()
-
-    def configure_optimizers(self):
-        return optim.SGD(self.parameters(), lr=4.0)
-
-    def forward(self, tokens_batch_concated: List[int], offsets: List[int]):
-        """
-        :return: Class logits, shape [batch_size][class_count]
-        """
-
-        # Shape [batch_size][embed_dim]
-        embeddings: Tensor = self.embedding(tokens_batch_concated, offsets)
-
-        # Shape [batch_size][class_count]
-        class_logits: Tensor = self.fc(embeddings)
-
-        return class_logits
-
 
 EMBED_DIM = 32
 EPOCH_COUNT = 5
@@ -66,7 +27,7 @@ def main():
     vocab_size = len(train_valid_dataset.get_vocab())
     class_count = len(train_valid_dataset.get_labels())
 
-    model = TextSentiment(vocab_size, EMBED_DIM, class_count).to(device)
+    model = Classifier(vocab_size, EMBED_DIM, class_count).to(device)
 
     #
     # Split the dataset and run the model
