@@ -3,8 +3,10 @@
 #
 
 import os
+from typing import List
 
 import torch
+import torch.nn as nn
 from torchtext.datasets import text_classification
 
 BATCH_SIZE = 16
@@ -22,29 +24,39 @@ train_dataset, test_dataset = ag_news(root='data/', ngrams=NGRAMS, vocab=None)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
 #
 # Define the model
 #
 
-import torch.nn as nn
-
-
 class TextSentiment(nn.Module):
-    def __init__(self, vocab_size, embed_dim, num_class):
+    embedding: nn.EmbeddingBag
+    fc: nn.Linear
+
+    def __init__(self, vocab_size: int, embed_dim: int, num_class: int):
         super().__init__()
+
         self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
         self.fc = nn.Linear(embed_dim, num_class)
+
         self.init_weights()
 
     def init_weights(self):
         initrange = 0.5
+
         self.embedding.weight.data.uniform_(-initrange, initrange)
+
         self.fc.weight.data.uniform_(-initrange, initrange)
         self.fc.bias.data.zero_()
 
-    def forward(self, text, offsets):
-        embedded = self.embedding(text, offsets)
-        return self.fc(embedded)
+    def forward(self, concated_token_lists: List[int], offsets: List[int]):
+        # Shape [batch_size][embed_dim]
+        embeddings: torch.Tensor = self.embedding(concated_token_lists, offsets)
+
+        # Shape [batch_size][class_count]
+        outputs: torch.Tensor = self.fc(embeddings)
+
+        return outputs
 
 
 #
