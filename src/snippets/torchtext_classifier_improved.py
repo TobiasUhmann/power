@@ -3,17 +3,23 @@
 #
 
 import os
+import time
 from typing import List, Tuple
 
 import torch
 import torch.nn as nn
-from torch import Tensor
+import torchtext
+from torch import Tensor, optim
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataset import random_split
+from torchtext.data.utils import ngrams_iterator
 from torchtext.datasets import text_classification
+from torchtext.vocab import Vocab
 
 BATCH_SIZE = 16
 EMBED_DIM = 32
+EPOCH_COUNT = 5
 NGRAMS = 2
 
 #
@@ -24,7 +30,7 @@ if not os.path.isdir('data/'):
     os.mkdir('data/')
 
 ag_news = text_classification.DATASETS['AG_NEWS']
-train_dataset, test_dataset = ag_news(root='data/', ngrams=NGRAMS, vocab=None)
+train_valid_dataset, test_dataset = ag_news(root='data/', ngrams=NGRAMS, vocab=None)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -71,8 +77,8 @@ class TextSentiment(nn.Module):
 # Instantiate the instance
 #
 
-vocab_size = len(train_dataset.get_vocab())
-class_count = len(train_dataset.get_labels())
+vocab_size = len(train_valid_dataset.get_vocab())
+class_count = len(train_valid_dataset.get_labels())
 
 model = TextSentiment(vocab_size, EMBED_DIM, class_count).to(device)
 
@@ -118,7 +124,6 @@ def train_func(dataset: Dataset) -> Tuple[float, float]:
     data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
 
     for concated_tokens_batch, offset_batch, label_batch, in data:
-
         concated_tokens_batch = concated_tokens_batch.to(device)
         offset_batch = offset_batch.to(device)
         label_batch = label_batch.to(device)
@@ -153,7 +158,6 @@ def test(dataset: Dataset) -> Tuple[float, float]:
     data = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=generate_batch)
 
     for concated_tokens_batch, offset_batch, label_batch in data:
-
         concated_tokens_batch = concated_tokens_batch.to(device)
         offset_batch = offset_batch.to(device)
         label_batch = label_batch.to(device)
@@ -173,76 +177,76 @@ def test(dataset: Dataset) -> Tuple[float, float]:
 # Split the dataset and run the model
 #
 
-import time
-from torch.utils.data.dataset import random_split
-
-N_EPOCHS = 5
 min_valid_loss = float('inf')
 
-criterion = torch.nn.CrossEntropyLoss().to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=4.0)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.9)
+criterion = nn.CrossEntropyLoss().to(device)
+optimizer = optim.SGD(model.parameters(), lr=4.0)
+scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.9)
 
-train_len = int(len(train_dataset) * 0.95)
-sub_train_, sub_valid_ = \
-    random_split(train_dataset, [train_len, len(train_dataset) - train_len])
+train_len = int(len(train_valid_dataset) * 0.95)
+valid_len = len(train_valid_dataset) - train_len
+train_dataset, valid_dataset = random_split(train_valid_dataset, [train_len, valid_len])
 
-for epoch in range(N_EPOCHS):
+for epoch in range(EPOCH_COUNT):
     start_time = time.time()
-    train_loss, train_acc = train_func(sub_train_)
-    valid_loss, valid_acc = test(sub_valid_)
 
-    secs = int(time.time() - start_time)
-    mins = secs / 60
-    secs = secs % 60
+    train_loss, train_acc = train_func(train_dataset)
+    valid_loss, valid_acc = test(valid_dataset)
 
-    print('Epoch: %d' % (epoch + 1), " | time in %d minutes, %d seconds" % (mins, secs))
-    print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc * 100:.1f}%(train)')
-    print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc * 100:.1f}%(valid)')
+    total_secs = int(time.time() - start_time)
+    mins = total_secs / 60
+    secs = total_secs % 60
+
+    print()
+    print(f'Epoch: {epoch + 1} | time in {mins} minutes, {secs} seconds')
+    print(f'\tTrain | loss = {train_loss:.4f}\t|\tacc = {train_acc * 100:.1f}%')
+    print(f'\tValid | loss = {valid_loss:.4f}\t|\tacc = {valid_acc * 100:.1f}%')
 
 #
 # Evaluate the model with test dataset
 #
 
-print('Checking the results of test dataset...')
 test_loss, test_acc = test(test_dataset)
-print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc * 100:.1f}%(test)')
+
+print()
+print('Checking the results of test dataset ...')
+print(f'\tTest  | loss = {test_loss:.4f}\t|\tacc = {test_acc * 100:.1f}%')
 
 #
 # Test on a random news
 #
 
-from torchtext.data.utils import ngrams_iterator
-from torchtext.data.utils import get_tokenizer
-
-ag_news_label = {1: "World",
-                 2: "Sports",
-                 3: "Business",
-                 4: "Sci/Tec"}
+class_to_label = {1: 'World', 2: 'Sports', 3: 'Business', 4: 'Sci/Tec'}
 
 
-def predict(text, model, vocab, ngrams):
-    tokenizer = get_tokenizer("basic_english")
+def predict(text: str, model: nn.Module, vocab: Vocab, ngrams: int):
+    tokenizer = torchtext.data.utils.get_tokenizer('basic_english')
+    words: List[str] = tokenizer(text)
+
     with torch.no_grad():
-        text = torch.tensor([vocab[token]
-                             for token in ngrams_iterator(tokenizer(text), ngrams)])
-        output = model(text, torch.tensor([0]))
-        return output.argmax(1).item() + 1
+        tokens = torch.tensor([vocab[token] for token in ngrams_iterator(words, ngrams)])
+
+        class_logits: Tensor = model(tokens, torch.tensor([0]))
+        pred_class = class_logits.argmax(1).item() + 1
+
+        return pred_class
 
 
-ex_text_str = "MEMPHIS, Tenn. – Four days ago, Jon Rahm was \
-    enduring the season’s worst weather conditions on Sunday at The \
-    Open on his way to a closing 75 at Royal Portrush, which \
-    considering the wind and the rain was a respectable showing. \
-    Thursday’s first round at the WGC-FedEx St. Jude Invitational \
-    was another story. With temperatures in the mid-80s and hardly any \
-    wind, the Spaniard was 13 strokes better in a flawless round. \
-    Thanks to his best putting performance on the PGA Tour, Rahm \
-    finished with an 8-under 62 for a three-stroke lead, which \
-    was even more impressive considering he’d never played the \
-    front nine at TPC Southwind."
+ex_text_str = "MEMPHIS, Tenn. – Four days ago, Jon Rahm was enduring the season’s" \
+              " worst weather conditions on Sunday at The Open on his way to a" \
+              " closing 75 at Royal Portrush, which considering the wind and the" \
+              " rain was a respectable showing. Thursday’s first round at the" \
+              " WGC-FedEx St. Jude Invitational was another story. With temperatures" \
+              " in the mid-80s and hardly any wind, the Spaniard was 13 strokes" \
+              " better in a flawless round. Thanks to his best putting performance" \
+              " on the PGA Tour, Rahm     finished with an 8-under 62 for a" \
+              " three-stroke lead, which was even more impressive considering he’d" \
+              " never played the front nine at TPC Southwind."
 
-vocab = train_dataset.get_vocab()
-model = model.to("cpu")
+model = model.to('cpu')
+vocab = train_valid_dataset.get_vocab()
 
-print("This is a %s news" % ag_news_label[predict(ex_text_str, model, vocab, 2)])
+pred_class = predict(ex_text_str, model, vocab, ngrams=2)
+pred_label = class_to_label[pred_class]
+
+print(f'This is a {pred_label} news')
