@@ -17,6 +17,7 @@ class DataModule(LightningDataModule):
     ngrams: int
 
     vocab: Vocab
+    num_classes: int
 
     train_dataset: Dataset
     valid_dataset: Dataset
@@ -30,7 +31,7 @@ class DataModule(LightningDataModule):
         self.ngrams = ngrams
 
     #
-    # Prepare and setup data
+    # Prepare data
     #
 
     def prepare_data(self):
@@ -38,9 +39,10 @@ class DataModule(LightningDataModule):
             os.mkdir(self.data_dir)
 
         ag_news = text_classification.DATASETS['AG_NEWS']
-        train_valid_set, test_set, = ag_news(root='data/', ngrams=self.ngrams, vocab=None)
+        train_valid_set, test_set = ag_news(root='data/', ngrams=self.ngrams, vocab=None)
 
         self.vocab = train_valid_set.get_vocab()
+        self.num_classes = len(train_valid_set.get_labels())
 
         train_len = int(len(train_valid_set) * 0.7)
         valid_len = len(train_valid_set) - train_len
@@ -50,28 +52,18 @@ class DataModule(LightningDataModule):
         self.valid_dataset = valid_set
         self.test_dataset = test_set
 
-    def setup(self, stage: Optional[str] = None):
-        pass
-
     #
     # DataLoader methods
     #
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=generate_batch)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=generate_batch, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=generate_batch)
+        return DataLoader(self.valid_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
     def test_dataloader(self) -> DataLoader:
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=generate_batch)
-
-    #
-    # Other methods
-    #
-
-    def transfer_batch_to_device(self, batch: Any, device: Device) -> Any:
-        pass
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
 
 def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) -> Tuple[Tensor, Tensor, Tensor]:
