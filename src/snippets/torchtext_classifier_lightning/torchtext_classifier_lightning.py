@@ -53,19 +53,19 @@ def main():
     trainer.test(classifier, datamodule=data_module)
 
     #
-    # Test on a random news
+    # Predict custom sample
     #
 
     class_to_label = {1: 'World', 2: 'Sports', 3: 'Business', 4: 'Sci/Tec'}
 
-    def predict(text: str, model: nn.Module, vocab: Vocab, ngrams: int):
+    def predict(text: str, classifier: Classifier, vocab: Vocab, ngrams: int):
         tokenizer = torchtext.data.utils.get_tokenizer('basic_english')
         words: List[str] = tokenizer(text)
 
         with torch.no_grad():
-            tokens = torch.tensor([vocab[token] for token in ngrams_iterator(words, ngrams)])
+            tokens = torch.tensor([vocab[ngram] for ngram in ngrams_iterator(words, ngrams)])
 
-            class_logits: Tensor = model(tokens, torch.tensor([0]))
+            class_logits: Tensor = classifier(tokens, torch.tensor([0]))
             pred_class = class_logits.argmax(1).item() + 1
 
             return pred_class
