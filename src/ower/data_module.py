@@ -1,106 +1,90 @@
-from os import path
-from typing import Optional, List, Tuple
+import os
+from typing import List, Tuple
 
 import torch
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchtext.data import TabularDataset, Field
+from torchtext.vocab import Vocab
 
 
 class DataModule(LightningDataModule):
     data_dir: str
     batch_size: int
 
-    train_dataset: List[Tuple[List[float], torch.Tensor]]
-    val_dataset: List[Tuple[List[float], torch.Tensor]]
-    test_dataset: List[Tuple[List[float], torch.Tensor]]
+    vocab: Vocab
+    num_classes: int
+
+    train_dataset: List[Tuple[int, List[int], List[int]]]
+    valid_dataset: List[Tuple[int, List[int], List[int]]]
+    test_dataset: List[Tuple[int, List[int], List[int]]]
 
     def __init__(self, data_dir: str, batch_size: int):
         super().__init__()
 
         self.data_dir = data_dir
         self.batch_size = batch_size
-        self.num_classes: int
 
-    def setup(self, stage: Optional[str] = None):
-        #
-        # Read dataset TSV
-        #
+    #
+    # Prepare data
+    #
 
-        samples_train_tsv = path.join(self.data_dir, 'samples-v1-train.tsv')
-        with open(samples_train_tsv, encoding='utf-8') as f:
-            header = f.readline()
+    def prepare_data(self):
+        train_samples_tsv = os.path.join(self.data_dir, 'samples-v1-train.tsv')
+        valid_samples_tsv = os.path.join(self.data_dir, 'samples-v1-valid.tsv')
+        test_samples_tsv = os.path.join(self.data_dir, 'samples-v1-test.tsv')
 
-        header_length = len(header.split('\t'))
-        self.num_classes = header_length - 2
+        with open(train_samples_tsv, encoding='utf-8') as f:
+            train_header = f.readline()
+            train_header_len = len(train_header.split('\t'))
 
-        fields = [('entity', Field(sequential=False, use_vocab=False))]
+        with open(valid_samples_tsv, encoding='utf-8') as f:
+            valid_header = f.readline()
+            valid_header_len = len(valid_header.split('\t'))
 
-        for i in range(header_length - 2):
-            fields.append((str(i), Field(sequential=False, use_vocab=False)))
+        with open(test_samples_tsv, encoding='utf-8') as f:
+            test_header = f.readline()
+            test_header_len = len(test_header.split('\t'))
 
-        context_field = Field(sequential=True,
-                              use_vocab=True,
-                              tokenize=lambda x: x.split(),
-                              lower=True)
+        assert train_header_len == valid_header_len == test_header_len
 
-        fields.append(('context', context_field))
+        self.num_classes = train_header_len - 2
 
-        #
-        # Split full dataset into train/val/test
-        #
+        def tokenize(text: str):
+            return text.split()
 
-        train_val_dataset, test_dataset = TabularDataset.splits(path=self.data_dir,
-                                                                train='samples-v1-train.tsv',
-                                                                test='samples-v1-test.tsv',
-                                                                format='tsv',
-                                                                skip_header=False,
-                                                                fields=fields)
+        fields = [('entity', Field())] + \
+                 [(str(i), Field()) for i in range(self.num_classes)] + \
+                 [('context', Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True))]
 
-        train_val_len = len(train_val_dataset)
-        train_len = int(train_val_len * 0.95)
-        val_len = train_val_len - train_len
+        raw_train_set = TabularDataset(train_samples_tsv, 'tsv', fields, skip_header=True)
+        raw_valid_set = TabularDataset(valid_samples_tsv, 'tsv', fields, skip_header=True)
+        raw_test_set = TabularDataset(test_samples_tsv, 'tsv', fields, skip_header=True)
 
-        train_dataset, val_dataset, = random_split(train_val_dataset, [train_len, val_len])
+        context_field = fields[-1][1]
+        context_field.build_vocab(raw_train_set)
+        self.vocab = context_field.vocab
 
-        #
-        # Transform datasets
-        #
+        self.train_dataset = [(int(getattr(sample, 'entity')),
+                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                               [self.vocab[token] for token in sample.context])
+                              for sample in raw_train_set]
 
-        context_field.build_vocab(train_val_dataset)
-        vocab = context_field.vocab
+        self.valid_dataset = [(int(getattr(sample, 'entity')),
+                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                               [self.vocab[token] for token in sample.context])
+                              for sample in raw_valid_set]
 
-        transformed_train_dataset = [(
-            float(getattr(sample, 'entity')),
-            [float(getattr(sample, str(i))) for i in range(header_length - 2)],
-            torch.tensor([vocab[t] for t in sample.context])
-        ) for sample in train_dataset]
-
-        transformed_val_dataset = [(
-            float(getattr(sample, 'entity')),
-            [float(getattr(sample, str(i))) for i in range(header_length - 2)],
-            torch.tensor([vocab[t] for t in sample.context])
-        ) for sample in val_dataset]
-
-        transformed_test_dataset = [(
-            float(getattr(sample, 'entity')),
-            [float(getattr(sample, str(i))) for i in range(header_length - 2)],
-            torch.tensor([vocab[t] for t in sample.context])
-        ) for sample in test_dataset]
-
-        #
-        # Store datasets
-        #
-
-        self.train_dataset = transformed_train_dataset
-        self.val_dataset = transformed_val_dataset
-        self.test_dataset = transformed_test_dataset
+        self.test_dataset = [(int(getattr(sample, 'entity')),
+                              [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                              [self.vocab[token] for token in sample.context])
+                             for sample in raw_test_set]
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
+        return DataLoader(self.valid_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
     def test_dataloader(self) -> DataLoader:
         return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
