@@ -1,10 +1,15 @@
 from argparse import ArgumentParser
 from os.path import isdir
+from typing import List
 
+import torch
+import torchtext
 from pytorch_lightning import Trainer
+from torch import Tensor
+from torchtext.vocab import Vocab
 
-from ower.old_classifier import OldClassifier
-from ower.old_data_module import OldDataModule
+from ower.classifier import Classifier
+from ower.data_module import DataModule
 
 
 def main():
@@ -53,19 +58,48 @@ def main():
 
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
-    dm = OldDataModule(data_dir=ower_dataset_dir, batch_size=64)
-    dm.prepare_data()
-    dm.setup('fit')
+    data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64)
+    data_module.prepare_data()
 
-    classifier = OldClassifier(vocab_size=100000, embed_dim=32, num_class=dm.num_classes)
-    if gpus:
-        trainer = Trainer(max_epochs=50, gpus=gpus)
-    else:
-        trainer = Trainer(max_epochs=50)
+    vocab = data_module.vocab
+    num_classes = data_module.num_classes
 
-    trainer.fit(classifier, dm)
+    classifier = Classifier(vocab_size=len(vocab), embed_dim=32, num_classes=num_classes)
 
-    trainer.save_checkpoint('data/ower.ckpt')
+    trainer = Trainer(max_epochs=5, gpus=gpus)
+    trainer.fit(classifier, datamodule=data_module)
+
+    trainer.save_checkpoint('data/classifier.ckpt')
+
+    trainer.test(classifier, datamodule=data_module)
+
+    #
+    # Predict custom sample
+    #
+
+    class_labels = ['is_married', 'is_male', 'is_american', 'is_actor']
+
+    def predict(text: str, classifier: Classifier, vocab: Vocab):
+        words = text.split()
+
+        with torch.no_grad():
+            tokens = torch.tensor([vocab[word] for word in words])
+
+            class_logits: Tensor = classifier(tokens, torch.tensor([0]))
+            pred_classes = class_logits > 0.5
+
+            return pred_classes
+
+    ex_text_str = "American actress."
+
+    classifier = classifier.to('cpu')
+    vocab = data_module.vocab
+
+    pred_classes = predict(ex_text_str, classifier, vocab)
+    # pred_labels = [class_labels[pred_class] for pred_class in pred_classes if pred_class == 1]
+
+    print()
+    print('Kamala Harris: ', pred_classes)
 
 
 if __name__ == '__main__':

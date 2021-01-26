@@ -1,89 +1,104 @@
-from typing import Callable, List
+import os
+from typing import List, Tuple
 
-import pandas as pd
-import pytorch_lightning as pl
-from torch.utils.data import DataLoader, RandomSampler
-from torchnlp.encoders import LabelEncoder
+import torch
+from pytorch_lightning import LightningDataModule
+from torch import Tensor, tensor
+from torch.utils.data import DataLoader
+from torchtext.data import TabularDataset, Field
+from torchtext.vocab import Vocab
 
 
-class DataModule(pl.LightningDataModule):
+class DataModule(LightningDataModule):
+    data_dir: str
     batch_size: int
-    collate_fn: Callable
-    loader_workers: int
-    test_csv: str
-    train_csv: str
-    valid_csv: str
 
-    def __init__(self,
-                 batch_size: int,
-                 collate_fn: Callable,
-                 loader_workers: int,
-                 test_csv: str,
-                 train_csv: str,
-                 valid_csv: str,
-                 ):
+    vocab: Vocab
+    num_classes: int
+
+    train_dataset: List[Tuple[int, List[int], List[int]]]
+    valid_dataset: List[Tuple[int, List[int], List[int]]]
+    test_dataset: List[Tuple[int, List[int], List[int]]]
+
+    def __init__(self, data_dir: str, batch_size: int):
         super().__init__()
 
+        self.data_dir = data_dir
         self.batch_size = batch_size
-        self.collate_fn = collate_fn
-        self.loader_workers = loader_workers
-        self.test_csv = test_csv
-        self.train_csv = train_csv
-        self.valid_csv = valid_csv
 
-        #
-        # Set up label encoder
-        #
+    #
+    # Prepare data
+    #
 
-        self.label_encoder = LabelEncoder(
-            pd.read_csv(self.train_csv).label.astype(str).unique().tolist(),
-            reserved_labels=[],
-        )
+    def prepare_data(self):
+        train_samples_tsv = os.path.join(self.data_dir, 'samples-v1-train.tsv')
+        valid_samples_tsv = os.path.join(self.data_dir, 'samples-v1-valid.tsv')
+        test_samples_tsv = os.path.join(self.data_dir, 'samples-v1-test.tsv')
 
-        self.label_encoder.unknown_index = None
+        with open(train_samples_tsv, encoding='utf-8') as f:
+            train_header = f.readline()
+            train_header_len = len(train_header.split('\t'))
+
+        with open(valid_samples_tsv, encoding='utf-8') as f:
+            valid_header = f.readline()
+            valid_header_len = len(valid_header.split('\t'))
+
+        with open(test_samples_tsv, encoding='utf-8') as f:
+            test_header = f.readline()
+            test_header_len = len(test_header.split('\t'))
+
+        assert train_header_len == valid_header_len == test_header_len
+
+        self.num_classes = train_header_len - 2
+
+        def tokenize(text: str):
+            return text.split()
+
+        fields = [('entity', Field(sequential=False, use_vocab=False))] + \
+                 [(str(i), Field(sequential=False, use_vocab=False)) for i in range(self.num_classes)] + \
+                 [('context', Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True))]
+
+        raw_train_set = TabularDataset(train_samples_tsv, 'tsv', fields, skip_header=True)
+        raw_valid_set = TabularDataset(valid_samples_tsv, 'tsv', fields, skip_header=True)
+        raw_test_set = TabularDataset(test_samples_tsv, 'tsv', fields, skip_header=True)
+
+        context_field = fields[-1][1]
+        context_field.build_vocab(raw_train_set)
+        self.vocab = context_field.vocab
+
+        self.train_dataset = [(int(getattr(sample, 'entity')),
+                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                               [self.vocab[token] for token in sample.context])
+                              for sample in raw_train_set]
+
+        self.valid_dataset = [(int(getattr(sample, 'entity')),
+                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                               [self.vocab[token] for token in sample.context])
+                              for sample in raw_valid_set]
+
+        self.test_dataset = [(int(getattr(sample, 'entity')),
+                              [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                              [self.vocab[token] for token in sample.context])
+                             for sample in raw_test_set]
 
     def train_dataloader(self) -> DataLoader:
-        train_dataset = read_csv(self.train_csv)
-
-        return DataLoader(
-            dataset=train_dataset,
-            sampler=RandomSampler(train_dataset),
-            batch_size=self.batch_size,
-            collate_fn=self.collate_fn,
-            num_workers=self.loader_workers,
-        )
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=generate_batch, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
-        valid_dataset = read_csv(self.valid_csv)
-
-        return DataLoader(
-            dataset=valid_dataset,
-            sampler=RandomSampler(valid_dataset),
-            batch_size=self.batch_size,
-            collate_fn=self.collate_fn,
-            num_workers=self.loader_workers,
-        )
+        return DataLoader(self.valid_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
     def test_dataloader(self) -> DataLoader:
-        test_dataset = read_csv(self.test_csv)
-
-        return DataLoader(
-            dataset=test_dataset,
-            sampler=RandomSampler(test_dataset),
-            batch_size=self.batch_size,
-            collate_fn=self.collate_fn,
-            num_workers=self.loader_workers,
-        )
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
 
-def read_csv(path: str) -> List:
-    df = pd.read_csv(path)
-    df = df[['description', 'is_married', 'is_male', 'is_american', 'is_actor']]
+def generate_batch(entity_classes_tokens_batch: List[Tuple[int, List[int], List[int]]]) \
+        -> Tuple[Tensor, Tensor, Tensor]:
+    _, classes_batch, tokens_batch = zip(*entity_classes_tokens_batch)
 
-    df['description'] = df['description'].astype(str)
-    df['is_married'] = df['is_married'].astype(str)
-    df['is_male'] = df['is_male'].astype(str)
-    df['is_american'] = df['is_american'].astype(str)
-    df['is_actor'] = df['is_actor'].astype(str)
+    num_tokens_batch = [len(tokens) for tokens in tokens_batch]
 
-    return df.to_dict('records')
+    tokens_batch = [tensor(tokens) for tokens in tokens_batch]
+    tokens_batch_concated = torch.cat(tokens_batch)
+    offset_batch = torch.tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
+
+    return tokens_batch_concated, offset_batch, tensor(classes_batch)
