@@ -75,7 +75,7 @@ def main():
                   " WGC-FedEx St. Jude Invitational was another story. With temperatures" \
                   " in the mid-80s and hardly any wind, the Spaniard was 13 strokes" \
                   " better in a flawless round. Thanks to his best putting performance" \
-                  " on the PGA Tour, Rahm     finished with an 8-under 62 for a" \
+                  " on the PGA Tour, Rahm finished with an 8-under 62 for a" \
                   " three-stroke lead, which was even more impressive considering he’d" \
                   " never played the front nine at TPC Southwind."
 

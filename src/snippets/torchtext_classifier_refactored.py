@@ -100,7 +100,7 @@ def main():
     for epoch in range(NUM_EPOCHS):
         start_time = time.time()
 
-        train_loss, train_acc = train_func(device, model, criterion, optimizer, scheduler, train_dataset)
+        train_loss, train_acc = train(device, model, criterion, optimizer, scheduler, train_dataset)
         valid_loss, valid_acc = test(device, model, criterion, valid_dataset)
 
         total_secs = int(time.time() - start_time)
@@ -183,7 +183,7 @@ def generate_batch(
     return concated_tokens_batch, offset_batch, label_batch
 
 
-def train_func(
+def train(
         device: Device,
         model: nn.Module,
         criterion,
