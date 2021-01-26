@@ -79,7 +79,7 @@ def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) -> Tuple[Tensor
 
     num_tokens_batch = [len(tokens) for tokens in tokens_batch]
 
-    offset_batch = tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
     tokens_batch_concated = torch.cat(tokens_batch)
+    offset_batch = tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
 
     return tokens_batch_concated, offset_batch, label_batch

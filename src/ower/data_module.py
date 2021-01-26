@@ -3,6 +3,7 @@ from typing import List, Tuple
 
 import torch
 from pytorch_lightning import LightningDataModule
+from torch import Tensor, tensor
 from torch.utils.data import DataLoader
 from torchtext.data import TabularDataset, Field
 from torchtext.vocab import Vocab
@@ -81,7 +82,7 @@ class DataModule(LightningDataModule):
                              for sample in raw_test_set]
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=generate_batch, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.valid_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
@@ -90,13 +91,13 @@ class DataModule(LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
 
-def generate_batch(batch):
-    ent = torch.tensor([entry[0] for entry in batch])
-    label = torch.tensor([entry[1] for entry in batch])
-    text = [entry[2] for entry in batch]
-    offsets = [0] + [len(entry) for entry in text]
+def generate_batch(entity_classes_tokens_batch: List[int, List[int], List[int]]) \
+        -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    entity_batch, classes_batch, tokens_batch = zip(*entity_classes_tokens_batch)
 
-    offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
-    text = torch.cat(text)
+    num_tokens_batch = [len(tokens) for tokens in tokens_batch]
 
-    return ent, text, offsets, label
+    tokens_batch_concated = torch.cat(tokens_batch)
+    offset_batch = torch.tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
+
+    return tensor(entity_batch), tokens_batch_concated, offset_batch, tensor(classes_batch)
