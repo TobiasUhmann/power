@@ -27,11 +27,11 @@ def main():
     # Load data and instantiate classifier
     #
 
-    # data_module = DataModule(data_dir='data/', batch_size=BATCH_SIZE, ngrams=NGRAMS)
-    # data_module.prepare_data()
-    #
-    # with open('data/data_module.pkl', 'wb') as f:
-    #     pickle.dump(data_module, f)
+    data_module = DataModule(data_dir='data/', batch_size=BATCH_SIZE, ngrams=NGRAMS)
+    data_module.prepare_data()
+
+    with open('data/data_module.pkl', 'wb') as f:
+        pickle.dump(data_module, f)
 
     with open('data/data_module.pkl', 'rb') as f:
         data_module = pickle.load(f)
@@ -46,7 +46,7 @@ def main():
     #
 
     trainer = Trainer(max_epochs=NUM_EPOCHS, gpus=1)
-    trainer.fit(classifier, data_module)
+    trainer.fit(classifier, datamodule=data_module)
 
     trainer.save_checkpoint('data/classifier.ckpt')
 

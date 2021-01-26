@@ -53,19 +53,20 @@ def main():
 
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
-    dm = DataModule(data_dir=ower_dataset_dir, batch_size=64)
-    dm.prepare_data()
-    dm.setup('fit')
+    data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64)
+    data_module.prepare_data()
 
-    classifier = Classifier(vocab_size=100000, embed_dim=32, num_classes=dm.num_classes)
-    if gpus:
-        trainer = Trainer(max_epochs=50, gpus=gpus)
-    else:
-        trainer = Trainer(max_epochs=50)
+    vocab = data_module.vocab
+    num_classes = data_module.num_classes
 
-    trainer.fit(classifier, dm)
+    classifier = Classifier(vocab_size=len(vocab), embed_dim=32, num_classes=num_classes)
 
-    trainer.save_checkpoint('data/ower.ckpt')
+    trainer = Trainer(max_epochs=50, gpus=gpus)
+    trainer.fit(classifier, datamodule=data_module)
+
+    trainer.save_checkpoint('data/classifier.ckpt')
+
+    trainer.test(classifier, datamodule=data_module)
 
 
 if __name__ == '__main__':

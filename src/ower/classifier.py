@@ -25,7 +25,7 @@ class Classifier(LightningModule):
         self.fc = Linear(embed_dim, num_classes)
 
         # Loss function
-        self.criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * 100))
+        self.criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * 4))
 
         # Init weights
         initrange = 0.5
@@ -34,9 +34,9 @@ class Classifier(LightningModule):
         self.fc.bias.data.zero_()
 
         # Add metrics
-        self.prec = pl.metrics.Precision(num_classes=100, multilabel=True)
-        self.recall = pl.metrics.Recall(num_classes=100, multilabel=True)
-        self.f1 = pl.metrics.F1(num_classes=100, multilabel=True)
+        self.prec = pl.metrics.Precision(num_classes=4, multilabel=True)
+        self.recall = pl.metrics.Recall(num_classes=4, multilabel=True)
+        self.f1 = pl.metrics.F1(num_classes=4, multilabel=True)
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=4.0)
@@ -54,11 +54,11 @@ class Classifier(LightningModule):
         tokens_batch_concated, offset_batch, classes_batch = batch
 
         class_logits_batch = self(tokens_batch_concated, offset_batch)
-        loss = self.criterion(class_logits_batch, classes_batch)
+        loss = self.criterion(class_logits_batch, classes_batch.float())
 
         return loss
 
-    def validation_step(self, batch, batch_idx) -> None:
+    def validation_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int) -> None:
         tokens_batch_concated, offset_batch, classes_batch = batch
 
         class_logits_batch = self(tokens_batch_concated, offset_batch)

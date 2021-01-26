@@ -54,8 +54,8 @@ class DataModule(LightningDataModule):
         def tokenize(text: str):
             return text.split()
 
-        fields = [('entity', Field())] + \
-                 [(str(i), Field()) for i in range(self.num_classes)] + \
+        fields = [('entity', Field(sequential=False, use_vocab=False))] + \
+                 [(str(i), Field(sequential=False, use_vocab=False)) for i in range(self.num_classes)] + \
                  [('context', Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True))]
 
         raw_train_set = TabularDataset(train_samples_tsv, 'tsv', fields, skip_header=True)
@@ -91,12 +91,13 @@ class DataModule(LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
 
-def generate_batch(entity_classes_tokens_batch: List[int, List[int], List[int]]) \
+def generate_batch(entity_classes_tokens_batch: List[Tuple[int, List[int], List[int]]]) \
         -> Tuple[Tensor, Tensor, Tensor]:
     _, classes_batch, tokens_batch = zip(*entity_classes_tokens_batch)
 
     num_tokens_batch = [len(tokens) for tokens in tokens_batch]
 
+    tokens_batch = [tensor(tokens) for tokens in tokens_batch]
     tokens_batch_concated = torch.cat(tokens_batch)
     offset_batch = torch.tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
 

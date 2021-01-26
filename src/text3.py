@@ -12,7 +12,7 @@ def main():
                             num_classes=4)
 
     trainer = Trainer(gpus=1)
-    trainer.fit(classifier, data_module)
+    trainer.fit(classifier, datamodule=data_module)
 
 
 if __name__ == '__main__':

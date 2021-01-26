@@ -86,7 +86,7 @@ def load_classifier_from_experiment(experiment_dir: str) -> Classifier:
                                                  hparams=Namespace(**hparams),
                                                  vocab_size=100000,
                                                  embed_dim=32,
-                                                 num_class=100)
+                                                 num_class=4)
 
     return classifier
 
