@@ -7,19 +7,7 @@ from torch.utils.data import DataLoader, random_split
 from torchtext.data import TabularDataset, Field
 
 
-def generate_batch(batch):
-    ent = torch.tensor([entry[0] for entry in batch])
-    label = torch.tensor([entry[1] for entry in batch])
-    text = [entry[2] for entry in batch]
-    offsets = [0] + [len(entry) for entry in text]
-
-    offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
-    text = torch.cat(text)
-
-    return ent, text, offsets, label
-
-
-class SimpleDataModule(LightningDataModule):
+class DataModule(LightningDataModule):
     data_dir: str
     batch_size: int
 
@@ -116,3 +104,15 @@ class SimpleDataModule(LightningDataModule):
 
     def test_dataloader(self) -> DataLoader:
         return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
+
+
+def generate_batch(batch):
+    ent = torch.tensor([entry[0] for entry in batch])
+    label = torch.tensor([entry[1] for entry in batch])
+    text = [entry[2] for entry in batch]
+    offsets = [0] + [len(entry) for entry in text]
+
+    offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
+    text = torch.cat(text)
+
+    return ent, text, offsets, label

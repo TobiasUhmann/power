@@ -10,11 +10,11 @@ from torch.nn import Sequential, CrossEntropyLoss
 from torchnlp.utils import lengths_to_mask
 from transformers import AutoModel
 
-from ower.bert_data_module import BertDataModule
-from ower.utils import mask_fill
+from snippets.bert_classifier_lightning.data_module import DataModule
+from snippets.bert_classifier_lightning.utils import mask_fill
 
 
-class BertClassifier(pl.LightningModule):
+class Classifier(pl.LightningModule):
     bert: AutoModel
     tokenizer: Tokenizer
     fc_layers: Sequential
@@ -37,8 +37,8 @@ class BertClassifier(pl.LightningModule):
 
         self.frozen_epochs_count = frozen_epochs_count
 
-        self.data = BertDataModule(batch_size, self.prepare_sample, loader_workers,
-                                   test_csv, train_csv, valid_csv)
+        self.data = DataModule(batch_size, self.prepare_sample, loader_workers,
+                               test_csv, train_csv, valid_csv)
 
         self._build_model(encoder_model, self.data.label_encoder.vocab_size)
 

@@ -3,8 +3,8 @@ from os.path import isdir
 
 from pytorch_lightning import Trainer
 
-from ower.simple_classifier import SimpleClassifier
-from ower.simple_data_module import SimpleDataModule
+from ower.classifier import Classifier
+from ower.data_module import DataModule
 
 
 def main():
@@ -53,11 +53,11 @@ def main():
 
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
-    dm = SimpleDataModule(data_dir=ower_dataset_dir, batch_size=64)
+    dm = DataModule(data_dir=ower_dataset_dir, batch_size=64)
     dm.prepare_data()
     dm.setup('fit')
 
-    classifier = SimpleClassifier(vocab_size=100000, embed_dim=32, num_classes=dm.num_classes)
+    classifier = Classifier(vocab_size=100000, embed_dim=32, num_classes=dm.num_classes)
     if gpus:
         trainer = Trainer(max_epochs=50, gpus=gpus)
     else:

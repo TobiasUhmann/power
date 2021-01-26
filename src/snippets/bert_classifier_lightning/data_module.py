@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, RandomSampler
 from torchnlp.encoders import LabelEncoder
 
 
-class BertDataModule(pl.LightningDataModule):
+class DataModule(pl.LightningDataModule):
     batch_size: int
     collate_fn: Callable
     loader_workers: int

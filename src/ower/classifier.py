@@ -4,7 +4,7 @@ from pytorch_lightning import LightningModule
 from torch import nn
 
 
-class SimpleClassifier(LightningModule):
+class Classifier(LightningModule):
 
     embedding: nn.EmbeddingBag
     fc: nn.Linear
