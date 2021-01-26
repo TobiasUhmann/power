@@ -25,6 +25,10 @@ def main() -> None:
     parser.add_argument('classes_tsv', metavar='classes-tsv',
                         help='Path to (input) Classes TSV')
 
+    parser.add_argument('num_sentences', metavar='num-sentences', type=int,
+                        help='Number of sentences per entity, entities with less sentences'
+                             ' will be dropped')
+
     parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
                         help='Path to (output) OWER Dataset Directory')
 
@@ -36,7 +40,9 @@ def main() -> None:
 
     ryn_dataset_dir = args.ryn_dataset_dir
     classes_tsv = args.classes_tsv
+    num_sentences = args.num_sentences
     ower_dataset_dir = args.ower_dataset_dir
+
     work_dir = args.work_dir
 
     #
@@ -46,6 +52,7 @@ def main() -> None:
     print('Applied config:')
     print('    {:20} {}'.format('ryn-dataset-dir', ryn_dataset_dir))
     print('    {:20} {}'.format('classes-tsv', classes_tsv))
+    print('    {:20} {}'.format('num-sentences', num_sentences))
     print('    {:20} {}'.format('ower-dataset-dir', ower_dataset_dir))
     print()
     print('    {:20} {}'.format('--work-dir', work_dir))
@@ -84,9 +91,9 @@ def main() -> None:
     makedirs(ower_dataset_dir, exist_ok=True)
 
     ower_dataset_files = {
-        'samples_train_tsv': path.join(ower_dataset_dir, 'samples-v1-train.tsv'),
-        'samples_valid_tsv': path.join(ower_dataset_dir, 'samples-v1-valid.tsv'),
-        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v1-test.tsv'),
+        'samples_train_tsv': path.join(ower_dataset_dir, 'samples-v2-train.tsv'),
+        'samples_valid_tsv': path.join(ower_dataset_dir, 'samples-v2-valid.tsv'),
+        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v2-test.tsv'),
     }
 
     #
@@ -105,12 +112,13 @@ def main() -> None:
     # Run actual program
     #
 
-    create_ower_dataset(ryn_dataset_files, classes_tsv, ower_dataset_files, work_dir_files)
+    create_ower_dataset(ryn_dataset_files, classes_tsv, num_sentences, ower_dataset_files, work_dir_files)
 
 
 def create_ower_dataset(
         ryn_dataset_files: Dict[str, str],
         classes_tsv: str,
+        num_sentences: int,
         ower_dataset_files: Dict[str, str],
         work_dir_files: Dict[str, str],
 ) -> None:
@@ -204,24 +212,30 @@ def create_ower_dataset(
         train_tsv_row = [ent]
         for class_ in classes:
             train_tsv_row.append(int(ent in train_class_to_entities[class_]))
-        train_tsv_row.append(' '.join(train_contexts[ent]))
-
+        sentences = list(train_contexts[ent])[:num_sentences]
+        if len(sentences) < num_sentences:
+            continue
+        train_tsv_row.append(sentences)
         train_tsv_rows.append(train_tsv_row)
 
     for ent in valid_contexts:
         valid_tsv_row = [ent]
         for class_ in classes:
             valid_tsv_row.append(int(ent in valid_class_to_entities[class_]))
-        valid_tsv_row.append(' '.join(valid_contexts[ent]))
-
+        sentences = list(valid_contexts[ent])[:num_sentences]
+        if len(sentences) < num_sentences:
+            continue
+        valid_tsv_row.append(sentences)
         valid_tsv_rows.append(valid_tsv_row)
 
     for ent in test_contexts:
         test_tsv_row = [ent]
         for class_ in classes:
             test_tsv_row.append(int(ent in test_class_to_entities[class_]))
-        test_tsv_row.append(' '.join(test_contexts[ent]))
-
+        sentences = list(test_contexts[ent])[:num_sentences]
+        if len(sentences) < num_sentences:
+            continue
+        test_tsv_row.append(sentences)
         test_tsv_rows.append(test_tsv_row)
 
     write_samples_tsv(ower_dataset_files['samples_train_tsv'], train_tsv_rows)
