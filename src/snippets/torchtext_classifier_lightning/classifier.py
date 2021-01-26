@@ -65,5 +65,11 @@ class Classifier(LightningModule):
         # Update metric
         self.acc(output_batch, label_batch)
 
-    def validation_epoch_end(self, outs):
+    def validation_epoch_end(self, outs) -> None:
         print('Accuracy', self.acc.compute())
+
+    def test_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_index: int) -> None:
+        self.validation_step(batch, batch_index)
+
+    def test_epoch_end(self, outs) -> None:
+        self.validation_epoch_end(outs)

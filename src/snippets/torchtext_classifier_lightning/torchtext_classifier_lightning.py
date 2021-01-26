@@ -42,13 +42,15 @@ def main():
     classifier = Classifier(vocab_size, EMBED_DIM, num_classes)
 
     #
-    # Train
+    # Train & Test
     #
 
     trainer = Trainer(max_epochs=NUM_EPOCHS, gpus=1)
     trainer.fit(classifier, data_module)
 
     trainer.save_checkpoint('data/classifier.ckpt')
+
+    trainer.test(classifier, datamodule=data_module)
 
     #
     # Test on a random news

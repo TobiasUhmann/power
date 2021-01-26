@@ -1,10 +1,9 @@
 import os
-from typing import List, Optional, Tuple, Any
+from typing import List, Tuple
 
 import torch
 from pytorch_lightning import LightningDataModule
 from torch import Tensor, tensor
-from torch.types import Device
 from torch.utils.data import DataLoader, random_split
 from torchtext.data import Dataset
 from torchtext.datasets import text_classification
@@ -78,9 +77,9 @@ def generate_batch(label_tokens_batch: List[Tuple[int, Tensor]]) -> Tuple[Tensor
     label_batch = tensor([entry[0] for entry in label_tokens_batch])
     tokens_batch = [entry[1] for entry in label_tokens_batch]
 
-    token_count_batch = [len(tokens) for tokens in tokens_batch]
+    num_tokens_batch = [len(tokens) for tokens in tokens_batch]
 
-    offset_batch = tensor([0] + token_count_batch[:-1]).cumsum(dim=0)
-    concated_tokens_batch = torch.cat(tokens_batch)
+    offset_batch = tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
+    tokens_batch_concated = torch.cat(tokens_batch)
 
-    return concated_tokens_batch, offset_batch, label_batch
+    return tokens_batch_concated, offset_batch, label_batch
