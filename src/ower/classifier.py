@@ -1,20 +1,31 @@
+from typing import Tuple, Any
+
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning import LightningModule
-from torch import nn
+from torch import nn, Tensor
+from torch.nn import EmbeddingBag, Linear, BCEWithLogitsLoss
 
 
 class Classifier(LightningModule):
-
     embedding: nn.EmbeddingBag
     fc: nn.Linear
+
+    criterion: Any
+
+    prec: pl.metrics.Precision
+    recall: pl.metrics.Recall
+    f1: pl.metrics.F1
 
     def __init__(self, vocab_size: int, embed_dim: int, num_classes: int):
         super().__init__()
 
         # Create layers
-        self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
-        self.fc = nn.Linear(embed_dim, num_classes)
+        self.embedding = EmbeddingBag(vocab_size, embed_dim, sparse=True)
+        self.fc = Linear(embed_dim, num_classes)
+
+        # Loss function
+        self.criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * 100))
 
         # Init weights
         initrange = 0.5
@@ -30,38 +41,41 @@ class Classifier(LightningModule):
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=4.0)
 
-    def forward(self, text_batch, offsets_batch):
-        embedded = self.embedding(text_batch, offsets_batch)
+    def forward(self, tokens_batch_concated: Tensor, offsets_batch: Tensor):
+        # Shape [batch_size][embed_dim]
+        embeddings: Tensor = self.embedding(tokens_batch_concated, offsets_batch)
 
-        return self.fc(embedded)
+        # Shape [batch_size][class_count]
+        class_logits: Tensor = self.fc(embeddings)
 
-    def training_step(self, batch, batch_idx):
-        ent_batch, text_batch, offsets_batch, labels_batch = batch
+        return class_logits
 
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([10] * 100).cuda())
+    def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int) -> Tensor:
+        tokens_batch_concated, offset_batch, classes_batch = batch
 
-        output_batch = self(text_batch, offsets_batch)
-        loss = criterion(output_batch, labels_batch)
+        class_logits_batch = self(tokens_batch_concated, offset_batch)
+        loss = self.criterion(class_logits_batch, classes_batch)
 
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        ent_batch, text_batch, offsets_batch, labels_batch = batch
+    def validation_step(self, batch, batch_idx) -> None:
+        tokens_batch_concated, offset_batch, classes_batch = batch
 
-        output_batch = self(text_batch, offsets_batch)
-
-        print()
-        print(ent_batch[0])
-        print((output_batch[0][:10] > 0.5).int())
-        print(labels_batch[0][:10].int())
+        class_logits_batch = self(tokens_batch_concated, offset_batch)
 
         # Update metrics
-        self.prec(output_batch, labels_batch)
-        self.recall(output_batch, labels_batch)
-        self.f1(output_batch, labels_batch)
+        self.prec(class_logits_batch, classes_batch)
+        self.recall(class_logits_batch, classes_batch)
+        self.f1(class_logits_batch, classes_batch)
 
-    def validation_epoch_end(self, outs):
+    def validation_epoch_end(self, outs) -> None:
         print()
         print('Precision', self.prec.compute())
         print('Recall', self.recall.compute())
         print('F1', self.f1.compute())
+
+    def test_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_index: int) -> None:
+        self.validation_step(batch, batch_index)
+
+    def test_epoch_end(self, outs) -> None:
+        self.validation_epoch_end(outs)

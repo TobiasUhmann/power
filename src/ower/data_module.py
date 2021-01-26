@@ -92,12 +92,12 @@ class DataModule(LightningDataModule):
 
 
 def generate_batch(entity_classes_tokens_batch: List[int, List[int], List[int]]) \
-        -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    entity_batch, classes_batch, tokens_batch = zip(*entity_classes_tokens_batch)
+        -> Tuple[Tensor, Tensor, Tensor]:
+    _, classes_batch, tokens_batch = zip(*entity_classes_tokens_batch)
 
     num_tokens_batch = [len(tokens) for tokens in tokens_batch]
 
     tokens_batch_concated = torch.cat(tokens_batch)
     offset_batch = torch.tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
 
-    return tensor(entity_batch), tokens_batch_concated, offset_batch, tensor(classes_batch)
+    return tokens_batch_concated, offset_batch, tensor(classes_batch)
