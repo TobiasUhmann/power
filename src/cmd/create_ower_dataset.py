@@ -7,8 +7,8 @@ from typing import List, Tuple, Dict, Set
 
 from dao.classes_tsv import read_classes_tsv
 from dao.contexts_txt import read_contexts_txt
-from dao.samples_tsv import write_samples_tsv
-from dao.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
+from dao.ower.samples_tsv import write_samples_tsv
+from dao.ower.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
 from dao.ryn.triples_txt import load_triples
 
 
