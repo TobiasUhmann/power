@@ -1,3 +1,7 @@
+"""
+Provides functions to load/save a Triples DB.
+"""
+
 from dataclasses import dataclass
 from sqlite3 import Connection
 from typing import List, Tuple, Set
