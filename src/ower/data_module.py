@@ -11,19 +11,22 @@ from torchtext.vocab import Vocab
 
 class DataModule(LightningDataModule):
     data_dir: str
+    num_classes: int
+    num_sentences: int
     batch_size: int
 
     vocab: Vocab
-    num_classes: int
 
-    train_dataset: List[Tuple[int, List[int], List[int]]]
-    valid_dataset: List[Tuple[int, List[int], List[int]]]
-    test_dataset: List[Tuple[int, List[int], List[int]]]
+    train_dataset: List[Tuple[int, List[int], List[List[int]]]]
+    valid_dataset: List[Tuple[int, List[int], List[List[int]]]]
+    test_dataset: List[Tuple[int, List[int], List[List[int]]]]
 
-    def __init__(self, data_dir: str, batch_size: int):
+    def __init__(self, data_dir: str, num_classes: int, num_sentences: int, batch_size: int):
         super().__init__()
 
         self.data_dir = data_dir
+        self.num_classes = num_classes
+        self.num_sentences = num_sentences
         self.batch_size = batch_size
 
     #
@@ -31,54 +34,46 @@ class DataModule(LightningDataModule):
     #
 
     def prepare_data(self):
-        train_samples_tsv = os.path.join(self.data_dir, 'samples-v1-train.tsv')
-        valid_samples_tsv = os.path.join(self.data_dir, 'samples-v1-valid.tsv')
-        test_samples_tsv = os.path.join(self.data_dir, 'samples-v1-test.tsv')
-
-        with open(train_samples_tsv, encoding='utf-8') as f:
-            train_header = f.readline()
-            train_header_len = len(train_header.split('\t'))
-
-        with open(valid_samples_tsv, encoding='utf-8') as f:
-            valid_header = f.readline()
-            valid_header_len = len(valid_header.split('\t'))
-
-        with open(test_samples_tsv, encoding='utf-8') as f:
-            test_header = f.readline()
-            test_header_len = len(test_header.split('\t'))
-
-        assert train_header_len == valid_header_len == test_header_len
-
-        self.num_classes = train_header_len - 2
+        train_samples_tsv = os.path.join(self.data_dir, 'samples-v2-train.tsv')
+        valid_samples_tsv = os.path.join(self.data_dir, 'samples-v2-valid.tsv')
+        test_samples_tsv = os.path.join(self.data_dir, 'samples-v2-test.tsv')
 
         def tokenize(text: str):
             return text.split()
 
         fields = [('entity', Field(sequential=False, use_vocab=False))] + \
-                 [(str(i), Field(sequential=False, use_vocab=False)) for i in range(self.num_classes)] + \
-                 [('context', Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True))]
+                 [(f'class_{i}', Field(sequential=False, use_vocab=False))
+                  for i in range(self.num_classes)] + \
+                 [(f'sent_{i}', Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True))
+                  for i in range(self.num_sentences)]
 
         raw_train_set = TabularDataset(train_samples_tsv, 'tsv', fields, skip_header=True)
         raw_valid_set = TabularDataset(valid_samples_tsv, 'tsv', fields, skip_header=True)
         raw_test_set = TabularDataset(test_samples_tsv, 'tsv', fields, skip_header=True)
 
-        context_field = fields[-1][1]
-        context_field.build_vocab(raw_train_set)
-        self.vocab = context_field.vocab
+        last_sentence_field = fields[-1][1]
+        last_sentence_field.build_vocab(raw_train_set)
+        self.vocab = last_sentence_field.vocab
 
         self.train_dataset = [(int(getattr(sample, 'entity')),
-                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
-                               [self.vocab[token] for token in sample.context])
+                               [int(getattr(sample, f'class_{i}'))
+                                for i in range(self.num_classes)],
+                               [[self.vocab[token] for token in getattr(sample, f'sent_{i}')]
+                                for i in range(self.num_sentences)])
                               for sample in raw_train_set]
 
         self.valid_dataset = [(int(getattr(sample, 'entity')),
-                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
-                               [self.vocab[token] for token in sample.context])
+                               [int(getattr(sample, f'class_{i}'))
+                                for i in range(self.num_classes)],
+                               [[self.vocab[token] for token in getattr(sample, f'sent_{i}')]
+                                for i in range(self.num_sentences)])
                               for sample in raw_valid_set]
 
         self.test_dataset = [(int(getattr(sample, 'entity')),
-                              [int(getattr(sample, str(i))) for i in range(self.num_classes)],
-                              [self.vocab[token] for token in sample.context])
+                              [int(getattr(sample, f'class_{i}'))
+                               for i in range(self.num_classes)],
+                              [[self.vocab[token] for token in getattr(sample, f'sent_{i}')]
+                               for i in range(self.num_sentences)])
                              for sample in raw_test_set]
 
     def train_dataloader(self) -> DataLoader:
@@ -91,14 +86,29 @@ class DataModule(LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
 
-def generate_batch(entity_classes_tokens_batch: List[Tuple[int, List[int], List[int]]]) \
-        -> Tuple[Tensor, Tensor, Tensor]:
-    _, classes_batch, tokens_batch = zip(*entity_classes_tokens_batch)
+def generate_batch(batch: List[Tuple[int, List[int], List[List[int]]]]) \
+        -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+    _, classes_batch, token_lists_batch, = zip(*batch)
 
-    num_tokens_batch = [len(tokens) for tokens in tokens_batch]
+    tokens_batch_1, tokens_batch_2, tokens_batch_3 = zip(*token_lists_batch)
 
-    tokens_batch = [tensor(tokens) for tokens in tokens_batch]
-    tokens_batch_concated = torch.cat(tokens_batch)
-    offset_batch = torch.tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
+    num_tokens_batch_1 = [len(tokens) for tokens in tokens_batch_1]
+    num_tokens_batch_2 = [len(tokens) for tokens in tokens_batch_2]
+    num_tokens_batch_3 = [len(tokens) for tokens in tokens_batch_3]
 
-    return tokens_batch_concated, offset_batch, tensor(classes_batch)
+    tokens_batch_1 = [tensor(tokens) for tokens in tokens_batch_1]
+    tokens_batch_2 = [tensor(tokens) for tokens in tokens_batch_2]
+    tokens_batch_3 = [tensor(tokens) for tokens in tokens_batch_3]
+
+    tokens_batch_concated_1 = torch.cat(tokens_batch_1)
+    tokens_batch_concated_2 = torch.cat(tokens_batch_2)
+    tokens_batch_concated_3 = torch.cat(tokens_batch_3)
+
+    offset_batch_1 = torch.tensor([0] + num_tokens_batch_1[:-1]).cumsum(dim=0)
+    offset_batch_2 = torch.tensor([0] + num_tokens_batch_2[:-1]).cumsum(dim=0)
+    offset_batch_3 = torch.tensor([0] + num_tokens_batch_3[:-1]).cumsum(dim=0)
+
+    return tokens_batch_concated_1, offset_batch_1, \
+           tokens_batch_concated_2, offset_batch_2, \
+           tokens_batch_concated_3, offset_batch_3, \
+           tensor(classes_batch)
