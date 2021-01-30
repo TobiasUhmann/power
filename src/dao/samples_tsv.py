@@ -6,9 +6,11 @@ def write_samples_tsv(samples_tsv: str, rows: List) -> None:
         for row in rows:
             ent = row[0]
             classes = row[1:-1]
-            context = row[-1]
+            sentences = row[-1]
 
             f.write(str(ent))
             for class_ in classes:
                 f.write(f'\t{str(class_)}')
-            f.write(f'\t{context}\n')
+            for sentence in sentences:
+                f.write(f'\t{sentence}')
+            f.write('\n')

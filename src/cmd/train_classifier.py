@@ -3,7 +3,6 @@ from os.path import isdir
 from typing import List
 
 import torch
-import torchtext
 from pytorch_lightning import Trainer
 from torch import Tensor
 from torchtext.vocab import Vocab
@@ -58,13 +57,15 @@ def main():
 
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
-    data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64)
+    data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64,
+                             num_classes=4, num_sentences=3)
     data_module.prepare_data()
 
     vocab = data_module.vocab
     num_classes = data_module.num_classes
 
-    classifier = Classifier(vocab_size=len(vocab), embed_dim=32, num_classes=num_classes)
+    classifier = Classifier(vocab_size=len(vocab), embed_dim=32,
+                            num_classes=num_classes)
 
     trainer = Trainer(max_epochs=5, gpus=gpus)
     trainer.fit(classifier, datamodule=data_module)
@@ -79,23 +80,36 @@ def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
 
     class_labels = ['is_married', 'is_male', 'is_american', 'is_actor']
 
-    def predict(text: str, classifier: Classifier, vocab: Vocab):
-        words = text.split()
+    def predict(texts: List[str], classifier: Classifier, vocab: Vocab):
+        text_1, text_2, text_3 = texts
+        words_1 = text_1.split()
+        words_2 = text_2.split()
+        words_3 = text_3.split()
 
         with torch.no_grad():
-            tokens = torch.tensor([vocab[word] for word in words])
+            tokens_1 = torch.tensor([vocab[word] for word in words_1])
+            tokens_2 = torch.tensor([vocab[word] for word in words_2])
+            tokens_3 = torch.tensor([vocab[word] for word in words_3])
 
-            class_logits: Tensor = classifier(tokens, torch.tensor([0]))
+            class_logits: Tensor = classifier(
+                tokens_1, torch.tensor([0]),
+                tokens_2, torch.tensor([0]),
+                tokens_3, torch.tensor([0]),
+            )
             pred_classes = class_logits > 0.5
 
             return pred_classes
 
-    ex_text_str = "American actress."
+    ex_text_str_1 = "American actress."
+    ex_text_str_2 = "American actress."
+    ex_text_str_3 = "American actress."
+
+    ex_text_strs = [ex_text_str_1, ex_text_str_2, ex_text_str_3]
 
     classifier = classifier.to('cpu')
     vocab = data_module.vocab
 
-    pred_classes = predict(ex_text_str, classifier, vocab)
+    pred_classes = predict(ex_text_strs, classifier, vocab)
     # pred_labels = [class_labels[pred_class] for pred_class in pred_classes if pred_class == 1]
 
     print()
