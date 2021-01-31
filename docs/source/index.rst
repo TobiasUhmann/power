@@ -12,7 +12,7 @@ src
 .. toctree::
    :maxdepth: 4
 
-   src
+   apidoc/src
 
 
 Indices and tables
