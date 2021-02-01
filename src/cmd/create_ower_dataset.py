@@ -32,18 +32,12 @@ def main() -> None:
     parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
                         help='Path to (output) OWER Dataset Directory')
 
-    default_work_dir = 'work-v1/'
-    parser.add_argument('--work-dir', metavar='STR', default=default_work_dir,
-                        help='Path to (output) Working Directory (default: {})'.format(default_work_dir))
-
     args = parser.parse_args()
 
     ryn_dataset_dir = args.ryn_dataset_dir
     classes_tsv = args.classes_tsv
     num_sentences = args.num_sentences
     ower_dataset_dir = args.ower_dataset_dir
-
-    work_dir = args.work_dir
 
     #
     # Print applied config
@@ -54,8 +48,6 @@ def main() -> None:
     print('    {:20} {}'.format('classes-tsv', classes_tsv))
     print('    {:20} {}'.format('num-sentences', num_sentences))
     print('    {:20} {}'.format('ower-dataset-dir', ower_dataset_dir))
-    print()
-    print('    {:20} {}'.format('--work-dir', work_dir))
     print()
 
     #
@@ -91,36 +83,27 @@ def main() -> None:
     makedirs(ower_dataset_dir, exist_ok=True)
 
     ower_dataset_files = {
+        'triples_train_db': path.join(ower_dataset_dir, 'triples-v1-train.db'),
+        'triples_valid_db': path.join(ower_dataset_dir, 'triples-v1-valid.db'),
+        'triples_test_db': path.join(ower_dataset_dir, 'triples-v1-test.db'),
+
         'samples_train_tsv': path.join(ower_dataset_dir, 'samples-v2-train.tsv'),
         'samples_valid_tsv': path.join(ower_dataset_dir, 'samples-v2-valid.tsv'),
-        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v2-test.tsv'),
-    }
-
-    #
-    # Create (output) Working Directory if it does not exist already
-    #
-
-    makedirs(work_dir, exist_ok=True)
-
-    work_dir_files = {
-        'triples_train_db': path.join(work_dir, 'triples-v1-train.db'),
-        'triples_valid_db': path.join(work_dir, 'triples-v1-valid.db'),
-        'triples_test_db': path.join(work_dir, 'triples-v1-test.db'),
+        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v2-test.tsv')
     }
 
     #
     # Run actual program
     #
 
-    create_ower_dataset(ryn_dataset_files, classes_tsv, num_sentences, ower_dataset_files, work_dir_files)
+    create_ower_dataset(ryn_dataset_files, classes_tsv, num_sentences, ower_dataset_files)
 
 
 def create_ower_dataset(
         ryn_dataset_files: Dict[str, str],
         classes_tsv: str,
         num_sentences: int,
-        ower_dataset_files: Dict[str, str],
-        work_dir_files: Dict[str, str],
+        ower_dataset_files: Dict[str, str]
 ) -> None:
     #
     # Load triples from Triples TXTs
@@ -142,17 +125,17 @@ def create_ower_dataset(
     print()
     print('Save triples to Triples DBs...')
 
-    with connect(work_dir_files['triples_train_db']) as conn:
+    with connect(ower_dataset_files['triples_train_db']) as conn:
         create_triples_table(conn)
         for triple in train_triples:
             insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
 
-    with connect(work_dir_files['triples_valid_db']) as conn:
+    with connect(ower_dataset_files['triples_valid_db']) as conn:
         create_triples_table(conn)
         for triple in valid_triples:
             insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
 
-    with connect(work_dir_files['triples_test_db']) as conn:
+    with connect(ower_dataset_files['triples_test_db']) as conn:
         create_triples_table(conn)
         for triple in test_triples:
             insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
@@ -185,15 +168,15 @@ def create_ower_dataset(
     valid_class_to_entities = defaultdict(set)
     test_class_to_entities = defaultdict(set)
 
-    with connect(work_dir_files['triples_train_db']) as conn:
+    with connect(ower_dataset_files['triples_train_db']) as conn:
         for class_ in classes:
             train_class_to_entities[class_] = select_entities_with_class(conn, class_)
 
-    with connect(work_dir_files['triples_valid_db']) as conn:
+    with connect(ower_dataset_files['triples_valid_db']) as conn:
         for class_ in classes:
             valid_class_to_entities[class_] = select_entities_with_class(conn, class_)
 
-    with connect(work_dir_files['triples_test_db']) as conn:
+    with connect(ower_dataset_files['triples_test_db']) as conn:
         for class_ in classes:
             test_class_to_entities[class_] = select_entities_with_class(conn, class_)
 
