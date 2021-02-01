@@ -4,21 +4,11 @@ src.dao.ower package
 Submodules
 ----------
 
-src.dao.ower.samples\_tsv module
---------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: src.dao.ower.samples_tsv
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-src.dao.ower.triples\_db module
--------------------------------
-
-.. automodule:: src.dao.ower.triples_db
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   src.dao.ower.samples_tsv
+   src.dao.ower.triples_db
 
 Module contents
 ---------------

@@ -14,26 +14,9 @@ Subpackages
 Submodules
 ----------
 
-src.dao.classes\_tsv module
----------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: src.dao.classes_tsv
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-src.dao.contexts\_txt module
-----------------------------
-
-.. automodule:: src.dao.contexts_txt
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-src.dao.oid\_to\_rid\_txt module
---------------------------------
-
-.. automodule:: src.dao.oid_to_rid_txt
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   src.dao.classes_tsv
+   src.dao.contexts_txt
+   src.dao.oid_to_rid_txt

@@ -4,18 +4,8 @@ src.ower namespace
 Submodules
 ----------
 
-src.ower.classifier module
---------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: src.ower.classifier
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-src.ower.data\_module module
-----------------------------
-
-.. automodule:: src.ower.data_module
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   src.ower.classifier
+   src.ower.data_module
