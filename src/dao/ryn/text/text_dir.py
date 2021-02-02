@@ -1,7 +1,7 @@
 """
 Functions for checking the file structure of a Ryn Text Directory
 """
-
+from os import makedirs
 from os.path import isdir
 from pathlib import Path
 
@@ -32,3 +32,6 @@ class TextDir:
         self.cw_train_sentences_txt.check()
         self.ow_valid_sentences_txt.check()
         self.ow_test_sentences_txt.check()
+
+    def create(self) -> None:
+        makedirs(self.path, exist_ok=True)

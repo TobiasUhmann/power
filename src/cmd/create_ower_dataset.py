@@ -1,14 +1,12 @@
 from argparse import ArgumentParser
 from collections import defaultdict
-from os import makedirs, path
 from os.path import isfile
 from pathlib import Path
-from sqlite3 import connect
 from typing import List, Tuple, Dict, Set
 
 from dao.classes_tsv import read_classes_tsv
-from dao.ower.samples_tsv import write_samples_tsv
-from dao.ower.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
+from dao.ower.ower_dir import OwerDir
+from dao.ower.triples_db import DbTriple
 from dao.ryn.ryn_dir import RynDir
 
 
@@ -68,31 +66,22 @@ def main() -> None:
     #
     # Create (output) OWER Dataset Directory if it does not exist already
     #
-
-    makedirs(ower_dataset_dir, exist_ok=True)
-
-    ower_dataset_files = {
-        'triples_train_db': path.join(ower_dataset_dir, 'triples-v1-train.db'),
-        'triples_valid_db': path.join(ower_dataset_dir, 'triples-v1-valid.db'),
-        'triples_test_db': path.join(ower_dataset_dir, 'triples-v1-test.db'),
-
-        'samples_train_tsv': path.join(ower_dataset_dir, 'samples-v2-train.tsv'),
-        'samples_valid_tsv': path.join(ower_dataset_dir, 'samples-v2-valid.tsv'),
-        'samples_test_tsv': path.join(ower_dataset_dir, 'samples-v2-test.tsv')
-    }
+    
+    ower_dir = OwerDir('OWER Directory', Path(ower_dataset_dir))
+    ower_dir.create()
 
     #
     # Run actual program
     #
 
-    create_ower_dataset(ryn_dir, classes_tsv, num_sentences, ower_dataset_files)
+    create_ower_dataset(ryn_dir, classes_tsv, num_sentences, ower_dir)
 
 
 def create_ower_dataset(
         ryn_dir: RynDir,
         classes_tsv: str,
         num_sentences: int,
-        ower_dataset_files: Dict[str, str]
+        ower_dir: OwerDir
 ) -> None:
     #
     # Load triples from Triples TXTs
@@ -114,21 +103,21 @@ def create_ower_dataset(
 
     print()
     print('Save triples to Triples DBs...')
-
-    with connect(ower_dataset_files['triples_train_db']) as conn:
-        create_triples_table(conn)
-        for triple in train_triples:
-            insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
-
-    with connect(ower_dataset_files['triples_valid_db']) as conn:
-        create_triples_table(conn)
-        for triple in valid_triples:
-            insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
-
-    with connect(ower_dataset_files['triples_test_db']) as conn:
-        create_triples_table(conn)
-        for triple in test_triples:
-            insert_triple(conn, DbTriple(triple[0], triple[1], triple[2]))
+    
+    train_triples_db = ower_dir.train_triples_db
+    train_triples_db.create_triples_table()
+    for triple in train_triples:
+        train_triples_db.insert_triple(DbTriple(triple[0], triple[1], triple[2]))
+    
+    valid_triples_db = ower_dir.valid_triples_db
+    valid_triples_db.create_triples_table()
+    for triple in valid_triples:
+        valid_triples_db.insert_triple(DbTriple(triple[0], triple[1], triple[2]))
+    
+    test_triples_db = ower_dir.test_triples_db
+    test_triples_db.create_triples_table()
+    for triple in test_triples:
+        test_triples_db.insert_triple(DbTriple(triple[0], triple[1], triple[2]))
 
     print('Done')
 
@@ -158,18 +147,15 @@ def create_ower_dataset(
     train_class_to_entities = defaultdict(set)
     valid_class_to_entities = defaultdict(set)
     test_class_to_entities = defaultdict(set)
-
-    with connect(ower_dataset_files['triples_train_db']) as conn:
-        for class_ in classes:
-            train_class_to_entities[class_] = select_entities_with_class(conn, class_)
-
-    with connect(ower_dataset_files['triples_valid_db']) as conn:
-        for class_ in classes:
-            valid_class_to_entities[class_] = select_entities_with_class(conn, class_)
-
-    with connect(ower_dataset_files['triples_test_db']) as conn:
-        for class_ in classes:
-            test_class_to_entities[class_] = select_entities_with_class(conn, class_)
+    
+    for class_ in classes:
+        train_class_to_entities[class_] = ower_dir.train_triples_db.select_entities_with_class(class_)
+    
+    for class_ in classes:
+        valid_class_to_entities[class_] = ower_dir.valid_triples_db.select_entities_with_class(class_)
+    
+    for class_ in classes:
+        test_class_to_entities[class_] = ower_dir.test_triples_db.select_entities_with_class(class_)
 
     #
     # Save OWER TSVs
@@ -211,10 +197,10 @@ def create_ower_dataset(
             continue
         test_tsv_row.append(sentences)
         test_tsv_rows.append(test_tsv_row)
-
-    write_samples_tsv(ower_dataset_files['samples_train_tsv'], train_tsv_rows)
-    write_samples_tsv(ower_dataset_files['samples_valid_tsv'], valid_tsv_rows)
-    write_samples_tsv(ower_dataset_files['samples_test_tsv'], test_tsv_rows)
+        
+    ower_dir.train_samples_tsv.write_samples_tsv(train_tsv_rows)
+    ower_dir.valid_samples_tsv.write_samples_tsv(valid_tsv_rows)
+    ower_dir.test_samples_tsv.write_samples_tsv(test_tsv_rows)
 
     print('Done')
 

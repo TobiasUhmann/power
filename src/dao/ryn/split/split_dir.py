@@ -1,7 +1,7 @@
 """
 Functions for checking the file structure of a Ryn Split Directory
 """
-
+from os import makedirs
 from os.path import isdir
 from pathlib import Path
 
@@ -45,3 +45,6 @@ class SplitDir:
         self.cw_valid_triples_txt.check()
         self.ow_valid_triples_txt.check()
         self.ow_test_triples_txt.check()
+
+    def create(self) -> None:
+        makedirs(self.path, exist_ok=True)

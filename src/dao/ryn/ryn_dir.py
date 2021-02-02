@@ -3,6 +3,7 @@ Functions for checking the file structure of a Ryn Dataset Directory
 """
 
 import pathlib
+from os import makedirs
 from os.path import isdir
 
 from dao.ryn.split.split_dir import SplitDir
@@ -30,3 +31,9 @@ class RynDir:
 
         self.split_dir.check()
         self.text_dir.check()
+
+    def create(self) -> None:
+        makedirs(self.path, exist_ok=True)
+
+        self.split_dir.create()
+        self.text_dir.create()

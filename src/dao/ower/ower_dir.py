@@ -43,7 +43,7 @@ v1
         samples-v1-valid.tsv
 
 """
-
+from os import makedirs
 from os.path import isdir
 from pathlib import Path
 
@@ -87,3 +87,6 @@ class OwerDir:
         self.train_samples_tsv.check()
         self.valid_samples_tsv.check()
         self.test_samples_tsv.check()
+
+    def create(self) -> None:
+        makedirs(self.path, exist_ok=True)
