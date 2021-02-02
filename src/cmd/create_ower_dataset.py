@@ -104,20 +104,17 @@ def create_ower_dataset(
     print()
     print('Save triples to Triples DBs...')
     
-    train_triples_db = ower_dir.train_triples_db
-    train_triples_db.create_triples_table()
-    for triple in train_triples:
-        train_triples_db.insert_triple(DbTriple(triple[0], triple[1], triple[2]))
+    ower_dir.train_triples_db.create_triples_table()
+    train_db_triples = [DbTriple(triple[0], triple[1], triple[2]) for triple in train_triples]
+    ower_dir.train_triples_db.insert_triples(train_db_triples)
     
-    valid_triples_db = ower_dir.valid_triples_db
-    valid_triples_db.create_triples_table()
-    for triple in valid_triples:
-        valid_triples_db.insert_triple(DbTriple(triple[0], triple[1], triple[2]))
+    ower_dir.valid_triples_db.create_triples_table()
+    valid_db_triples = [DbTriple(triple[0], triple[1], triple[2]) for triple in valid_triples]
+    ower_dir.valid_triples_db.insert_triples(valid_db_triples)
     
-    test_triples_db = ower_dir.test_triples_db
-    test_triples_db.create_triples_table()
-    for triple in test_triples:
-        test_triples_db.insert_triple(DbTriple(triple[0], triple[1], triple[2]))
+    ower_dir.test_triples_db.create_triples_table()
+    test_db_triples = [DbTriple(triple[0], triple[1], triple[2]) for triple in test_triples]
+    ower_dir.test_triples_db.insert_triples(test_db_triples)
 
     print('Done')
 

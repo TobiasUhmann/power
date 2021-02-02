@@ -61,16 +61,15 @@ class TriplesDb:
             cursor.execute(create_tail_index_sql)
             cursor.close()
 
-    def insert_triple(self, triple: DbTriple) -> None:
+    def insert_triples(self, db_triples: List[DbTriple]) -> None:
         with connect(self.path) as conn:
             sql = '''
                 INSERT INTO triples (head, rel, tail)
                 VALUES (?, ?, ?)
             '''
 
-            cursor = conn.cursor()
-            cursor.execute(sql, (triple.head, triple.rel, triple.tail))
-            cursor.close()
+            conn.executemany(sql, ((t.head, t.rel, t.tail) for t in db_triples))
+
 
     def select_triples_by_head_rel_and_tail(self, head: int, rel: int, tail: int) -> List[DbTriple]:
         with connect(self.path) as conn:
