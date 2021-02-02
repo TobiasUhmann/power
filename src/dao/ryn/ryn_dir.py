@@ -23,23 +23,23 @@ from dao.ryn.text.ryn_text_dir import RynTextDir
 
 class RynDir(BaseDir):
 
-    _split_dir: RynSplitDir
-    _text_dir: RynTextDir
+    split_dir: RynSplitDir
+    text_dir: RynTextDir
 
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-        self._split_dir = RynSplitDir('Ryn Split Directory', path.joinpath('split'))
-        self._text_dir = RynTextDir('Ryn Text Directory', path.joinpath('text'))
+        self.split_dir = RynSplitDir('Ryn Split Directory', path.joinpath('split'))
+        self.text_dir = RynTextDir('Ryn Text Directory', path.joinpath('text'))
 
     def check(self) -> None:
         super().check()
 
-        self._split_dir.check()
-        self._text_dir.check()
+        self.split_dir.check()
+        self.text_dir.check()
 
     def create(self) -> None:
         super().create()
 
-        self._split_dir.create()
-        self._text_dir.create()
+        self.split_dir.create()
+        self.text_dir.create()

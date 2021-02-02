@@ -1,5 +1,5 @@
 from os import makedirs
-from os.path import isfile
+from os.path import isdir
 from pathlib import Path
 
 
@@ -16,7 +16,7 @@ class BaseDir:
         Check that directory exists, exit if it does not.
         """
 
-        if not isfile(self._path):
+        if not isdir(self._path):
             print(f'{self._name} not found')
             exit()
 

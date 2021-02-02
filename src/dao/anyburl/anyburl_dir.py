@@ -23,20 +23,20 @@ from dao.base_dir import BaseDir
 
 class AnyburlDir(BaseDir):
     
-    _train_triples_txt: AnyburlTriplesTxt
-    _valid_triples_txt: AnyburlTriplesTxt
-    _test_triples_txt: AnyburlTriplesTxt
+    train_triples_txt: AnyburlTriplesTxt
+    valid_triples_txt: AnyburlTriplesTxt
+    test_triples_txt: AnyburlTriplesTxt
 
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
         
-        self._train_triples_txt = AnyburlTriplesTxt('AnyBURL Train Triples TXT', path.joinpath('train.txt'))
-        self._valid_triples_txt = AnyburlTriplesTxt('AnyBURL Valid Triples TXT', path.joinpath('valid.txt'))
-        self._test_triples_txt = AnyburlTriplesTxt('AnyBURL Test Triples TXT', path.joinpath('test.txt'))
+        self.train_triples_txt = AnyburlTriplesTxt('AnyBURL Train Triples TXT', path.joinpath('train.txt'))
+        self.valid_triples_txt = AnyburlTriplesTxt('AnyBURL Valid Triples TXT', path.joinpath('valid.txt'))
+        self.test_triples_txt = AnyburlTriplesTxt('AnyBURL Test Triples TXT', path.joinpath('test.txt'))
 
     def check(self) -> None:
         super().check()
 
-        self._train_triples_txt.check()
-        self._valid_triples_txt.check()
-        self._test_triples_txt.check()
+        self.train_triples_txt.check()
+        self.valid_triples_txt.check()
+        self.test_triples_txt.check()

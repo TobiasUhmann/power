@@ -28,32 +28,32 @@ from dao.ryn.split.ryn_triples_txt import RynTriplesTxt
 
 class RynSplitDir(BaseDir):
 
-    _entity_labels_txt: RynLabelsTxt
-    _relation_labels_txt: RynLabelsTxt
+    entity_labels_txt: RynLabelsTxt
+    relation_labels_txt: RynLabelsTxt
     
-    _cw_train_triples_txt: RynTriplesTxt
-    _cw_valid_triples_txt: RynTriplesTxt
-    _ow_valid_triples_txt: RynTriplesTxt
-    _ow_test_triples_txt: RynTriplesTxt
+    cw_train_triples_txt: RynTriplesTxt
+    cw_valid_triples_txt: RynTriplesTxt
+    ow_valid_triples_txt: RynTriplesTxt
+    ow_test_triples_txt: RynTriplesTxt
 
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-        self._entity_labels_txt = RynLabelsTxt('Ryn Entity Labels TXT', path.joinpath('entity2id.txt'))
-        self._relation_labels_txt = RynLabelsTxt('Ryn Relation Labels TXT', path.joinpath('relation2id.txt'))
+        self.entity_labels_txt = RynLabelsTxt('Ryn Entity Labels TXT', path.joinpath('entity2id.txt'))
+        self.relation_labels_txt = RynLabelsTxt('Ryn Relation Labels TXT', path.joinpath('relation2id.txt'))
         
-        self._cw_train_triples_txt = RynTriplesTxt('Ryn CW Train Triples TXT', path.joinpath('cw.train2id.txt'))
-        self._cw_valid_triples_txt = RynTriplesTxt('Ryn CW Valid Triples TXT', path.joinpath('cw.valid2id.txt'))
-        self._ow_valid_triples_txt = RynTriplesTxt('Ryn OW Valid Triples TXT', path.joinpath('ow.valid2id.txt'))
-        self._ow_test_triples_txt = RynTriplesTxt('Ryn OW Test Triples TXT', path.joinpath('ow.test2id.txt'))
+        self.cw_train_triples_txt = RynTriplesTxt('Ryn CW Train Triples TXT', path.joinpath('cw.train2id.txt'))
+        self.cw_valid_triples_txt = RynTriplesTxt('Ryn CW Valid Triples TXT', path.joinpath('cw.valid2id.txt'))
+        self.ow_valid_triples_txt = RynTriplesTxt('Ryn OW Valid Triples TXT', path.joinpath('ow.valid2id.txt'))
+        self.ow_test_triples_txt = RynTriplesTxt('Ryn OW Test Triples TXT', path.joinpath('ow.test2id.txt'))
 
     def check(self) -> None:
         super().check()
             
-        self._entity_labels_txt.check()
-        self._relation_labels_txt.check()
+        self.entity_labels_txt.check()
+        self.relation_labels_txt.check()
 
-        self._cw_train_triples_txt.check()
-        self._cw_valid_triples_txt.check()
-        self._ow_valid_triples_txt.check()
-        self._ow_test_triples_txt.check()
+        self.cw_train_triples_txt.check()
+        self.cw_valid_triples_txt.check()
+        self.ow_valid_triples_txt.check()
+        self.ow_test_triples_txt.check()

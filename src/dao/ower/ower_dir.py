@@ -28,32 +28,32 @@ from dao.ower.ower_triples_db import TriplesDb
 
 class OwerDir(BaseDir):
 
-    _tain_triples_db: TriplesDb
-    _valid_triples_db: TriplesDb
-    _test_triples_db: TriplesDb
+    train_triples_db: TriplesDb
+    valid_triples_db: TriplesDb
+    test_triples_db: TriplesDb
 
-    _train_samples_tsv: SamplesTsv
-    _valid_samples_tsv: SamplesTsv
-    _test_samples_tsv: SamplesTsv
+    train_samples_tsv: SamplesTsv
+    valid_samples_tsv: SamplesTsv
+    test_samples_tsv: SamplesTsv
 
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-        self._train_triples_db = TriplesDb('OWER Train Triples DB', path.joinpath('train.db'))
-        self._valid_triples_db = TriplesDb('OWER Valid Triples DB', path.joinpath('valid.db'))
-        self._test_triples_db = TriplesDb('OWER Test Triples DB', path.joinpath('test.db'))
+        self.train_triples_db = TriplesDb('OWER Train Triples DB', path.joinpath('train.db'))
+        self.valid_triples_db = TriplesDb('OWER Valid Triples DB', path.joinpath('valid.db'))
+        self.test_triples_db = TriplesDb('OWER Test Triples DB', path.joinpath('test.db'))
 
-        self._train_samples_tsv = SamplesTsv('OWER Train Samples TSV', path.joinpath('train.tsv'))
-        self._valid_samples_tsv = SamplesTsv('OWER Valid Samples TSV', path.joinpath('valid.tsv'))
-        self._test_samples_tsv = SamplesTsv('OWER Test Samples TSV', path.joinpath('test.tsv'))
+        self.train_samples_tsv = SamplesTsv('OWER Train Samples TSV', path.joinpath('train.tsv'))
+        self.valid_samples_tsv = SamplesTsv('OWER Valid Samples TSV', path.joinpath('valid.tsv'))
+        self.test_samples_tsv = SamplesTsv('OWER Test Samples TSV', path.joinpath('test.tsv'))
 
     def check(self) -> None:
         super().check()
 
-        self._train_triples_db.check()
-        self._valid_triples_db.check()
-        self._test_triples_db.check()
+        self.train_triples_db.check()
+        self.valid_triples_db.check()
+        self.test_triples_db.check()
 
-        self._train_samples_tsv.check()
-        self._valid_samples_tsv.check()
-        self._test_samples_tsv.check()
+        self.train_samples_tsv.check()
+        self.valid_samples_tsv.check()
+        self.test_samples_tsv.check()
