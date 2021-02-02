@@ -2,12 +2,14 @@
 The `AnyBURL Directory` contains the triple files that AnyBURL uses
 as input to mine rules.
 
-Structure::
+**Structure**
 
-    anyburl/        # AnyBURL Dir, v1
-        test.txt    # AnyBURL Triples TXT, v1
-        train.txt   # AnyBURL Triples TXT, v1
-        valid.txt   # AnyBURL Triples TXT, v1
+::
+
+    anyburl/        # AnyBURL Directory
+        test.txt    # AnyBURL Triples TXT
+        train.txt   # AnyBURL Triples TXT
+        valid.txt   # AnyBURL Triples TXT
 
 |
 """
@@ -27,9 +29,9 @@ class AnyburlDir(BaseDir):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
         
-        self._train_triples_txt = AnyburlTriplesTxt('AnyBURL Train Triples TXT', self._path)
-        self._valid_triples_txt = AnyburlTriplesTxt('AnyBURL Valid Triples TXT', self._path)
-        self._test_triples_txt = AnyburlTriplesTxt('AnyBURL Test Triples TXT', self._path)
+        self._train_triples_txt = AnyburlTriplesTxt('AnyBURL Train Triples TXT', path.joinpath('train.txt'))
+        self._valid_triples_txt = AnyburlTriplesTxt('AnyBURL Valid Triples TXT', path.joinpath('valid.txt'))
+        self._test_triples_txt = AnyburlTriplesTxt('AnyBURL Test Triples TXT', path.joinpath('test.txt'))
 
     def check(self) -> None:
         super().check()

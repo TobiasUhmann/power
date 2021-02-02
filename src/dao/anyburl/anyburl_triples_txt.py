@@ -1,6 +1,4 @@
 """
-Module for handling `AnyBURL Triples TXTs`.
-
 The `AnyBURL Triples TXT` contains the input triples for AnyBURL
 rule mining. It has the structure required by AnyBURL
 (http://web.informatik.uni-mannheim.de/AnyBURL/):
@@ -9,7 +7,9 @@ rule mining. It has the structure required by AnyBURL
 * Tabular separated values
 * No values that can be parsed as an integer
 
-Example::
+**Example**
+
+::
 
     Stan_Collymore	playsFor	England_national_football_team
     Suriname	hasOfficialLanguage	Dutch_language

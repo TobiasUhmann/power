@@ -2,92 +2,56 @@
 The `OWER Directory` contains the input files required for training the
 `OWER Classifier`.
 
-==
-v3
-==
-
-* Incorporates `Triples DBs` from former `Work Directory`
+**Structure**
 
 ::
 
-    ower-v3/
-        samples-v2-test.tsv
-        samples-v2-train.tsv
-        samples-v2-valid.tsv
-        triples-v1-test.db
-        triples-v1-train.db
-        triples-v1-valid.db
+    ower/           # OWER Directory
+        test.tsv    # OWER Samples TSV
+        train.tsv   # OWER Samples TSV
+        valid.tsv   # OWER Samples TSV
+        test.db     # OWER Triples DB
+        train.db    # OWER Triples DB
+        valid.db    # OWER Triples DB
 
-==
-v2
-==
-
-* Upgraded `Samples TXTs` to v2
-
-::
-
-    ower-v2/
-        samples-v2-test.tsv
-        samples-v2-train.tsv
-        samples-v2-valid.tsv
-
-==
-v1
-==
-
-::
-
-    ower-v1/
-        samples-v1-test.tsv
-        samples-v1-train.tsv
-        samples-v1-valid.tsv
-
+|
 """
 
-from os import makedirs
-from os.path import isdir
 from pathlib import Path
 
-from dao.ower.samples_tsv import SamplesTsv
-from dao.ower.triples_db import TriplesDb
+from dao.base_dir import BaseDir
+from dao.ower.ower_samples_tsv import SamplesTsv
+from dao.ower.ower_triples_db import TriplesDb
 
 
-class OwerDir:
-    name: str
-    path: Path
+class OwerDir(BaseDir):
 
-    tain_triples_db: TriplesDb
-    valid_triples_db: TriplesDb
-    test_triples_db: TriplesDb
+    _tain_triples_db: TriplesDb
+    _valid_triples_db: TriplesDb
+    _test_triples_db: TriplesDb
 
-    train_samples_tsv: SamplesTsv
-    valid_samples_tsv: SamplesTsv
-    test_samples_tsv: SamplesTsv
+    _train_samples_tsv: SamplesTsv
+    _valid_samples_tsv: SamplesTsv
+    _test_samples_tsv: SamplesTsv
 
     def __init__(self, name: str, path: Path):
-        self.name = name
-        self.path = path
+        super().__init__(name, path)
 
-        self.train_triples_db = TriplesDb('Train Triples DB', path.joinpath('triples-v1-train.db'))
-        self.valid_triples_db = TriplesDb('Valid Triples DB', path.joinpath('triples-v1-valid.db'))
-        self.test_triples_db = TriplesDb('Test Triples DB', path.joinpath('triples-v1-test.db'))
+        self._train_triples_db = TriplesDb('OWER Train Triples DB', path.joinpath('train.db'))
+        self._valid_triples_db = TriplesDb('OWER Valid Triples DB', path.joinpath('valid.db'))
+        self._test_triples_db = TriplesDb('OWER Test Triples DB', path.joinpath('test.db'))
 
-        self.train_samples_tsv = SamplesTsv('Train Samples TSV', path.joinpath('samples-v2-train.tsv'))
-        self.valid_samples_tsv = SamplesTsv('Valid Samples TSV', path.joinpath('samples-v2-valid.tsv'))
-        self.test_samples_tsv = SamplesTsv('Test Samples TSV', path.joinpath('samples-v2-test.tsv'))
+        self._train_samples_tsv = SamplesTsv('OWER Train Samples TSV', path.joinpath('train.tsv'))
+        self._valid_samples_tsv = SamplesTsv('OWER Valid Samples TSV', path.joinpath('valid.tsv'))
+        self._test_samples_tsv = SamplesTsv('OWER Test Samples TSV', path.joinpath('test.tsv'))
 
     def check(self) -> None:
-        if not isdir(self.path):
-            print(f'{self.name} not found')
-            exit()
+        super().check()
 
-        self.train_triples_db.check()
-        self.valid_triples_db.check()
-        self.test_triples_db.check()
+        self._train_triples_db.check()
+        self._valid_triples_db.check()
+        self._test_triples_db.check()
 
-        self.train_samples_tsv.check()
-        self.valid_samples_tsv.check()
-        self.test_samples_tsv.check()
-
-    def create(self) -> None:
-        makedirs(self.path, exist_ok=True)
+        self._train_samples_tsv.check()
+        self._valid_samples_tsv.check()
+        self._test_samples_tsv.check()

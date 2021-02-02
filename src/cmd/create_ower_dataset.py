@@ -15,7 +15,7 @@ from typing import List, Tuple, Dict, Set
 
 from dao.classes_tsv import read_classes_tsv
 from dao.ower.ower_dir import OwerDir
-from dao.ower.triples_db import DbTriple
+from dao.ower.ower_triples_db import DbTriple
 from dao.ryn.ryn_dir import RynDir
 
 
@@ -117,13 +117,13 @@ def create_ower_dataset(
     train_db_triples = [DbTriple(triple[0], triple[1], triple[2]) for triple in train_triples]
     ower_dir.train_triples_db.insert_triples(train_db_triples)
     
-    ower_dir.valid_triples_db.create_triples_table()
+    ower_dir._valid_triples_db.create_triples_table()
     valid_db_triples = [DbTriple(triple[0], triple[1], triple[2]) for triple in valid_triples]
-    ower_dir.valid_triples_db.insert_triples(valid_db_triples)
+    ower_dir._valid_triples_db.insert_triples(valid_db_triples)
     
-    ower_dir.test_triples_db.create_triples_table()
+    ower_dir._test_triples_db.create_triples_table()
     test_db_triples = [DbTriple(triple[0], triple[1], triple[2]) for triple in test_triples]
-    ower_dir.test_triples_db.insert_triples(test_db_triples)
+    ower_dir._test_triples_db.insert_triples(test_db_triples)
 
     print('Done')
 
@@ -158,10 +158,10 @@ def create_ower_dataset(
         train_class_to_entities[class_] = ower_dir.train_triples_db.select_entities_with_class(class_)
     
     for class_ in classes:
-        valid_class_to_entities[class_] = ower_dir.valid_triples_db.select_entities_with_class(class_)
+        valid_class_to_entities[class_] = ower_dir._valid_triples_db.select_entities_with_class(class_)
     
     for class_ in classes:
-        test_class_to_entities[class_] = ower_dir.test_triples_db.select_entities_with_class(class_)
+        test_class_to_entities[class_] = ower_dir._test_triples_db.select_entities_with_class(class_)
 
     #
     # Save OWER TSVs
@@ -204,9 +204,9 @@ def create_ower_dataset(
         test_tsv_row.append(sentences)
         test_tsv_rows.append(test_tsv_row)
         
-    ower_dir.train_samples_tsv.write_samples_tsv(train_tsv_rows)
-    ower_dir.valid_samples_tsv.write_samples_tsv(valid_tsv_rows)
-    ower_dir.test_samples_tsv.write_samples_tsv(test_tsv_rows)
+    ower_dir._train_samples_tsv.write_samples_tsv(train_tsv_rows)
+    ower_dir._valid_samples_tsv.write_samples_tsv(valid_tsv_rows)
+    ower_dir._test_samples_tsv.write_samples_tsv(test_tsv_rows)
 
     print('Done')
 

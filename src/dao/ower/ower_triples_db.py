@@ -1,11 +1,9 @@
 """
-The `Triples DB` contains the triples in a queryable database. It is built as
+The `OWER Triples DB` contains the triples in a queryable database. It is built as
 an intermediate step while building the `OWER Directory` and kept for debugging
 purposes.
 
-==
-v1
-==
+**Structure**
 
 ::
 
@@ -30,13 +28,15 @@ v1
     CREATE INDEX tail_index
     ON triples(tail)
 
+|
 """
 
 from dataclasses import dataclass
-from os.path import isfile
 from pathlib import Path
 from sqlite3 import connect
 from typing import List, Tuple, Set
+
+from dao.base_file import BaseFile
 
 
 @dataclass
@@ -46,21 +46,13 @@ class DbTriple:
     tail: int
 
 
-class TriplesDb:
-    name: str
-    path: Path
+class TriplesDb(BaseFile):
 
     def __init__(self, name: str, path: Path):
-        self.name = name
-        self.path = path
-
-    def check(self) -> None:
-        if not isfile(self.path):
-            print(f'{self.name} not found')
-            exit()
+        super().__init__(name, path)
 
     def create_triples_table(self) -> None:
-        with connect(self.path) as conn:
+        with connect(self._path) as conn:
             create_table_sql = '''
                 CREATE TABLE triples (
                     head    INT,
@@ -92,7 +84,7 @@ class TriplesDb:
             cursor.close()
 
     def insert_triples(self, db_triples: List[DbTriple]) -> None:
-        with connect(self.path) as conn:
+        with connect(self._path) as conn:
             sql = '''
                 INSERT INTO triples (head, rel, tail)
                 VALUES (?, ?, ?)
@@ -101,7 +93,7 @@ class TriplesDb:
             conn.executemany(sql, ((t.head, t.rel, t.tail) for t in db_triples))
 
     def select_entities_with_class(self, class_: Tuple[int, int]) -> Set[int]:
-        with connect(self.path) as conn:
+        with connect(self._path) as conn:
             sql = '''
                 SELECT head
                 FROM triples
