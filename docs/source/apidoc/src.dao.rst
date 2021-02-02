@@ -1,5 +1,5 @@
-src.dao namespace
-=================
+src.dao package
+===============
 
 Subpackages
 -----------
@@ -18,5 +18,12 @@ Submodules
    :maxdepth: 4
 
    src.dao.classes_tsv
-   src.dao.contexts_txt
    src.dao.oid_to_rid_txt
+
+Module contents
+---------------
+
+.. automodule:: src.dao
+   :members:
+   :undoc-members:
+   :show-inheritance:

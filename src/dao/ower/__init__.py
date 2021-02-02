@@ -1,3 +1,3 @@
 """
-Provides modules for accessing an OWER Dataset Directory.
+This package provides modules for working with an `OWER Directory`.
 """
