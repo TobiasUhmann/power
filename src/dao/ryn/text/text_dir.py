@@ -5,28 +5,28 @@ Functions for checking the file structure of a Ryn Text Directory
 from os.path import isdir
 from pathlib import Path
 
-from dao.ryn.text.ow_test_sentences_txt import OwTestSentencesTxt
-from dao.ryn.text.cw_train_sentences_txt import CwTrainSentencesTxt
-from dao.ryn.text.ow_valid_sentences_txt import OwValidSentencesTxt
+from dao.ryn.text.sentences_txt import SentencesTxt
 
 
 class TextDir:
+    name: str
     path: Path
 
-    cw_train_sentences_txt: CwTrainSentencesTxt
-    ow_valid_sentences_txt: OwValidSentencesTxt
-    ow_test_sentences_txt: OwTestSentencesTxt
+    cw_train_sentences_txt: SentencesTxt
+    ow_valid_sentences_txt: SentencesTxt
+    ow_test_sentences_txt: SentencesTxt
 
-    def __init__(self, path: Path):
+    def __init__(self, name: str, path: Path):
+        self.name = name
         self.path = path
         
-        self.cw_train_sentences_txt = CwTrainSentencesTxt(path.joinpath('cw.train-sentences.txt'))
-        self.ow_valid_sentences_txt = OwValidSentencesTxt(path.joinpath('ow.valid-sentences.txt'))
-        self.ow_test_sentences_txt = OwTestSentencesTxt(path.joinpath('ow.test-sentences.txt'))
+        self.cw_train_sentences_txt = SentencesTxt('CW Train Sentences TXT', path.joinpath('cw.train-sentences.txt'))
+        self.ow_valid_sentences_txt = SentencesTxt('OW Valid Sentences TXT', path.joinpath('ow.valid-sentences.txt'))
+        self.ow_test_sentences_txt = SentencesTxt('OW Test Sentences TXT', path.joinpath('ow.test-sentences.txt'))
 
     def check(self) -> None:
         if not isdir(self.path):
-            print('Text Directory not found')
+            print(f'{self.name} not found')
             exit()
 
         self.cw_train_sentences_txt.check()

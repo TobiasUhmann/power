@@ -54,7 +54,7 @@ def main() -> None:
     # Assert that (input) Ryn Directory exists
     #
 
-    ryn_dir = RynDir(Path(ryn_dataset_dir))
+    ryn_dir = RynDir('Ryn Directory', Path(ryn_dataset_dir))
     ryn_dir.check()
 
     #

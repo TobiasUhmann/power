@@ -5,39 +5,37 @@ Functions for checking the file structure of a Ryn Split Directory
 from os.path import isdir
 from pathlib import Path
 
-from dao.ryn.split.cw_train_triples_txt import CwTrainTriplesTxt
-from dao.ryn.split.cw_valid_triples_txt import CwValidTriplesTxt
-from dao.ryn.split.entity_labels_txt import EntityLabelsTxt
-from dao.ryn.split.ow_test_triples_txt import OwTestTriplesTxt
-from dao.ryn.split.ow_valid_triples_txt import OwValidTriplesTxt
-from dao.ryn.split.relation_labels_txt import RelationLabelsTxt
+from dao.ryn.split.labels_txt import LabelsTxt
+from dao.ryn.split.triples_txt import TriplesTxt
 
 
 class SplitDir:
+    name: str
     path: Path
 
-    entity_labels_txt: EntityLabelsTxt
-    relation_labels_txt: RelationLabelsTxt
+    entity_labels_txt: LabelsTxt
+    relation_labels_txt: LabelsTxt
     
-    cw_train_triples_txt: CwTrainTriplesTxt
-    cw_valid_triples_txt: CwValidTriplesTxt
-    ow_valid_triples_txt: OwValidTriplesTxt
-    ow_test_triples_txt: OwTestTriplesTxt
+    cw_train_triples_txt: TriplesTxt
+    cw_valid_triples_txt: TriplesTxt
+    ow_valid_triples_txt: TriplesTxt
+    ow_test_triples_txt: TriplesTxt
 
-    def __init__(self, path: Path):
+    def __init__(self, name: str, path: Path):
+        self.name = name
         self.path = path
 
-        self.entity_labels_txt = EntityLabelsTxt(path.joinpath('entity2id.txt'))
-        self.relation_labels_txt = RelationLabelsTxt(path.joinpath('relation2id.txt'))
+        self.entity_labels_txt = LabelsTxt('Entity Labels TXT', path.joinpath('entity2id.txt'))
+        self.relation_labels_txt = LabelsTxt('Relation Labels TXT', path.joinpath('relation2id.txt'))
         
-        self.cw_train_triples_txt = CwTrainTriplesTxt(path.joinpath('cw.train2id.txt'))
-        self.cw_valid_triples_txt = CwValidTriplesTxt(path.joinpath('cw.valid2id.txt'))
-        self.ow_valid_triples_txt = OwValidTriplesTxt(path.joinpath('ow.valid2id.txt'))
-        self.ow_test_triples_txt = OwTestTriplesTxt(path.joinpath('ow.test2id.txt'))
+        self.cw_train_triples_txt = TriplesTxt('CW Train Triples TXT', path.joinpath('cw.train2id.txt'))
+        self.cw_valid_triples_txt = TriplesTxt('CW Valid Triples TXT', path.joinpath('cw.valid2id.txt'))
+        self.ow_valid_triples_txt = TriplesTxt('OW Valid Triples TXT', path.joinpath('ow.valid2id.txt'))
+        self.ow_test_triples_txt = TriplesTxt('OW Test Triples TXT', path.joinpath('ow.test2id.txt'))
 
     def check(self) -> None:
         if not isdir(self.path):
-            print('Split Directory not found')
+            print(f'{self.name} not found')
             exit()
             
         self.entity_labels_txt.check()

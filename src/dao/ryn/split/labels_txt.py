@@ -1,15 +1,20 @@
+from os.path import isfile
 from pathlib import Path
 from typing import Dict
 
 
 class LabelsTxt:
+    name: str
     path: Path
 
-    def __init__(self, path: Path):
+    def __init__(self, name: str, path: Path):
+        self.name = name
         self.path = path
 
     def check(self) -> None:
-        pass
+        if not isfile(self.path):
+            print(f'{self.name} not found')
+            exit()
 
     def load_rid_to_label(self) -> Dict[int, str]:
         """
