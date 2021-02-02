@@ -2,67 +2,38 @@
 The `AnyBURL Directory` contains the triple files that AnyBURL uses
 as input to mine rules.
 
-
-==
-v1
-==
-
-::
+Structure::
 
     anyburl/        # AnyBURL Dir, v1
         test.txt    # AnyBURL Triples TXT, v1
         train.txt   # AnyBURL Triples TXT, v1
         valid.txt   # AnyBURL Triples TXT, v1
 
+|
 """
 
-from os import makedirs, path, remove
-from os.path import isfile
+from pathlib import Path
+
+from dao.anyburl.anyburl_triples_txt import AnyburlTriplesTxt
+from dao.base_dir import BaseDir
 
 
-class AnyburlDir:
-    name: str
-    path: Path
+class AnyburlDir(BaseDir):
+    
+    _train_triples_txt: AnyburlTriplesTxt
+    _valid_triples_txt: AnyburlTriplesTxt
+    _test_triples_txt: AnyburlTriplesTxt
 
-    train_tsv:
+    def __init__(self, name: str, path: Path):
+        super().__init__(name, path)
+        
+        self._train_triples_txt = AnyburlTriplesTxt('AnyBURL Train Triples TXT', self._path)
+        self._valid_triples_txt = AnyburlTriplesTxt('AnyBURL Valid Triples TXT', self._path)
+        self._test_triples_txt = AnyburlTriplesTxt('AnyBURL Test Triples TXT', self._path)
 
+    def check(self) -> None:
+        super().check()
 
-def assert_not_existing(anyburl_dataset_dir, files, overwrite):
-    """
-    Check 'AnyBURL Dataset Directory':
-    - Create it if it does not already exist
-    - Assert that its files do not already exist
-    """
-
-    makedirs(anyburl_dataset_dir, exist_ok=True)
-    files['anyburl'] = {}
-
-    train_txt = path.join(anyburl_dataset_dir, 'train.txt')
-    files['anyburl']['train_txt'] = train_txt
-    if isfile(train_txt):
-        if overwrite:
-            remove(train_txt)
-        else:
-            print("'AnyBURL Dataset Directory' / 'Train TXT' already exists"
-                  ", use --overwrite to overwrite it")
-            exit()
-
-    valid_txt = path.join(anyburl_dataset_dir, 'valid.txt')
-    files['anyburl']['valid_txt'] = valid_txt
-    if isfile(valid_txt):
-        if overwrite:
-            remove(valid_txt)
-        else:
-            print("'AnyBURL Dataset Directory' / 'Valid TXT' already exists"
-                  ", use --overwrite to overwrite it")
-            exit()
-
-    test_txt = path.join(anyburl_dataset_dir, 'test.txt')
-    files['anyburl']['test_txt'] = test_txt
-    if isfile(test_txt):
-        if overwrite:
-            remove(test_txt)
-        else:
-            print("'AnyBURL Dataset Directory' / 'Test TXT' already exists"
-                  ", use --overwrite to overwrite it")
-            exit()
+        self._train_triples_txt.check()
+        self._valid_triples_txt.check()
+        self._test_triples_txt.check()
