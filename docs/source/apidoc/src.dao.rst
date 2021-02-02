@@ -22,5 +22,6 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   src.dao.base_file
    src.dao.classes_tsv
    src.dao.oid_to_rid_txt

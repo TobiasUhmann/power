@@ -18,23 +18,16 @@ Example::
 |
 """
 
-from os.path import isfile
 from pathlib import Path
 from typing import List, Tuple
 
+from dao.base_file import BaseFile
 
-class AnyburlTriplesTxt:
-    _name: str
-    _path: Path
+
+class AnyburlTriplesTxt(BaseFile):
 
     def __init__(self, name: str, path: Path):
-        self._name = name
-        self._path = path
-
-    def check(self) -> None:
-        if not isfile(self._path):
-            print(f'{self._name} not found')
-            exit()
+        super().__init__(name, path)
 
     def save_triples(self, triples: List[Tuple[str, str, str]]) -> None:
         with open(self._path, 'w', encoding='utf-8') as f:
