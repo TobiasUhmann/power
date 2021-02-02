@@ -1,3 +1,12 @@
+"""
+Create an `OWER Dataset` from a `Ryn Dataset`.
+
+Usage
+-----
+
+
+"""
+
 from argparse import ArgumentParser
 from collections import defaultdict
 from os.path import isfile

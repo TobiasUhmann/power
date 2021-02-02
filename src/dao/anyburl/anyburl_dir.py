@@ -1,5 +1,30 @@
+"""
+The `AnyBURL Directory` contains the triple files that AnyBURL uses
+as input to mine rules.
+
+
+==
+v1
+==
+
+::
+
+    anyburl/        # AnyBURL Dir, v1
+        test.txt    # AnyBURL Triples TXT, v1
+        train.txt   # AnyBURL Triples TXT, v1
+        valid.txt   # AnyBURL Triples TXT, v1
+
+"""
+
 from os import makedirs, path, remove
 from os.path import isfile
+
+
+class AnyburlDir:
+    name: str
+    path: Path
+
+    train_tsv:
 
 
 def assert_not_existing(anyburl_dataset_dir, files, overwrite):

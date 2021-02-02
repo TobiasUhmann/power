@@ -7,5 +7,5 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   src.dao.anyburl.dir
-   src.dao.anyburl.triples_txt
+   src.dao.anyburl.anyburl_dir
+   src.dao.anyburl.anyburl_triples_txt
