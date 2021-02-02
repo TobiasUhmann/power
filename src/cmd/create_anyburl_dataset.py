@@ -4,9 +4,9 @@ from typing import List, Dict
 
 from dao.anyburl.dir import assert_not_existing
 from dao.anyburl.triples_txt import save_triples
-from dao.ryn.dir import assert_existing
-from dao.ryn.label_rid_txt import load_rid_to_label
-from dao.ryn.triples_txt import load_triples
+from dao.ryn.ryn_dir import assert_existing
+from dao.ryn.split.entity_labels_txt import load_rid_to_label
+from dao.ryn.split.triples_txt import load_triples
 
 
 def main() -> None:

@@ -1,15 +1,15 @@
 from argparse import ArgumentParser
 from collections import defaultdict
 from os import makedirs, path
-from os.path import isdir, isfile
+from os.path import isfile
+from pathlib import Path
 from sqlite3 import connect
 from typing import List, Tuple, Dict, Set
 
 from dao.classes_tsv import read_classes_tsv
-from dao.contexts_txt import read_contexts_txt
 from dao.ower.samples_tsv import write_samples_tsv
 from dao.ower.triples_db import create_triples_table, insert_triple, DbTriple, select_entities_with_class
-from dao.ryn.triples_txt import load_triples
+from dao.ryn.ryn_dir import RynDir
 
 
 def main() -> None:
@@ -51,22 +51,11 @@ def main() -> None:
     print()
 
     #
-    # Assert that (input) Ryn Dataset Directory exists
+    # Assert that (input) Ryn Directory exists
     #
 
-    if not isdir(ryn_dataset_dir):
-        print('Ryn Dataset Directory not found')
-        exit()
-
-    ryn_dataset_files = {
-        'triples_train_txt': path.join(ryn_dataset_dir, 'split', 'cw.train2id.txt'),
-        'triples_valid_txt': path.join(ryn_dataset_dir, 'split', 'ow.valid2id.txt'),
-        'triples_test_txt': path.join(ryn_dataset_dir, 'split', 'ow.test2id.txt'),
-
-        'contexts_train_txt': path.join(ryn_dataset_dir, 'text', 'cw.train-sentences.txt'),
-        'contexts_valid_txt': path.join(ryn_dataset_dir, 'text', 'ow.valid-sentences.txt'),
-        'contexts_test_txt': path.join(ryn_dataset_dir, 'text', 'ow.test-sentences.txt'),
-    }
+    ryn_dir = RynDir(Path(ryn_dataset_dir))
+    ryn_dir.check()
 
     #
     # Assert that (input) Classes TSV exists
@@ -96,11 +85,11 @@ def main() -> None:
     # Run actual program
     #
 
-    create_ower_dataset(ryn_dataset_files, classes_tsv, num_sentences, ower_dataset_files)
+    create_ower_dataset(ryn_dir, classes_tsv, num_sentences, ower_dataset_files)
 
 
 def create_ower_dataset(
-        ryn_dataset_files: Dict[str, str],
+        ryn_dir: RynDir,
         classes_tsv: str,
         num_sentences: int,
         ower_dataset_files: Dict[str, str]
@@ -112,9 +101,10 @@ def create_ower_dataset(
     print()
     print('Load triples from Triples TXTs...')
 
-    train_triples: List[Tuple[int, int, int]] = load_triples(ryn_dataset_files['triples_train_txt'])
-    valid_triples: List[Tuple[int, int, int]] = load_triples(ryn_dataset_files['triples_valid_txt'])
-    test_triples: List[Tuple[int, int, int]] = load_triples(ryn_dataset_files['triples_test_txt'])
+    split_dir = ryn_dir.split_dir
+    train_triples: List[Tuple[int, int, int]] = split_dir.cw_train_triples_txt.load_triples()
+    valid_triples: List[Tuple[int, int, int]] = split_dir.cw_valid_triples_txt.load_triples()
+    test_triples: List[Tuple[int, int, int]] = split_dir.ow_valid_triples_txt.load_triples()
 
     print('Done')
 
@@ -149,9 +139,10 @@ def create_ower_dataset(
     print()
     print('Load contexts from Contexts TXTs...')
 
-    train_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['contexts_train_txt'])
-    valid_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['contexts_valid_txt'])
-    test_contexts: Dict[int, Set[str]] = read_contexts_txt(ryn_dataset_files['contexts_test_txt'])
+    text_dir = ryn_dir.text_dir
+    train_contexts: Dict[int, Set[str]] = text_dir.cw_train_sentences_txt.load_ent_to_sentences()
+    valid_contexts: Dict[int, Set[str]] = text_dir.ow_valid_sentences_txt.load_ent_to_sentences()
+    test_contexts: Dict[int, Set[str]] = text_dir.ow_test_sentences_txt.load_ent_to_sentences()
 
     print('Done')
 
