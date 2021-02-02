@@ -1,5 +1,34 @@
 """
-Provides functions to load/save a Triples DB.
+The `Triples DB` contains the triples in a queryable database. It is built as
+an intermediate step while building the `OWER Directory` and kept for debugging
+purposes.
+
+==
+v1
+==
+
+::
+
+    CREATE TABLE triples (
+        head    INT,
+        rel     INT,
+        tail    INT
+    )
+
+::
+
+    CREATE INDEX head_index
+    ON triples(head)
+
+::
+
+    CREATE INDEX rel_index
+    ON triples(rel)
+
+::
+
+    CREATE INDEX tail_index
+    ON triples(tail)
 """
 
 from dataclasses import dataclass
