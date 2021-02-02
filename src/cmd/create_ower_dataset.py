@@ -99,10 +99,10 @@ def create_ower_dataset(
     print()
     print('Load triples from Triples TXTs...')
 
-    split_dir = ryn_dir.split_dir
-    train_triples: List[Tuple[int, int, int]] = split_dir.cw_train_triples_txt.load_triples()
-    valid_triples: List[Tuple[int, int, int]] = split_dir.cw_valid_triples_txt.load_triples()
-    test_triples: List[Tuple[int, int, int]] = split_dir.ow_valid_triples_txt.load_triples()
+    split_dir = ryn_dir._split_dir
+    train_triples: List[Tuple[int, int, int]] = split_dir._cw_train_triples_txt.load_triples()
+    valid_triples: List[Tuple[int, int, int]] = split_dir._cw_valid_triples_txt.load_triples()
+    test_triples: List[Tuple[int, int, int]] = split_dir._ow_valid_triples_txt.load_triples()
 
     print('Done')
 
@@ -134,10 +134,10 @@ def create_ower_dataset(
     print()
     print('Load contexts from Contexts TXTs...')
 
-    text_dir = ryn_dir.text_dir
-    train_contexts: Dict[int, Set[str]] = text_dir.cw_train_sentences_txt.load_ent_to_sentences()
-    valid_contexts: Dict[int, Set[str]] = text_dir.ow_valid_sentences_txt.load_ent_to_sentences()
-    test_contexts: Dict[int, Set[str]] = text_dir.ow_test_sentences_txt.load_ent_to_sentences()
+    text_dir = ryn_dir._text_dir
+    train_contexts: Dict[int, Set[str]] = text_dir._cw_train_sentences_txt.load_ent_to_sentences()
+    valid_contexts: Dict[int, Set[str]] = text_dir._ow_valid_sentences_txt.load_ent_to_sentences()
+    test_contexts: Dict[int, Set[str]] = text_dir._ow_test_sentences_txt.load_ent_to_sentences()
 
     print('Done')
 

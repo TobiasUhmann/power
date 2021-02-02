@@ -1,11 +1,6 @@
 src.dao
 =======
 
-.. automodule:: src.dao
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 

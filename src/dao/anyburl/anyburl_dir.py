@@ -7,9 +7,10 @@ as input to mine rules.
 ::
 
     anyburl/        # AnyBURL Directory
-        test.txt    # AnyBURL Triples TXT
+
         train.txt   # AnyBURL Triples TXT
         valid.txt   # AnyBURL Triples TXT
+        test.txt    # AnyBURL Triples TXT
 
 |
 """

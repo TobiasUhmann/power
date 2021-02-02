@@ -1,11 +1,6 @@
 src.dao.ryn
 ===========
 
-.. automodule:: src.dao.ryn
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 

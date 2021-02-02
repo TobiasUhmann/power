@@ -7,9 +7,11 @@ The `OWER Directory` contains the input files required for training the
 ::
 
     ower/           # OWER Directory
+
         test.tsv    # OWER Samples TSV
         train.tsv   # OWER Samples TSV
         valid.tsv   # OWER Samples TSV
+
         test.db     # OWER Triples DB
         train.db    # OWER Triples DB
         valid.db    # OWER Triples DB

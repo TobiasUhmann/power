@@ -1,27 +1,38 @@
-from os.path import isfile
+"""
+The `Ryn Labels TXT` contains the entities' or relations' labels.
+
+* Header row specifies number of entities / relations
+* Space separated
+
+**Example**
+
+::
+
+    14541
+    Dominican Republic 0
+    republic 1
+    Mighty Morphin Power Rangers 2
+
+|
+"""
+
 from pathlib import Path
 from typing import Dict
 
+from dao.base_file import BaseFile
 
-class LabelsTxt:
-    name: str
-    path: Path
+
+class RynLabelsTxt(BaseFile):
 
     def __init__(self, name: str, path: Path):
-        self.name = name
-        self.path = path
-
-    def check(self) -> None:
-        if not isfile(self.path):
-            print(f'{self.name} not found')
-            exit()
+        super().__init__(name, path)
 
     def load_rid_to_label(self) -> Dict[int, str]:
         """
         :return: RID -> Label mapping
         """
 
-        with open(self.path, encoding='utf-8') as f:
+        with open(self._path, encoding='utf-8') as f:
             lines = f.readlines()
 
         rid_to_label: Dict[int, str] = {}

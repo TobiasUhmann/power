@@ -5,7 +5,7 @@ from typing import List, Dict
 
 from dao.anyburl.anyburl_dir import assert_not_existing
 from dao.anyburl.anyburl_triples_txt import save_triples
-from dao.ryn.split.split_dir import SplitDir
+from dao.ryn.split.ryn_split_dir import RynSplitDir
 
 
 def main() -> None:
@@ -46,7 +46,7 @@ def main() -> None:
     # Check files
     #
 
-    split_dir = SplitDir('Ryn Directory', Path(ryn_split_dir))
+    split_dir = RynSplitDir('Ryn Directory', Path(ryn_split_dir))
     split_dir.check()
 
     assert_not_existing(anyburl_dataset_dir, files, overwrite)
