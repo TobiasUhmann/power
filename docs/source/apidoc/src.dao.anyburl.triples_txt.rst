@@ -1,5 +1,5 @@
-src.dao.anyburl.triples\_txt module
-===================================
+src.dao.anyburl.triples\_txt
+============================
 
 .. automodule:: src.dao.anyburl.triples_txt
    :members:

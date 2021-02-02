@@ -1,5 +1,5 @@
-src.ower namespace
-==================
+src.ower
+========
 
 Submodules
 ----------

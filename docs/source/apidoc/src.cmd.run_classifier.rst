@@ -1,5 +1,5 @@
-src.cmd.run\_classifier module
-==============================
+src.cmd.run\_classifier
+=======================
 
 .. automodule:: src.cmd.run_classifier
    :members:

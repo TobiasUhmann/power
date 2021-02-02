@@ -1,5 +1,5 @@
-src.snippets namespace
-======================
+src.snippets
+============
 
 Subpackages
 -----------

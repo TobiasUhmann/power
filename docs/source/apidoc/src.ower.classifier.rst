@@ -1,5 +1,5 @@
-src.ower.classifier module
-==========================
+src.ower.classifier
+===================
 
 .. automodule:: src.ower.classifier
    :members:

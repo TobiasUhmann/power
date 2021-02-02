@@ -1,5 +1,10 @@
-src.dao package
-===============
+src.dao
+=======
+
+.. automodule:: src.dao
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Subpackages
 -----------
@@ -19,11 +24,3 @@ Submodules
 
    src.dao.classes_tsv
    src.dao.oid_to_rid_txt
-
-Module contents
----------------
-
-.. automodule:: src.dao
-   :members:
-   :undoc-members:
-   :show-inheritance:

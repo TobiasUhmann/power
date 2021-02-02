@@ -1,5 +1,5 @@
-src.ower.data\_module module
-============================
+src.ower.data\_module
+=====================
 
 .. automodule:: src.ower.data_module
    :members:

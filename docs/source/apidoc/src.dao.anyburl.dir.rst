@@ -1,5 +1,5 @@
-src.dao.anyburl.dir module
-==========================
+src.dao.anyburl.dir
+===================
 
 .. automodule:: src.dao.anyburl.dir
    :members:

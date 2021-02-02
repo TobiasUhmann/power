@@ -1,5 +1,5 @@
-src.cmd.create\_ower\_dataset module
-====================================
+src.cmd.create\_ower\_dataset
+=============================
 
 .. automodule:: src.cmd.create_ower_dataset
    :members:

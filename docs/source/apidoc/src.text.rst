@@ -1,5 +1,5 @@
-src.text module
-===============
+src.text
+========
 
 .. automodule:: src.text
    :members:

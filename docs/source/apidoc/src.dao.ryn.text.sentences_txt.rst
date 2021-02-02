@@ -1,5 +1,5 @@
-src.dao.ryn.text.sentences\_txt module
-======================================
+src.dao.ryn.text.sentences\_txt
+===============================
 
 .. automodule:: src.dao.ryn.text.sentences_txt
    :members:

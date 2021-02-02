@@ -1,5 +1,5 @@
-src.dao.ower.samples\_tsv module
-================================
+src.dao.ower.samples\_tsv
+=========================
 
 .. automodule:: src.dao.ower.samples_tsv
    :members:

@@ -1,5 +1,5 @@
-src.snippets.bert\_classifier\_lightning.classifier module
-==========================================================
+src.snippets.bert\_classifier\_lightning.classifier
+===================================================
 
 .. automodule:: src.snippets.bert_classifier_lightning.classifier
    :members:

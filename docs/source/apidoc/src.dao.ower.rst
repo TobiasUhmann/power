@@ -1,5 +1,10 @@
-src.dao.ower package
-====================
+src.dao.ower
+============
+
+.. automodule:: src.dao.ower
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Submodules
 ----------
@@ -10,11 +15,3 @@ Submodules
    src.dao.ower.ower_dir
    src.dao.ower.samples_tsv
    src.dao.ower.triples_db
-
-Module contents
----------------
-
-.. automodule:: src.dao.ower
-   :members:
-   :undoc-members:
-   :show-inheritance:

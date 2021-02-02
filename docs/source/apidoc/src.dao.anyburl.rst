@@ -1,5 +1,5 @@
-src.dao.anyburl namespace
-=========================
+src.dao.anyburl
+===============
 
 Submodules
 ----------

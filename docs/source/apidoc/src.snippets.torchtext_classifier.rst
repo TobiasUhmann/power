@@ -1,5 +1,5 @@
-src.snippets.torchtext\_classifier module
-=========================================
+src.snippets.torchtext\_classifier
+==================================
 
 .. automodule:: src.snippets.torchtext_classifier
    :members:

@@ -1,5 +1,5 @@
-src.snippets.torchtext\_classifier\_lightning namespace
-=======================================================
+src.snippets.torchtext\_classifier\_lightning
+=============================================
 
 Submodules
 ----------

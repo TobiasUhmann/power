@@ -1,5 +1,5 @@
-src.snippets.torchtext\_classifier\_lightning.classifier module
-===============================================================
+src.snippets.torchtext\_classifier\_lightning.classifier
+========================================================
 
 .. automodule:: src.snippets.torchtext_classifier_lightning.classifier
    :members:

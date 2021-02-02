@@ -1,5 +1,10 @@
-src.dao.ryn package
-===================
+src.dao.ryn
+===========
+
+.. automodule:: src.dao.ryn
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Subpackages
 -----------
@@ -17,11 +22,3 @@ Submodules
    :maxdepth: 4
 
    src.dao.ryn.ryn_dir
-
-Module contents
----------------
-
-.. automodule:: src.dao.ryn
-   :members:
-   :undoc-members:
-   :show-inheritance:

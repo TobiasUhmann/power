@@ -1,5 +1,5 @@
-src.test module
-===============
+src.test
+========
 
 .. automodule:: src.test
    :members:

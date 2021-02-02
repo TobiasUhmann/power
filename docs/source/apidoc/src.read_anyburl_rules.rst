@@ -1,5 +1,5 @@
-src.read\_anyburl\_rules module
-===============================
+src.read\_anyburl\_rules
+========================
 
 .. automodule:: src.read_anyburl_rules
    :members:

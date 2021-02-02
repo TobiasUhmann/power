@@ -1,5 +1,5 @@
-src.snippets.torchtext\_classifier\_ower namespace
-==================================================
+src.snippets.torchtext\_classifier\_ower
+========================================
 
 Submodules
 ----------

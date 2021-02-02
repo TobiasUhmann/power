@@ -1,5 +1,5 @@
-src.dao.ryn.ryn\_dir module
-===========================
+src.dao.ryn.ryn\_dir
+====================
 
 .. automodule:: src.dao.ryn.ryn_dir
    :members:

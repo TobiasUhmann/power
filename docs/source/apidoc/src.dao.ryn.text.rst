@@ -1,5 +1,10 @@
-src.dao.ryn.text package
-========================
+src.dao.ryn.text
+================
+
+.. automodule:: src.dao.ryn.text
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Submodules
 ----------
@@ -9,11 +14,3 @@ Submodules
 
    src.dao.ryn.text.sentences_txt
    src.dao.ryn.text.text_dir
-
-Module contents
----------------
-
-.. automodule:: src.dao.ryn.text
-   :members:
-   :undoc-members:
-   :show-inheritance:

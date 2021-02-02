@@ -1,5 +1,5 @@
-src.dao.ower.triples\_db module
-===============================
+src.dao.ower.triples\_db
+========================
 
 .. automodule:: src.dao.ower.triples_db
    :members:

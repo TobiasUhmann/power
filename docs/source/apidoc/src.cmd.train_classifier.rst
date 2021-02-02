@@ -1,5 +1,5 @@
-src.cmd.train\_classifier module
-================================
+src.cmd.train\_classifier
+=========================
 
 .. automodule:: src.cmd.train_classifier
    :members:

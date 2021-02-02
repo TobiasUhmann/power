@@ -1,5 +1,5 @@
-src.dao.ryn.split.split\_dir module
-===================================
+src.dao.ryn.split.split\_dir
+============================
 
 .. automodule:: src.dao.ryn.split.split_dir
    :members:

@@ -1,5 +1,5 @@
-src.snippets.bert\_classifier\_lightning namespace
-==================================================
+src.snippets.bert\_classifier\_lightning
+========================================
 
 Submodules
 ----------
