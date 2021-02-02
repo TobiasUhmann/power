@@ -34,9 +34,9 @@ class DataModule(LightningDataModule):
     #
 
     def prepare_data(self):
-        train_samples_tsv = os.path.join(self.data_dir, 'samples-v2-train.tsv')
-        valid_samples_tsv = os.path.join(self.data_dir, 'samples-v2-valid.tsv')
-        test_samples_tsv = os.path.join(self.data_dir, 'samples-v2-test.tsv')
+        train_samples_tsv = os.path.join(self.data_dir, 'train.tsv')
+        valid_samples_tsv = os.path.join(self.data_dir, 'valid.tsv')
+        test_samples_tsv = os.path.join(self.data_dir, 'test.tsv')
 
         def tokenize(text: str):
             return text.split()

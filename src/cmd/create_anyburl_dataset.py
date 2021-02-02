@@ -1,12 +1,11 @@
 import random
 from argparse import ArgumentParser
+from pathlib import Path
 from typing import List, Dict
 
-from dao.anyburl.dir import assert_not_existing
-from dao.anyburl.triples_txt import save_triples
-from dao.ryn.dir import assert_existing
-from dao.ryn.label_rid_txt import load_rid_to_label
-from dao.ryn.triples_txt import load_triples
+from dao.anyburl.anyburl_dir import assert_not_existing
+from dao.anyburl.anyburl_triples_txt import save_triples
+from dao.ryn.split.ryn_split_dir import RynSplitDir
 
 
 def main() -> None:
@@ -47,8 +46,9 @@ def main() -> None:
     # Check files
     #
 
-    files = {}
-    assert_existing(files, ryn_split_dir)
+    split_dir = RynSplitDir('Ryn Directory', Path(ryn_split_dir))
+    split_dir.check()
+
     assert_not_existing(anyburl_dataset_dir, files, overwrite)
 
     #
