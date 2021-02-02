@@ -70,22 +70,6 @@ class TriplesDb:
 
             conn.executemany(sql, ((t.head, t.rel, t.tail) for t in db_triples))
 
-
-    def select_triples_by_head_rel_and_tail(self, head: int, rel: int, tail: int) -> List[DbTriple]:
-        with connect(self.path) as conn:
-            sql = '''
-                SELECT head, rel, tail
-                FROM triples
-                WHERE head = ? AND rel = ? AND tail = ?
-            '''
-
-            cursor = conn.cursor()
-            cursor.execute(sql, (head, rel, tail))
-            rows = cursor.fetchall()
-            cursor.close()
-
-            return [DbTriple(row[0], row[1], row[2]) for row in rows]
-
     def select_entities_with_class(self, class_: Tuple[int, int]) -> Set[int]:
         with connect(self.path) as conn:
             sql = '''
