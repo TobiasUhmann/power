@@ -65,3 +65,4 @@ autodoc_default_options = {
 }
 
 autodoc_inherit_docstrings = False
+autodoc_member_order = 'bysource'

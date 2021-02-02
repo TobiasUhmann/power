@@ -29,6 +29,7 @@ v1
 
     CREATE INDEX tail_index
     ON triples(tail)
+
 """
 
 from dataclasses import dataclass

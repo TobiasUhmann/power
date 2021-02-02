@@ -1,5 +1,36 @@
 """
-Provides functions to load/save a Samples TSV.
+Module for writing `Samples TSVs`.
+
+A `Samples TSV` contains the input data for training the `OWER Classifier`.
+
+==
+v2
+==
+
+* Constant number of sentences, separated by tabs
+
+Example::
+
+    entity  class_1 class_2 class_3 class_4 sent_1  sent_2  sent_3
+    1   0	0	0	0	Foo.    Bar.    Baz.
+    2   0	1	0	1	Lorem.  Ypsum.  Dolor
+
+==
+v1
+==
+
+* Tabular separated
+* 1 Header Row
+* First column: Entity RID
+* N columns: class_1 .. class_n
+* Last column: Concated entity sentences
+
+Example::
+
+    entity  class_1 class_2 class_3 class_4 sentences
+    1   0	0	0	0	Foo. Bar. Baz.
+    2   0	1	0	1	Lorem. Ypsum. Dolor.
+
 """
 
 from os.path import isfile
