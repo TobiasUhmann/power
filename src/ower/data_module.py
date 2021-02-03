@@ -86,29 +86,13 @@ class DataModule(LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
 
 
-def generate_batch(batch: List[Tuple[int, List[int], List[List[int]]]]) \
-        -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-    _, classes_batch, token_lists_batch, = zip(*batch)
+def generate_batch(batch: List[Tuple[int, List[int], List[List[int]]]]) -> Tuple[Tensor, Tensor]:
+    _ent, classes_batch, sents_batch, = zip(*batch)
 
-    tokens_batch_1, tokens_batch_2, tokens_batch_3 = zip(*token_lists_batch)
+    cropped_sents_batch = [[sent[:64]
+                            for sent in sents] for sents in sents_batch]
 
-    num_tokens_batch_1 = [len(tokens) for tokens in tokens_batch_1]
-    num_tokens_batch_2 = [len(tokens) for tokens in tokens_batch_2]
-    num_tokens_batch_3 = [len(tokens) for tokens in tokens_batch_3]
+    padded_sents_batch = [[sent + [0] * (64 - len(sent))
+                           for sent in sents] for sents in cropped_sents_batch]
 
-    tokens_batch_1 = [tensor(tokens) for tokens in tokens_batch_1]
-    tokens_batch_2 = [tensor(tokens) for tokens in tokens_batch_2]
-    tokens_batch_3 = [tensor(tokens) for tokens in tokens_batch_3]
-
-    tokens_batch_concated_1 = torch.cat(tokens_batch_1)
-    tokens_batch_concated_2 = torch.cat(tokens_batch_2)
-    tokens_batch_concated_3 = torch.cat(tokens_batch_3)
-
-    offset_batch_1 = torch.tensor([0] + num_tokens_batch_1[:-1]).cumsum(dim=0)
-    offset_batch_2 = torch.tensor([0] + num_tokens_batch_2[:-1]).cumsum(dim=0)
-    offset_batch_3 = torch.tensor([0] + num_tokens_batch_3[:-1]).cumsum(dim=0)
-
-    return tokens_batch_concated_1, offset_batch_1, \
-           tokens_batch_concated_2, offset_batch_2, \
-           tokens_batch_concated_3, offset_batch_3, \
-           tensor(classes_batch)
+    return tensor(padded_sents_batch), tensor(classes_batch)

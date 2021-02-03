@@ -24,10 +24,10 @@ class Classifier(LightningModule):
         self.embedding = EmbeddingBag(vocab_size, embed_dim, sparse=True)
         self.fc = Linear(num_classes * embed_dim, num_classes)
 
-        self.class_embeddings = torch.rand((4, embed_dim), requires_grad=True).cuda()
+        self.class_embs = torch.rand((4, embed_dim), requires_grad=True).cuda()
 
         # Loss function
-        self.criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * 4))
+        self.criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([1] * 4))
 
         # Init weights
         initrange = 0.5
@@ -43,82 +43,97 @@ class Classifier(LightningModule):
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=4.0)
 
-    def forward(self,
-                tokens_batch_concated_1: Tensor, offsets_batch_1: Tensor,
-                tokens_batch_concated_2: Tensor, offsets_batch_2: Tensor,
-                tokens_batch_concated_3: Tensor, offsets_batch_3: Tensor,
-                ) -> Tensor:
-        # Shape [batch_size][embed_dim]
-        embeddings_1: Tensor = self.embedding(tokens_batch_concated_1, offsets_batch_1)
-        embeddings_2: Tensor = self.embedding(tokens_batch_concated_2, offsets_batch_2)
-        embeddings_3: Tensor = self.embedding(tokens_batch_concated_3, offsets_batch_3)
+    def forward(self, sents_batch: Tensor) -> Tensor:
+        """
+        :param sents_batch: shape = (batch_size, sents, sent_len)
+        """
 
-        logits_batch = torch.empty((len(embeddings_1), len(self.class_embeddings), 32)).cuda()
+        batch_size = len(sents_batch)
 
-        for k, (sent_1, sent_2, sent_3) in enumerate(zip(embeddings_1, embeddings_2, embeddings_3)):
+        # shape = (batch_size * sents, sent_len)
+        flat_sents = sents_batch.reshape(-1, 64)
 
-            sents = [sent_1, sent_2, sent_3]
-            outer_prod = torch.empty((len(self.class_embeddings), len(sents))).cuda()
+        # shape = (batch_size * sents, emb_size)
+        flat_sent_embs = self.embedding(flat_sents)
 
-            for i, class_embedding in enumerate(self.class_embeddings):
-                for j, sent in enumerate(sents):
-                    outer_prod[i, j] = torch.dot(class_embedding, sent)
+        # shape = (batch_size, sents, emb_size)
+        sent_embs_batch = flat_sent_embs.reshape(batch_size, 3, 32)
 
-            softs = Softmax(dim=1)(outer_prod)
+        # shape = (batch_size, classes, emb_size)
+        class_embs_batch = self.class_embs.expand(batch_size, -1, -1)
 
-            weighted_sents = torch.empty((len(self.class_embeddings),32)).cuda()
+        # shape = (batch_size, classes, sents)
+        atts_batch = torch.bmm(class_embs_batch, sent_embs_batch.transpose(1, 2))
 
-            for i, soft in enumerate(softs):
-                dot_prod = torch.zeros((32,)).cuda()
-                for s, sent in zip(soft, sents):
-                    dot_prod += s.item() * sent
-                weighted_sents[i] = dot_prod
+        # shape = (batch_size, classes, sents)
+        softs_batch = Softmax(dim=-1)(atts_batch)
 
-            logits_batch[k] = weighted_sents
+        # shape = (batch_size * classes, sents, 1)
+        flat_softs = softs_batch.reshape(batch_size * 4, -1).unsqueeze(-1)
 
-        # Shape [batch_size][class_count]
-        outputs_batch: Tensor = self.fc(torch.flatten(logits_batch, start_dim=1, end_dim=-1))
+        # shape = (batch_size, 1, sents, emb_size)
+        stacked_sents = sent_embs_batch.unsqueeze(1)
+
+        # shape = (batch_size, classes, sents, emb_size)
+        stacked_sents_2 = stacked_sents.expand(-1, 4, -1, -1)
+
+        # shape = (batch_size * classes, sents, emb_size)
+        stacked_sents_3 = stacked_sents_2.reshape(batch_size * 4, 3, 32)
+
+        # shape = (batch_size * classes, emb_size)
+        flat_weighted = torch.bmm(stacked_sents_3.transpose(1, 2), flat_softs)
+
+        # shape = (batch_size, classes, emb_size)
+        weighted_batch = flat_weighted.reshape(batch_size, 4, -1)
+
+        # shape = (batch_size, classes * emb_size)
+        inputs_batch = weighted_batch.reshape(batch_size, -1)
+
+        # shape = (batch_size, classes)
+        outputs_batch = self.fc(inputs_batch)
 
         return outputs_batch
 
-    def training_step(self,
-                      batch: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
-                      batch_idx: int
-                      ) -> Tensor:
-        tokens_batch_concated_1, offset_batch_1, \
-        tokens_batch_concated_2, offset_batch_2, \
-        tokens_batch_concated_3, offset_batch_3, \
-        classes_batch = batch
+        # outputs = torch.empty((len(embeddings_1), len(self.class_embs), 32)).cuda()
+        #
+        # for k, (sent_1, sent_2, sent_3) in enumerate(zip(embeddings_1, embeddings_2, embeddings_3)):
+        #
+        #     sents = [sent_1, sent_2, sent_3]
+        #     outer_prod = torch.empty((len(self.class_embs), len(sents))).cuda()
+        #
+        #     for i, class_embedding in enumerate(self.class_embs):
+        #         for j, sent in enumerate(sents):
+        #             outer_prod[i, j] = torch.dot(class_embedding, sent)
+        #
+        #     att_softs_batch = Softmax(dim=1)(outer_prod)
+        #
+        #     weighted_sents = torch.empty((len(self.class_embs), 32)).cuda()
+        #
+        #     for i, soft in enumerate(att_softs_batch):
+        #         dot_prod = torch.zeros((32,)).cuda()
+        #         for s, sent in zip(soft, sents):
+        #             dot_prod += s.item() * sent
+        #         weighted_sents[i] = dot_prod
+        #
+        #     outputs[k] = weighted_sents
 
-        class_logits_batch = self(
-            tokens_batch_concated_1, offset_batch_1,
-            tokens_batch_concated_2, offset_batch_2,
-            tokens_batch_concated_3, offset_batch_3,
-        )
+    def training_step(self, batch: Tuple[Tensor, Tensor], _batch_idx: int) -> Tensor:
+        sents_batch, classes_batch = batch
 
-        loss = self.criterion(class_logits_batch, classes_batch.float())
+        outputs_batch = self(sents_batch)
+        loss = self.criterion(outputs_batch, classes_batch.float())
 
         return loss
 
-    def validation_step(self,
-                        batch: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
-                        batch_idx: int
-                        ) -> None:
-        tokens_batch_concated_1, offset_batch_1, \
-        tokens_batch_concated_2, offset_batch_2, \
-        tokens_batch_concated_3, offset_batch_3, \
-        classes_batch = batch
+    def validation_step(self, batch: Tuple[Tensor, Tensor], _batch_index: int) -> None:
+        sents_batch, classes_batch = batch
 
-        class_logits_batch = self(
-            tokens_batch_concated_1, offset_batch_1,
-            tokens_batch_concated_2, offset_batch_2,
-            tokens_batch_concated_3, offset_batch_3,
-        )
+        outputs_batch = self(sents_batch)
 
         # Update metrics
-        self.prec(class_logits_batch, classes_batch)
-        self.recall(class_logits_batch, classes_batch)
-        self.f1(class_logits_batch, classes_batch)
+        self.prec(outputs_batch, classes_batch)
+        self.recall(outputs_batch, classes_batch)
+        self.f1(outputs_batch, classes_batch)
 
     def validation_epoch_end(self, outs) -> None:
         print()
@@ -126,10 +141,7 @@ class Classifier(LightningModule):
         print('Recall', self.recall.compute())
         print('F1', self.f1.compute())
 
-    def test_step(self,
-                  batch: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
-                  batch_index: int
-                  ) -> None:
+    def test_step(self, batch: Tuple[Tensor, Tensor], batch_index: int) -> None:
         self.validation_step(batch, batch_index)
 
     def test_epoch_end(self, outs) -> None:
