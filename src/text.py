@@ -4,8 +4,7 @@ import time
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
-from torchtext.data import Field, TabularDataset, BucketIterator
-from torchtext.datasets import text_classification
+from torchtext.data import Field, TabularDataset
 
 BATCH_SIZE = 16
 EMBED_DIM = 32

@@ -58,7 +58,7 @@ def main():
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
     data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64,
-                             num_classes=4, num_sentences=3)
+                             num_classes=4, num_sentences=3, sent_len=64)
     data_module.prepare_data()
 
     vocab = data_module.vocab

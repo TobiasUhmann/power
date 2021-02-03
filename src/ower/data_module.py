@@ -1,7 +1,6 @@
 import os
 from typing import List, Tuple
 
-import torch
 from pytorch_lightning import LightningDataModule
 from torch import Tensor, tensor
 from torch.utils.data import DataLoader
@@ -14,6 +13,7 @@ class DataModule(LightningDataModule):
     num_classes: int
     num_sentences: int
     batch_size: int
+    sent_len: int
 
     vocab: Vocab
 
@@ -21,13 +21,14 @@ class DataModule(LightningDataModule):
     valid_dataset: List[Tuple[int, List[int], List[List[int]]]]
     test_dataset: List[Tuple[int, List[int], List[List[int]]]]
 
-    def __init__(self, data_dir: str, num_classes: int, num_sentences: int, batch_size: int):
+    def __init__(self, data_dir: str, num_classes: int, num_sentences: int, batch_size: int, sent_len: int):
         super().__init__()
 
         self.data_dir = data_dir
         self.num_classes = num_classes
         self.num_sentences = num_sentences
         self.batch_size = batch_size
+        self.sent_len = sent_len
 
     #
     # Prepare data
@@ -77,22 +78,21 @@ class DataModule(LightningDataModule):
                              for sample in raw_test_set]
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=generate_batch, shuffle=True)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, collate_fn=self.generate_batch, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.valid_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
+        return DataLoader(self.valid_dataset, batch_size=self.batch_size, collate_fn=self.generate_batch)
 
     def test_dataloader(self) -> DataLoader:
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=generate_batch)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, collate_fn=self.generate_batch)
 
+    def generate_batch(self, batch: List[Tuple[int, List[int], List[List[int]]]]) -> Tuple[Tensor, Tensor]:
+        _ent, classes_batch, sents_batch, = zip(*batch)
 
-def generate_batch(batch: List[Tuple[int, List[int], List[List[int]]]]) -> Tuple[Tensor, Tensor]:
-    _ent, classes_batch, sents_batch, = zip(*batch)
+        cropped_sents_batch = [[sent[:self.sent_len]
+                                for sent in sents] for sents in sents_batch]
 
-    cropped_sents_batch = [[sent[:64]
-                            for sent in sents] for sents in sents_batch]
+        padded_sents_batch = [[sent + [0] * (self.sent_len - len(sent))
+                               for sent in sents] for sents in cropped_sents_batch]
 
-    padded_sents_batch = [[sent + [0] * (64 - len(sent))
-                           for sent in sents] for sents in cropped_sents_batch]
-
-    return tensor(padded_sents_batch), tensor(classes_batch)
+        return tensor(padded_sents_batch), tensor(classes_batch)
