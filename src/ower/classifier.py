@@ -1,3 +1,9 @@
+"""
+The `OWER Classifier` takes an entity's sentences and maps them to the output classes.
+It implements a simple attention mechanism to focus on sentences that relate to the
+class in question.
+"""
+
 from typing import Tuple, Any
 
 import pytorch_lightning as pl

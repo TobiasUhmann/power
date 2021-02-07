@@ -7,6 +7,8 @@ setup(
         'pandas',
         'pytorch-nlp',
         'pytorch_lightning',
+        'sphinx',
+        'sphinx-rtd-theme',
         'tokenizers',
         'torch',
         'torchtext',
