@@ -23,14 +23,14 @@ class Classifier(LightningModule):
     recall: pl.metrics.Recall
     f1: pl.metrics.F1
 
-    def __init__(self, vocab_size: int, embed_dim: int, num_classes: int):
+    def __init__(self, vocab_size: int, emb_size: int, num_classes: int):
         super().__init__()
 
         # Create layers
-        self.embedding = EmbeddingBag(vocab_size, embed_dim, sparse=True)
-        self.fc = Linear(num_classes * embed_dim, num_classes)
+        self.embedding = EmbeddingBag(vocab_size, emb_size, sparse=True)
+        self.fc = Linear(num_classes * emb_size, num_classes)
 
-        self.class_embs = torch.rand((4, embed_dim), requires_grad=True).cuda()
+        self.class_embs = torch.rand((4, emb_size), requires_grad=True).cuda()
 
         # Loss function
         self.criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([1] * 4))
@@ -51,51 +51,84 @@ class Classifier(LightningModule):
 
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
-        :param sents_batch: shape = (batch_size, sents, sent_len)
+        :param sents_batch: Batch of entities, multiple sentences per entities, each sentence
+                            as a token list of fixed length (padded)
+
+                            shape = (batch_size, sent_count, sent_len)
+
+        :return shape (batch_size, class_count)
         """
 
-        batch_size = len(sents_batch)
+        batch_size, sent_count, sent_len = sents_batch.shape
 
-        # shape = (batch_size * sents, sent_len)
-        flat_sents = sents_batch.reshape(-1, 64)
+        #
+        # Embed sentences
+        #
 
-        # shape = (batch_size * sents, emb_size)
+        # (batch_size, sent_count, sent_len)
+        # -> (batch_size * sent_count, sent_len)
+        flat_sents = sents_batch.reshape(batch_size * sent_count, sent_len)
+
+        # (batch_size * sent_count, sent_len)
+        # -> (batch_size * sent_count, emb_size)
         flat_sent_embs = self.embedding(flat_sents)
+        emb_size = flat_sent_embs.shape[-1]
 
-        # shape = (batch_size, sents, emb_size)
-        sent_embs_batch = flat_sent_embs.reshape(batch_size, 3, 32)
+        # (batch_size * sent_count, emb_size)
+        # -> (batch_size, sent_count, emb_size)
+        sent_embs_batch = flat_sent_embs.reshape(batch_size, sent_count, emb_size)
 
-        # shape = (batch_size, classes, emb_size)
-        class_embs_batch = self.class_embs.expand(batch_size, -1, -1)
+        #
+        # Calc attentions
+        #
 
-        # shape = (batch_size, classes, sents)
+        # (class_count, emb_size)
+        # -> (batch_size, class_count, emb_size)
+        class_count = self.class_embs.shape[0]
+        class_embs_batch = self.class_embs.expand(batch_size, class_count, emb_size)
+
+        # (batch_size, class_count, emb_size) @ (batch_size, emb_size, sent_count)
+        # -> (batch_size, class_count, sent_count)
         atts_batch = torch.bmm(class_embs_batch, sent_embs_batch.transpose(1, 2))
 
-        # shape = (batch_size, classes, sents)
+        # (batch_size, class_count, sent_count)
+        # -> (batch_size, class_count, sent_count)
         softs_batch = Softmax(dim=-1)(atts_batch)
 
-        # shape = (batch_size * classes, sents, 1)
-        flat_softs = softs_batch.reshape(batch_size * 4, -1).unsqueeze(-1)
+        #
+        # Weight sentences
+        #
 
-        # shape = (batch_size, 1, sents, emb_size)
-        stacked_sents = sent_embs_batch.unsqueeze(1)
+        # (batch_size, sent_count, emb_size)
+        # -> (batch_size, class_count, sent_count, emb_size)
+        expaned_batch = sent_embs_batch.unsqueeze(1).expand(-1, class_count, -1, -1)
 
-        # shape = (batch_size, classes, sents, emb_size)
-        stacked_sents_2 = stacked_sents.expand(-1, 4, -1, -1)
+        # (batch_size, class_count, sent_count, emb_size)
+        # -> (batch_size * class_count, sent_count, emb_size)
+        flat_expanded = expaned_batch.reshape(-1, sent_count, emb_size)
 
-        # shape = (batch_size * classes, sents, emb_size)
-        stacked_sents_3 = stacked_sents_2.reshape(batch_size * 4, 3, 32)
+        # (batch_size, class_count, sent_count)
+        # -> (batch_size * class_count, sent_count)
+        flat_softs = softs_batch.reshape(batch_size * class_count, sent_count)
 
-        # shape = (batch_size * classes, emb_size)
-        flat_weighted = torch.bmm(stacked_sents_3.transpose(1, 2), flat_softs)
+        # (batch_size * class_count, emb_size, sent_count) @ (batch_size * class_count, sent_count, 1)
+        # shape = (batch_size * class_count, emb_size)
+        flat_weighted = torch.bmm(flat_expanded.transpose(1, 2), flat_softs.unsqueeze(-1))
 
-        # shape = (batch_size, classes, emb_size)
-        weighted_batch = flat_weighted.reshape(batch_size, 4, -1)
+        # (batch_size * class_count, emb_size)
+        # -> (batch_size, class_count, emb_size)
+        weighted_batch = flat_weighted.reshape(batch_size, class_count, emb_size)
 
-        # shape = (batch_size, classes * emb_size)
-        inputs_batch = weighted_batch.reshape(batch_size, -1)
+        #
+        # Classify weighted sentences
+        #
 
-        # shape = (batch_size, classes)
+        # (batch_size, class_count, emb_size)
+        # -> (batch_size, class_count * emb_size)
+        inputs_batch = weighted_batch.reshape(batch_size, class_count * emb_size)
+
+        # (batch_size, class_count * emb_size)
+        # -> (batch_size, class_count)
         outputs_batch = self.fc(inputs_batch)
 
         return outputs_batch

@@ -64,7 +64,7 @@ def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     vocab = data_module.vocab
     num_classes = data_module.num_classes
 
-    classifier = Classifier(vocab_size=len(vocab), embed_dim=32,
+    classifier = Classifier(vocab_size=len(vocab), emb_size=32,
                             num_classes=num_classes)
 
     trainer = Trainer(max_epochs=5, gpus=gpus)

@@ -10,8 +10,6 @@ setup(
         'sphinx',
         'sphinx-rtd-theme',
         'tokenizers',
-        'torch',
-        'torchtext',
         'transformers'
     ]
 )
