@@ -1,190 +1,260 @@
 #
-# https://pytorch.org/tutorials/beginner/text_sentiment_ngrams_tutorial.html
+# Refactored version of https://pytorch.org/tutorials/beginner/text_sentiment_ngrams_tutorial.html
 #
 
+import os
+import time
+from typing import List, Tuple
+
+import torch
+import torch.nn as nn
+import torchtext
+from torch import Tensor, optim
+from torch.optim import Optimizer
+from torch.types import Device
+from torch.utils.data import DataLoader
+from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataset import random_split
+from torchtext.data.utils import ngrams_iterator
+from torchtext.datasets import text_classification
+from torchtext.vocab import Vocab
+
+BATCH_SIZE = 16
+EMB_SIZE = 32
+NGRAMS = 2
+EPOCH_COUNT = 5
+
+
 #
-# Load data with ngrams
+# Define the model
 #
+
+class TextSentiment(nn.Module):
+    embedding: nn.EmbeddingBag
+    fc: nn.Linear
+
+    def __init__(self, vocab_size: int, emb_size: int, class_count: int):
+        super().__init__()
+
+        self.embedding = nn.EmbeddingBag(vocab_size, emb_size, sparse=True)
+        self.fc = nn.Linear(emb_size, class_count)
+
+        self.init_weights()
+
+    def init_weights(self) -> None:
+        initrange = 0.5
+
+        self.embedding.weight.data.uniform_(-initrange, initrange)
+
+        self.fc.weight.data.uniform_(-initrange, initrange)
+        self.fc.bias.data.zero_()
+
+    def forward(self, concated_token_lists: List[int], offsets: List[int]) -> Tensor:
+        """
+        :return: (batch_size, class_count)
+        """
+
+        # (batch_size, emb_size))
+        embeddings: Tensor = self.embedding(concated_token_lists, offsets)
+
+        # (batch_size, class_count)
+        outputs: Tensor = self.fc(embeddings)
+
+        return outputs
+
 
 def main():
-    import torch
-    import torchtext
-    from torchtext.datasets import text_classification
-    NGRAMS = 2
-    import os
-    if not os.path.isdir('./.data'):
-        os.mkdir('./.data')
-    train_dataset, test_dataset = text_classification.DATASETS['AG_NEWS'](
-        root='./.data', ngrams=NGRAMS, vocab=None)
-    BATCH_SIZE = 16
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     #
-    # Define the model
+    # Load data with ngrams
     #
 
-    import torch.nn as nn
-    import torch.nn.functional as F
-    class TextSentiment(nn.Module):
-        def __init__(self, vocab_size, embed_dim, num_class):
-            super().__init__()
-            self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
-            self.fc = nn.Linear(embed_dim, num_class)
-            self.init_weights()
+    if not os.path.isdir('data/'):
+        os.mkdir('data/')
 
-        def init_weights(self):
-            initrange = 0.5
-            self.embedding.weight.data.uniform_(-initrange, initrange)
-            self.fc.weight.data.uniform_(-initrange, initrange)
-            self.fc.bias.data.zero_()
+    ag_news = text_classification.DATASETS['AG_NEWS']
+    train_valid_dataset, test_dataset = ag_news(root='data/', ngrams=NGRAMS, vocab=None)
 
-        def forward(self, text, offsets):
-            embedded = self.embedding(text, offsets)
-            return self.fc(embedded)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     #
     # Instantiate the instance
     #
 
-    VOCAB_SIZE = len(train_dataset.get_vocab())
-    EMBED_DIM = 32
-    NUN_CLASS = len(train_dataset.get_labels())
-    model = TextSentiment(VOCAB_SIZE, EMBED_DIM, NUN_CLASS).to(device)
+    vocab_size = len(train_valid_dataset.get_vocab())
+    class_count = len(train_valid_dataset.get_labels())
 
-    #
-    # Functions used to generate batch
-    #
-
-    def generate_batch(batch):
-        label = torch.tensor([entry[0] for entry in batch])
-        text = [entry[1] for entry in batch]
-        offsets = [0] + [len(entry) for entry in text]
-        # torch.Tensor.cumsum returns the cumulative sum
-        # of elements in the dimension dim.
-        # torch.Tensor([1.0, 2.0, 3.0]).cumsum(dim=0)
-
-        offsets = torch.tensor(offsets[:-1]).cumsum(dim=0)
-        text = torch.cat(text)
-        return text, offsets, label
-
-    #
-    # Define functions to train the model and evaluate results
-    #
-
-    from torch.utils.data import DataLoader
-
-    def train_func(sub_train_):
-
-        # Train the model
-        train_loss = 0
-        train_acc = 0
-        data = DataLoader(sub_train_, batch_size=BATCH_SIZE, shuffle=True,
-                          collate_fn=generate_batch)
-        for i, (text, offsets, cls) in enumerate(data):
-            optimizer.zero_grad()
-            text, offsets, cls = text.to(device), offsets.to(device), cls.to(device)
-            output = model(text, offsets)
-            loss = criterion(output, cls)
-            train_loss += loss.item()
-            loss.backward()
-            optimizer.step()
-            train_acc += (output.argmax(1) == cls).sum().item()
-
-        # Adjust the learning rate
-        scheduler.step()
-
-        return train_loss / len(sub_train_), train_acc / len(sub_train_)
-
-    def test(data_):
-        loss = 0
-        acc = 0
-        data = DataLoader(data_, batch_size=BATCH_SIZE, collate_fn=generate_batch)
-        for text, offsets, cls in data:
-            text, offsets, cls = text.to(device), offsets.to(device), cls.to(device)
-            with torch.no_grad():
-                output = model(text, offsets)
-                loss = criterion(output, cls)
-                loss += loss.item()
-                acc += (output.argmax(1) == cls).sum().item()
-
-        return loss / len(data_), acc / len(data_)
+    model = TextSentiment(vocab_size, EMB_SIZE, class_count).to(device)
 
     #
     # Split the dataset and run the model
     #
 
-    import time
-    from torch.utils.data.dataset import random_split
-    N_EPOCHS = 5
-    min_valid_loss = float('inf')
+    criterion = nn.CrossEntropyLoss().to(device)
+    optimizer = optim.SGD(model.parameters(), lr=4.0)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.9)
 
-    criterion = torch.nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=4.0)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.9)
+    train_len = int(len(train_valid_dataset) * 0.95)
+    valid_len = len(train_valid_dataset) - train_len
+    train_dataset, valid_dataset = random_split(train_valid_dataset, [train_len, valid_len])
 
-    train_len = int(len(train_dataset) * 0.95)
-    sub_train_, sub_valid_ = \
-        random_split(train_dataset, [train_len, len(train_dataset) - train_len])
-
-    for epoch in range(N_EPOCHS):
-
+    for epoch in range(EPOCH_COUNT):
         start_time = time.time()
-        train_loss, train_acc = train_func(sub_train_)
-        valid_loss, valid_acc = test(sub_valid_)
 
-        secs = int(time.time() - start_time)
-        mins = secs / 60
-        secs = secs % 60
+        train_loss, train_acc = train(device, model, criterion, optimizer, scheduler, train_dataset)
+        valid_loss, valid_acc = test(device, model, criterion, valid_dataset)
 
-        print('Epoch: %d' %(epoch + 1), " | time in %d minutes, %d seconds" %(mins, secs))
-        print(f'\tLoss: {train_loss:.4f}(train)\t|\tAcc: {train_acc * 100:.1f}%(train)')
-        print(f'\tLoss: {valid_loss:.4f}(valid)\t|\tAcc: {valid_acc * 100:.1f}%(valid)')
+        total_secs = int(time.time() - start_time)
+        mins = int(total_secs / 60)
+        secs = total_secs % 60
+
+        print()
+        print(f'Epoch: {epoch + 1} | time in {mins} minutes, {secs} seconds')
+        print(f'\tTrain | loss = {train_loss:.4f}\t|\tacc = {train_acc * 100:.1f}%')
+        print(f'\tValid | loss = {valid_loss:.4f}\t|\tacc = {valid_acc * 100:.1f}%')
 
     #
     # Evaluate the model with test dataset
     #
 
-    print('Checking the results of test dataset...')
-    test_loss, test_acc = test(test_dataset)
-    print(f'\tLoss: {test_loss:.4f}(test)\t|\tAcc: {test_acc * 100:.1f}%(test)')
+    test_loss, test_acc = test(device, model, criterion, test_dataset)
+
+    print()
+    print('Checking the results of test dataset ...')
+    print(f'\tTest  | loss = {test_loss:.4f}\t|\tacc = {test_acc * 100:.1f}%')
 
     #
     # Test on a random news
     #
 
-    import re
-    from torchtext.data.utils import ngrams_iterator
-    from torchtext.data.utils import get_tokenizer
+    class_to_label = {1: 'World', 2: 'Sports', 3: 'Business', 4: 'Sci/Tec'}
 
-    ag_news_label = {1 : "World",
-                     2 : "Sports",
-                     3 : "Business",
-                     4 : "Sci/Tec"}
+    def predict(text: str, model: nn.Module, vocab: Vocab, ngrams: int):
+        tokenizer = torchtext.data.utils.get_tokenizer('basic_english')
+        words: List[str] = tokenizer(text)
 
-    def predict(text, model, vocab, ngrams):
-        tokenizer = get_tokenizer("basic_english")
         with torch.no_grad():
-            text = torch.tensor([vocab[token]
-                                for token in ngrams_iterator(tokenizer(text), ngrams)])
-            output = model(text, torch.tensor([0]))
-            return output.argmax(1).item() + 1
+            tokens = torch.tensor([vocab[token] for token in ngrams_iterator(words, ngrams)])
 
-    ex_text_str = "MEMPHIS, Tenn. – Four days ago, Jon Rahm was \
-        enduring the season’s worst weather conditions on Sunday at The \
-        Open on his way to a closing 75 at Royal Portrush, which \
-        considering the wind and the rain was a respectable showing. \
-        Thursday’s first round at the WGC-FedEx St. Jude Invitational \
-        was another story. With temperatures in the mid-80s and hardly any \
-        wind, the Spaniard was 13 strokes better in a flawless round. \
-        Thanks to his best putting performance on the PGA Tour, Rahm \
-        finished with an 8-under 62 for a three-stroke lead, which \
-        was even more impressive considering he’d never played the \
-        front nine at TPC Southwind."
+            class_logits: Tensor = model(tokens, torch.tensor([0]))
+            pred_class = class_logits.argmax(1).item() + 1
 
-    vocab = train_dataset.get_vocab()
-    model = model.to("cpu")
+            return pred_class
 
-    print("This is a %s news" %ag_news_label[predict(ex_text_str, model, vocab, 2)])
+    ex_text_str = "MEMPHIS, Tenn. – Four days ago, Jon Rahm was enduring the season’s" \
+                  " worst weather conditions on Sunday at The Open on his way to a" \
+                  " closing 75 at Royal Portrush, which considering the wind and the" \
+                  " rain was a respectable showing. Thursday’s first round at the" \
+                  " WGC-FedEx St. Jude Invitational was another story. With temperatures" \
+                  " in the mid-80s and hardly any wind, the Spaniard was 13 strokes" \
+                  " better in a flawless round. Thanks to his best putting performance" \
+                  " on the PGA Tour, Rahm     finished with an 8-under 62 for a" \
+                  " three-stroke lead, which was even more impressive considering he’d" \
+                  " never played the front nine at TPC Southwind."
+
+    model = model.to('cpu')
+    vocab = train_valid_dataset.get_vocab()
+
+    pred_class = predict(ex_text_str, model, vocab, ngrams=2)
+    pred_label = class_to_label[pred_class]
+
+    print()
+    print(f'This is a {pred_label} news')
+
+
+def generate_batch(
+        label_tokens_batch: List[Tuple[int, Tensor]]
+) -> Tuple[Tensor, Tensor, Tensor]:
+    """
+    Split (label, tokens) batch and transform tokens into EmbeddingBag format.
+
+    :return: 1. Concated tokens of all texts, Tensor[]
+             2. Token offsets where texts begin, Tensor[batch_size]
+             3. Labels for texts, Tensor[batch_size]
+    """
+
+    label_batch = torch.tensor([entry[0] for entry in label_tokens_batch])
+    tokens_batch = [entry[1] for entry in label_tokens_batch]
+
+    num_tokens_batch = [len(tokens) for tokens in tokens_batch]
+
+    offset_batch = torch.tensor([0] + num_tokens_batch[:-1]).cumsum(dim=0)
+    concated_tokens_batch = torch.cat(tokens_batch)
+
+    return concated_tokens_batch, offset_batch, label_batch
+
+
+def train(
+        device: Device,
+        model: nn.Module,
+        criterion,
+        optimizer: Optimizer,
+        scheduler,
+        dataset: Dataset
+) -> Tuple[float, float]:
+    """
+    :return: 1. Epoch loss
+             2. Epoch accuracy
+    """
+
+    epoch_loss_sum: float = 0
+    epoch_acc_sum: float = 0
+
+    data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=generate_batch)
+
+    for concated_tokens_batch, offset_batch, label_batch, in data:
+        concated_tokens_batch = concated_tokens_batch.to(device)
+        offset_batch = offset_batch.to(device)
+        label_batch = label_batch.to(device)
+
+        # (batch_size, class_count)
+        output_batch = model(concated_tokens_batch, offset_batch)
+
+        loss = criterion(output_batch, label_batch)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        epoch_loss_sum += loss.item()
+        epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
+
+    # Adjust the learning rate
+    scheduler.step()
+
+    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
+
+
+def test(
+        device: Device,
+        model: nn.Module,
+        criterion,
+        dataset: Dataset
+) -> Tuple[float, float]:
+    """
+    :return: 1. Epoch loss
+             2. Epoch accuracy
+    """
+
+    epoch_loss_sum = 0
+    epoch_acc_sum = 0
+
+    data = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=generate_batch)
+
+    for concated_tokens_batch, offset_batch, label_batch in data:
+        concated_tokens_batch = concated_tokens_batch.to(device)
+        offset_batch = offset_batch.to(device)
+        label_batch = label_batch.to(device)
+
+        with torch.no_grad():
+            output_batch = model(concated_tokens_batch, offset_batch)
+
+            loss = criterion(output_batch, label_batch)
+
+            epoch_loss_sum += loss.item()
+            epoch_acc_sum += (output_batch.argmax(1) == label_batch).sum().item()
+
+    return epoch_loss_sum / len(dataset), epoch_acc_sum / len(dataset)
+
 
 if __name__ == '__main__':
     main()

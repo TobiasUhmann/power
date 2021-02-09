@@ -58,16 +58,15 @@ def main():
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
     data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64,
-                             num_classes=4, num_sentences=3, sent_len=64)
+                             class_count=4, sent_count=3, sent_len=64)
     data_module.prepare_data()
 
     vocab = data_module.vocab
-    num_classes = data_module.num_classes
+    class_count = data_module.class_count
 
-    classifier = Classifier(vocab_size=len(vocab), emb_size=32,
-                            num_classes=num_classes)
+    classifier = Classifier(vocab_size=len(vocab), emb_size=32, class_count=class_count)
 
-    trainer = Trainer(max_epochs=5, gpus=gpus)
+    trainer = Trainer(max_epochs=10, gpus=gpus)
     trainer.fit(classifier, datamodule=data_module)
 
     trainer.save_checkpoint('data/classifier.ckpt')
