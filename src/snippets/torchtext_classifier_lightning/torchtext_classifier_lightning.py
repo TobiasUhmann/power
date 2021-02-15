@@ -1,5 +1,5 @@
 #
-# PyTorch Lightning version of torchtext_classifier_refactored.py
+# PyTorch Lightning version of torchtext_classifier.py
 #
 
 import pickle
@@ -17,9 +17,9 @@ from snippets.torchtext_classifier_lightning.classifier import Classifier
 from snippets.torchtext_classifier_lightning.data_module import DataModule
 
 BATCH_SIZE = 16
-EMBED_DIM = 32
+EMB_SIZE = 32
 NGRAMS = 2
-NUM_EPOCHS = 5
+EPOCH_COUNT = 5
 
 
 def main():
@@ -37,15 +37,15 @@ def main():
         data_module = pickle.load(f)
 
     vocab_size = len(data_module.vocab)
-    num_classes = data_module.num_classes
+    class_count = data_module.class_count
 
-    classifier = Classifier(vocab_size, EMBED_DIM, num_classes)
+    classifier = Classifier(vocab_size, EMB_SIZE, class_count)
 
     #
     # Train & Test
     #
 
-    trainer = Trainer(max_epochs=NUM_EPOCHS, gpus=1)
+    trainer = Trainer(max_epochs=EPOCH_COUNT, gpus=1)
     trainer.fit(classifier, datamodule=data_module)
 
     trainer.save_checkpoint('data/classifier.ckpt')

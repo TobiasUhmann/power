@@ -16,7 +16,7 @@ class DataModule(LightningDataModule):
     ngrams: int
 
     vocab: Vocab
-    num_classes: int
+    class_count: int
 
     train_dataset: Dataset
     valid_dataset: Dataset
@@ -41,7 +41,7 @@ class DataModule(LightningDataModule):
         train_valid_set, test_set = ag_news(root='data/', ngrams=self.ngrams, vocab=None)
 
         self.vocab = train_valid_set.get_vocab()
-        self.num_classes = len(train_valid_set.get_labels())
+        self.class_count = len(train_valid_set.get_labels())
 
         train_len = int(len(train_valid_set) * 0.7)
         valid_len = len(train_valid_set) - train_len

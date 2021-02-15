@@ -4,20 +4,19 @@ import time
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, random_split
-from torchtext.data import Field, TabularDataset, BucketIterator
-from torchtext.datasets import text_classification
+from torchtext.data import Field, TabularDataset
 
 BATCH_SIZE = 16
-EMBED_DIM = 32
+EMB_SIZE = 32
 NGRAMS = 2
 
 
 class TextSentiment(nn.Module):
-    def __init__(self, vocab_size, embed_dim, num_class):
+    def __init__(self, vocab_size, emb_size, class_count):
         super().__init__()
 
-        self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
-        self.fc = nn.Linear(embed_dim, num_class)
+        self.embedding = nn.EmbeddingBag(vocab_size, emb_size, sparse=True)
+        self.fc = nn.Linear(emb_size, class_count)
         self.init_weights()
 
     def init_weights(self):
@@ -145,7 +144,7 @@ if __name__ == '__main__':
     # vocab_size = len(train_dataset.get_vocab())
     # nun_class = len(train_dataset.get_labels())
 
-    model = TextSentiment(vocab_size, EMBED_DIM, nun_class).to(device)
+    model = TextSentiment(vocab_size, EMB_SIZE, nun_class).to(device)
 
     N_EPOCHS = 25
     min_valid_loss = float('inf')

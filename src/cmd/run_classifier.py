@@ -85,8 +85,8 @@ def load_classifier_from_experiment(experiment_dir: str) -> Classifier:
     classifier = Classifier.load_from_checkpoint(latest_classifier_ckpt,
                                                  hparams=Namespace(**hparams),
                                                  vocab_size=100000,
-                                                 embed_dim=32,
-                                                 num_class=4)
+                                                 emb_size=32,
+                                                 class_count=4)
 
     return classifier
 

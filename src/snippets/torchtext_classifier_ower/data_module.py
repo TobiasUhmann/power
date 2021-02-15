@@ -14,7 +14,7 @@ class DataModule(LightningDataModule):
     batch_size: int
 
     vocab: Vocab
-    num_classes: int
+    class_count: int
 
     train_dataset: List[Tuple[int, List[int], List[int]]]
     valid_dataset: List[Tuple[int, List[int], List[int]]]
@@ -49,13 +49,13 @@ class DataModule(LightningDataModule):
 
         assert train_header_len == valid_header_len == test_header_len
 
-        self.num_classes = train_header_len - 2
+        self.class_count = train_header_len - 2
 
         def tokenize(text: str):
             return text.split()
 
         fields = [('entity', Field(sequential=False, use_vocab=False))] + \
-                 [(str(i), Field(sequential=False, use_vocab=False)) for i in range(self.num_classes)] + \
+                 [(str(i), Field(sequential=False, use_vocab=False)) for i in range(self.class_count)] + \
                  [('context', Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True))]
 
         raw_train_set = TabularDataset(train_samples_tsv, 'tsv', fields, skip_header=True)
@@ -67,17 +67,17 @@ class DataModule(LightningDataModule):
         self.vocab = context_field.vocab
 
         self.train_dataset = [(int(getattr(sample, 'entity')),
-                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                               [int(getattr(sample, str(i))) for i in range(self.class_count)],
                                [self.vocab[token] for token in sample.context])
                               for sample in raw_train_set]
 
         self.valid_dataset = [(int(getattr(sample, 'entity')),
-                               [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                               [int(getattr(sample, str(i))) for i in range(self.class_count)],
                                [self.vocab[token] for token in sample.context])
                               for sample in raw_valid_set]
 
         self.test_dataset = [(int(getattr(sample, 'entity')),
-                              [int(getattr(sample, str(i))) for i in range(self.num_classes)],
+                              [int(getattr(sample, str(i))) for i in range(self.class_count)],
                               [self.vocab[token] for token in sample.context])
                              for sample in raw_test_set]
 

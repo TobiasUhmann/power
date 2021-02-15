@@ -58,16 +58,15 @@ def main():
 def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
     # Setup DataModule manually to be able to access #classes later
     data_module = DataModule(data_dir=ower_dataset_dir, batch_size=64,
-                             num_classes=4, num_sentences=3)
+                             class_count=4, sent_count=3, sent_len=64)
     data_module.prepare_data()
 
     vocab = data_module.vocab
-    num_classes = data_module.num_classes
+    class_count = data_module.class_count
 
-    classifier = Classifier(vocab_size=len(vocab), embed_dim=32,
-                            num_classes=num_classes)
+    classifier = Classifier(vocab_size=len(vocab), emb_size=32, class_count=class_count)
 
-    trainer = Trainer(max_epochs=5, gpus=gpus)
+    trainer = Trainer(max_epochs=10, gpus=gpus)
     trainer.fit(classifier, datamodule=data_module)
 
     trainer.save_checkpoint('data/classifier.ckpt')
@@ -86,34 +85,35 @@ def train_classifier(ower_dataset_dir: str, gpus: int) -> None:
         words_2 = text_2.split()
         words_3 = text_3.split()
 
-        with torch.no_grad():
-            tokens_1 = torch.tensor([vocab[word] for word in words_1])
-            tokens_2 = torch.tensor([vocab[word] for word in words_2])
-            tokens_3 = torch.tensor([vocab[word] for word in words_3])
+        tokens_1 = [vocab[word] for word in words_1]
+        tokens_2 = [vocab[word] for word in words_2]
+        tokens_3 = [vocab[word] for word in words_3]
 
-            class_logits: Tensor = classifier(
-                tokens_1, torch.tensor([0]),
-                tokens_2, torch.tensor([0]),
-                tokens_3, torch.tensor([0]),
-            )
+        with torch.no_grad():
+            sents = torch.tensor([tokens_1 + [0] * (64 - len(tokens_1)),
+                                  tokens_2 + [0] * (64 - len(tokens_2)),
+                                  tokens_3 + [0] * (64 - len(tokens_3))
+                                  ]).unsqueeze(0).cuda()
+
+            class_logits: Tensor = classifier(sents)
             pred_classes = class_logits > 0.5
 
             return pred_classes
 
-    ex_text_str_1 = "American actress."
-    ex_text_str_2 = "American actress."
-    ex_text_str_3 = "American actress."
+    ex_text_str_1 = "Barack Obama is a married american actor."
+    ex_text_str_2 = "Barack Obama is a married american actor."
+    ex_text_str_3 = "Barack Obama is a married american actor."
 
     ex_text_strs = [ex_text_str_1, ex_text_str_2, ex_text_str_3]
 
-    classifier = classifier.to('cpu')
+    # classifier = classifier.to('cpu')
     vocab = data_module.vocab
 
     pred_classes = predict(ex_text_strs, classifier, vocab)
     # pred_labels = [class_labels[pred_class] for pred_class in pred_classes if pred_class == 1]
 
     print()
-    print('Kamala Harris: ', pred_classes)
+    print('Barack Obama: ', pred_classes)
 
 
 if __name__ == '__main__':

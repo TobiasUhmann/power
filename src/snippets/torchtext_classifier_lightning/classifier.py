@@ -16,12 +16,12 @@ class Classifier(LightningModule):
 
     acc: Accuracy
 
-    def __init__(self, vocab_size: int, embed_dim: int, num_classes: int):
+    def __init__(self, vocab_size: int, emb_size: int, class_count: int):
         super(Classifier, self).__init__()
 
         # Create layers
-        self.embedding = EmbeddingBag(vocab_size, embed_dim, sparse=True)
-        self.fc = Linear(embed_dim, num_classes)
+        self.embedding = EmbeddingBag(vocab_size, emb_size, sparse=True)
+        self.fc = Linear(emb_size, class_count)
 
         # Loss function
         self.criterion = CrossEntropyLoss()
@@ -39,10 +39,10 @@ class Classifier(LightningModule):
         return torch.optim.SGD(self.parameters(), lr=4.0)
 
     def forward(self, tokens_batch_concated: List[int], offsets: List[int]):
-        # Shape [batch_size][embed_dim]
+        # (batch_size, emb_size)
         embeddings: Tensor = self.embedding(tokens_batch_concated, offsets)
 
-        # Shape [batch_size][class_count]
+        # (batch_size, class_count))
         class_logits: Tensor = self.fc(embeddings)
 
         return class_logits
