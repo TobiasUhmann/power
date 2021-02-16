@@ -4,6 +4,7 @@ setup(
     name='thesis-tools',
     version='0.8.0',
     install_requires=[
+        'matplotlib',
         'pandas',
         'pytorch-nlp',
         'pytorch_lightning',
