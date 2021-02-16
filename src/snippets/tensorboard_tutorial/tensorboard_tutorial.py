@@ -99,6 +99,13 @@ def main():
     # write to tensorboard
     writer.add_image('four_fashion_mnist_images', img_grid)
 
+    #
+    # Visualize model
+    #
+
+    writer.add_graph(net, images)
+    writer.close()
+
 
 if __name__ == '__main__':
     main()
