@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 def main():
     # imports
     import matplotlib.pyplot as plt
@@ -80,7 +83,7 @@ def main():
     #
 
     # default `log_dir` is "runs" - we'll be more specific here
-    writer = SummaryWriter('runs/fashion_mnist_experiment_1')
+    writer = SummaryWriter('runs/fashion_mnist_experiment' + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     #
     # Write to Tensorboard
@@ -97,13 +100,44 @@ def main():
     matplotlib_imshow(img_grid, one_channel=True)
 
     # write to tensorboard
-    writer.add_image('four_fashion_mnist_images', img_grid)
+    writer.add_image('four_fashion_mnist_image', img_grid)
+    writer.add_image('four_fashion_mnist_images1', img_grid)
 
     #
     # Visualize model
     #
 
     writer.add_graph(net, images)
+
+    #
+    # Add projector to tensorboard
+    #
+
+    # helper function
+    def select_n_random(data, labels, n=100):
+        '''
+        Selects n random datapoints and their corresponding labels from a dataset
+        '''
+        assert len(data) == len(labels)
+
+        perm = torch.randperm(len(data))
+        return data[perm][:n], labels[perm][:n]
+
+    # select random images and their target indices
+    images, labels = select_n_random(trainset.data, trainset.targets)
+
+    # get the class labels for each image
+    class_labels = [classes[lab] for lab in labels]
+
+    # log embeddings
+    features = images.view(-1, 28 * 28)
+    print('bla')
+    writer.add_embedding(features,
+                         metadata=class_labels,
+                         label_img=images.unsqueeze(1))
+
+    writer.add_image('four_fashion_mnist_images2', img_grid)
+
     writer.close()
 
 
