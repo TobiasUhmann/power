@@ -291,12 +291,17 @@ class Classifier(LightningModule):
         outputs_batch = self(sents_batch)
         loss = self.criterion(outputs_batch, classes_batch.float())
 
+        self.log('loss (train)', loss.item())
+
         return loss
 
     def validation_step(self, batch: Tuple[Tensor, Tensor], _batch_index: int) -> None:
         sents_batch, classes_batch = batch
 
         outputs_batch = self(sents_batch)
+        loss = self.criterion(outputs_batch, classes_batch.float())
+
+        self.log('loss (valid)', loss.item())
 
         # Update metrics
         self.prec(outputs_batch, classes_batch)
