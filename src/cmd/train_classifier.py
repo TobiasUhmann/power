@@ -1,6 +1,5 @@
 import logging
 from argparse import ArgumentParser
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple
 
@@ -18,34 +17,10 @@ from ower.classifier import Classifier
 
 
 def main():
-    config: Config = parse_args()
+    #
+    # Parse args
+    #
 
-    # Check that OWER Directory exists
-    ower_dir = OwerDir('OWER Directory', Path(config.ower_dataset_dir))
-    ower_dir.check()
-
-    train_classifier(ower_dir,
-                     config.class_count,
-                     config.sent_count,
-                     config.device,
-                     config.emb_size,
-                     config.epoch_count,
-                     config.lr)
-
-
-@dataclass
-class Config:
-    ower_dataset_dir: str
-    class_count: int
-    sent_count: int
-
-    device: str
-    emb_size: int
-    epoch_count: int
-    lr: float
-
-
-def parse_args() -> Config:
     parser = ArgumentParser()
 
     parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
@@ -77,37 +52,37 @@ def parse_args() -> Config:
 
     args = parser.parse_args()
 
-    config = Config(args.ower_dataset_dir,
-                    args.class_count,
-                    args.sent_count,
-                    args.device,
-                    args.emb_size,
-                    args.epoch_count,
-                    args.lr)
+    #
+    # Print applied config
+    #
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('ower-dataset-dir', config.ower_dataset_dir))
-    logging.info('    {:24} {}'.format('class-count', config.class_count))
-    logging.info('    {:24} {}'.format('sent-count', config.sent_count))
+    logging.info('    {:24} {}'.format('ower-dataset-dir', args.ower_dataset_dir))
+    logging.info('    {:24} {}'.format('class-count', args.class_count))
+    logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('')
-    logging.info('    {:24} {}'.format('--device', config.device))
-    logging.info('    {:24} {}'.format('--emb-size', config.emb_size))
-    logging.info('    {:24} {}'.format('--epoch-count', config.epoch_count))
-    logging.info('    {:24} {}'.format('--lr', config.lr))
+    logging.info('    {:24} {}'.format('--device', args.device))
+    logging.info('    {:24} {}'.format('--emb-size', args.emb_size))
+    logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
+    logging.info('    {:24} {}'.format('--lr', args.lr))
     logging.info('')
 
-    return config
+    #
+    # Check that OWER Directory exists
+    #
+
+    ower_dir = OwerDir('OWER Directory', Path(args.ower_dataset_dir))
+    ower_dir.check()
+
+    #
+    # Run actual program
+    #
+
+    train_classifier(ower_dir, args.class_count, args.sent_count, args.device, args.emb_size, args.epoch_count, args.lr)
 
 
-def train_classifier(ower_dir: OwerDir,
-                     class_count: int,
-                     sent_count: int,
-                     device: str,
-                     emb_size: int,
-                     epoch_count: int,
-                     lr: float
-                     ) -> None:
-    
+def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, device: str, emb_size: int, epoch_count: int,
+                     lr: float) -> None:
     train_loader, vocab = get_train_loader(ower_dir.train_samples_tsv, class_count, sent_count)
 
     classifier = Classifier(vocab_size=len(vocab), emb_size=emb_size, class_count=class_count).to(device)
