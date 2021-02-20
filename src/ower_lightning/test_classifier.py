@@ -5,7 +5,7 @@ import torch
 from torch import tensor
 from torch.nn import BCEWithLogitsLoss
 
-from ower.classifier import Classifier
+from ower_lightning.classifier import Classifier
 
 
 class TestClassifier(TestCase):

@@ -12,7 +12,7 @@ from pytorch_lightning import LightningModule
 from torch import nn, Tensor
 from torch.nn import EmbeddingBag, Linear, BCEWithLogitsLoss, Softmax, Parameter
 
-from ower.util import log_tensor
+from ower_lightning.util import log_tensor
 
 
 class Classifier(LightningModule):

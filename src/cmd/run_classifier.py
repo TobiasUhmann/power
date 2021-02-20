@@ -4,7 +4,7 @@ from os import path
 
 import yaml
 
-from ower.classifier import Classifier
+from ower_lightning.classifier import Classifier
 
 
 def main() -> None:

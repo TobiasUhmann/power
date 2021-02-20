@@ -7,8 +7,8 @@ from pytorch_lightning import Trainer
 from torch import Tensor
 from torchtext.vocab import Vocab
 
-from ower.classifier import Classifier
-from ower.data_module import DataModule
+from ower_lightning.classifier import Classifier
+from ower_lightning.data_module import DataModule
 
 
 def main():
