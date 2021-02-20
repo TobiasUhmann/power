@@ -1,11 +1,15 @@
 import logging
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from pathlib import Path
+
+from dao.ower.ower_dir import OwerDir
 
 
 def main():
     config: Config = parse_args()
     print_config(config)
+    check_files(config)
 
 
 @dataclass
@@ -30,6 +34,11 @@ def print_config(config: Config) -> None:
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ower-dataset-dir', config.ower_dataset_dir))
     logging.info('')
+
+
+def check_files(config: Config) -> None:
+    ower_dir = OwerDir('OWER Directory', Path(config.ower_dataset_dir))
+    ower_dir.check()
 
 
 if __name__ == '__main__':
