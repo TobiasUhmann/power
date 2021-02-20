@@ -25,12 +25,18 @@ def main():
     ower_dir = OwerDir('OWER Directory', Path(config.ower_dataset_dir))
     ower_dir.check()
 
-    train_classifier(ower_dir, config.epoch_count, config.device)
+    train_classifier(ower_dir,
+                     config.class_count,
+                     config.sent_count,
+                     config.epoch_count,
+                     config.device)
 
 
 @dataclass
 class Config:
     ower_dataset_dir: str
+    class_count: int
+    sent_count: int
 
     device: str
     epoch_count: int
@@ -41,6 +47,12 @@ def parse_args() -> Config:
 
     parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
                         help='Path to (input) OWER Dataset Directory')
+
+    parser.add_argument('class_count', metavar='class-count', type=int,
+                        help='Number of classes distinguished by the classifier')
+
+    parser.add_argument('sent_count', metavar='sent-count', type=int,
+                        help='Number of sentences per entity')
 
     device_choices = ['cpu', 'cuda']
     default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -55,9 +67,11 @@ def parse_args() -> Config:
 
     args = parser.parse_args()
 
-    config = Config(ower_dataset_dir=args.ower_dataset_dir,
-                    device=args.device,
-                    epoch_count=args.epoch_count)
+    config = Config(args.ower_dataset_dir,
+                    args.class_count,
+                    args.sent_count,
+                    args.device,
+                    args.epoch_count)
 
     return config
 
@@ -65,14 +79,21 @@ def parse_args() -> Config:
 def print_config(config: Config) -> None:
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ower-dataset-dir', config.ower_dataset_dir))
+    logging.info('    {:24} {}'.format('class-count', config.class_count))
+    logging.info('    {:24} {}'.format('sent-count', config.sent_count))
     logging.info('')
     logging.info('    {:24} {}'.format('--device', config.device))
     logging.info('    {:24} {}'.format('--epoch-count', config.epoch_count))
     logging.info('')
 
 
-def train_classifier(ower_dir: OwerDir, epoch_count: int, device:str) -> None:
-    train_loader, vocab = get_train_loader(ower_dir.train_samples_tsv, 4, 3)
+def train_classifier(ower_dir: OwerDir,
+                     class_count: int,
+                     sent_count: int,
+                     epoch_count: int,
+                     device: str
+                     ) -> None:
+    train_loader, vocab = get_train_loader(ower_dir.train_samples_tsv, class_count, sent_count)
 
     classifier = Classifier(vocab_size=len(vocab), emb_size=32, class_count=4).to(device)
     optimizer = Adam(classifier.parameters(), lr=0.01)
