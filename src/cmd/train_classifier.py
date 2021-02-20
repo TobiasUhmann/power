@@ -1,7 +1,8 @@
 import logging
 from argparse import ArgumentParser
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import torch
 from torch import tensor, Tensor
@@ -83,7 +84,11 @@ def main():
 
 def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, device: str, emb_size: int, epoch_count: int,
                      lr: float) -> None:
-    train_loader, vocab = get_train_loader(ower_dir.train_samples_tsv, class_count, sent_count)
+
+    train_set, valid_set, _test_set, vocab = load_datasets(str(ower_dir._path), class_count, sent_count)
+
+    train_loader = DataLoader(train_set, batch_size=64, collate_fn=generate_batch, shuffle=True)
+    valid_loader = DataLoader(train_set, batch_size=64, collate_fn=generate_batch)
 
     classifier = Classifier(vocab_size=len(vocab), emb_size=emb_size, class_count=class_count).to(device)
     optimizer = Adam(classifier.parameters(), lr=lr)
@@ -108,31 +113,74 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, devic
             logging.info(running_loss)
 
 
-def get_train_loader(train_samples_tsv: SamplesTsv, class_count: int, sent_count: int) -> Tuple[DataLoader, Vocab]:
+@dataclass
+class Sample:
+    ent: int
+    classes: List[int]
+    sents: List[List[int]]
+
+
+def load_datasets(ower_dir: Dict[str], class_count: int, sent_count: int) \
+        -> Tuple[List[Sample], List[Sample], List[Sample], Vocab]:
+    """
+    Read train/valid/test Sample TSVs from OWER Directory and return rows as lists
+    of samples. The sentences are tokenized by whitespace and mapped to IDs. The
+    first sentence column of the train Samples TSV is used to build the vocabulary.
+
+    Example row (tabs are represented by 4 spaces) and resulting sample:
+    123    1    1    1    0    Barack Obama is male.    Barack Obama is married.
+    123, [1, 1, 1, 0], [[1, 2, 3, 4], [1, 2, 3, 5]]
+    """
+
+    #
+    # Define columns for subsequent read into TabularDatasets
+    #
+
     def tokenize(text: str):
         return text.split()
 
     ent_field = ('ent', Field(sequential=False, use_vocab=False))
+
     class_fields = [(f'class_{i}', Field(sequential=False, use_vocab=False))
                     for i in range(class_count)]
+
     sent_fields = [(f'sent_{i}', Field(sequential=True, use_vocab=True, tokenize=tokenize, lower=True))
                    for i in range(sent_count)]
 
     fields = [ent_field] + class_fields + sent_fields
 
-    raw_train_set = TabularDataset(str(train_samples_tsv._path), 'tsv', fields, skip_header=True)
+    #
+    # Read Samples TSVs into TabularDatasets
+    #
+
+    raw_train_set = TabularDataset(ower_dir['train_samples_tsv'], 'tsv', fields, skip_header=True)
+    raw_valid_set = TabularDataset(ower_dir['valid_samples_tsv'], 'tsv', fields, skip_header=True)
+    raw_test_set = TabularDataset(ower_dir['test_samples_tsv'], 'tsv', fields, skip_header=True)
+
+    #
+    # Build vocab
+    #
 
     first_sent_field = sent_fields[0][1]
     first_sent_field.build_vocab(raw_train_set)
     vocab = first_sent_field.vocab
 
-    train_set = [(
-        int(getattr(sample, 'ent')),
-        [int(getattr(sample, f'class_{i}')) for i in range(class_count)],
-        [[vocab[token] for token in getattr(sample, f'sent_{i}')] for i in range(sent_count)]
-    ) for sample in raw_train_set]
+    #
+    # TabularDataset -> List[Sample] (i.e. parse ints, map tokens -> IDs)
+    #
 
-    return DataLoader(train_set, batch_size=64, collate_fn=generate_batch, shuffle=True), vocab
+    def transform(raw_set: TabularDataset) -> List[Sample]:
+        return [Sample(
+            int(getattr(row, 'ent')),
+            [int(getattr(row, f'class_{i}')) for i in range(class_count)],
+            [[vocab[token] for token in getattr(row, f'sent_{i}')] for i in range(sent_count)]
+        ) for row in raw_set]
+
+    train_set = transform(raw_train_set)
+    valid_set = transform(raw_valid_set)
+    test_set = transform(raw_test_set)
+
+    return train_set, valid_set, test_set, vocab
 
 
 def generate_batch(batch: List[Tuple[int, List[int], List[List[int]]]]) -> Tuple[Tensor, Tensor]:
