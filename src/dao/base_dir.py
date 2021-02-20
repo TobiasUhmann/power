@@ -1,3 +1,4 @@
+import logging
 from os import makedirs
 from os.path import isdir
 from pathlib import Path
@@ -17,7 +18,7 @@ class BaseDir:
         """
 
         if not isdir(self._path):
-            print(f'{self._name} not found')
+            logging.error(f'{self._name} not found')
             exit()
 
     def create(self) -> None:

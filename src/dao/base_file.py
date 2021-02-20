@@ -1,3 +1,4 @@
+import logging
 from os.path import isfile
 from pathlib import Path
 
@@ -16,5 +17,5 @@ class BaseFile:
         """
 
         if not isfile(self._path):
-            print(f'{self._name} not found')
+            logging.error(f'{self._name} not found')
             exit()

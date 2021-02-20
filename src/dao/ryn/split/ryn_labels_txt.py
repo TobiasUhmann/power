@@ -15,7 +15,7 @@ The `Ryn Labels TXT` contains the entities' or relations' labels.
 
 |
 """
-
+import logging
 from pathlib import Path
 from typing import Dict
 
@@ -42,8 +42,8 @@ class RynLabelsTxt(BaseFile):
 
             parts_by_space = line.split(' ')
             if len(parts) != len(parts_by_space):
-                print('[WARN] Line must contain single spaces only as separator.'
-                      f' Replacing each whitespace with single space. Line: {repr(line)}')
+                logging.warning('[WARN] Line must contain single spaces only as separator.'
+                                f' Replacing each whitespace with single space. Line: {repr(line)}')
 
             label = ' '.join(parts[:-1])
             rid = int(parts[-1])
