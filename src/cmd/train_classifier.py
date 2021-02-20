@@ -24,12 +24,14 @@ def main():
     ower_dir = OwerDir('OWER Directory', Path(config.ower_dataset_dir))
     ower_dir.check()
 
-    train_classifier(ower_dir)
+    train_classifier(ower_dir, config.epoch_count)
 
 
 @dataclass
 class Config:
     ower_dataset_dir: str
+
+    epoch_count: int
 
 
 def parse_args() -> Config:
@@ -38,9 +40,15 @@ def parse_args() -> Config:
     parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
                         help='Path to (input) OWER Dataset Directory')
 
+    default_epoch_count = 10
+    parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT',
+                        default=default_epoch_count,
+                        help='Number of training epochs (default: {})'.format(default_epoch_count))
+
     args = parser.parse_args()
 
-    config = Config(args.ower_dataset_dir)
+    config = Config(ower_dataset_dir=args.ower_dataset_dir,
+                    epoch_count=args.epoch_count)
 
     return config
 
@@ -49,16 +57,18 @@ def print_config(config: Config) -> None:
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ower-dataset-dir', config.ower_dataset_dir))
     logging.info('')
+    logging.info('    {:24} {}'.format('--epoch-count', config.epoch_count))
+    logging.info('')
 
 
-def train_classifier(ower_dir: OwerDir) -> None:
+def train_classifier(ower_dir: OwerDir, epoch_count: int) -> None:
     train_loader, vocab = get_train_loader(ower_dir.train_samples_tsv, 4, 3)
 
     classifier = Classifier(vocab_size=len(vocab), emb_size=32, class_count=4)
     optimizer = Adam(classifier.parameters(), lr=0.01)
     criterion = BCEWithLogitsLoss()
 
-    for epoch in range(10):
+    for epoch in range(epoch_count):
         running_loss = 0.0
 
         for batch in train_loader:
