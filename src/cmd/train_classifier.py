@@ -19,7 +19,6 @@ from ower.classifier import Classifier
 
 def main():
     config: Config = parse_args()
-    print_config(config)
 
     # Check that OWER Directory exists
     ower_dir = OwerDir('OWER Directory', Path(config.ower_dataset_dir))
@@ -28,8 +27,10 @@ def main():
     train_classifier(ower_dir,
                      config.class_count,
                      config.sent_count,
+                     config.device,
+                     config.emb_size,
                      config.epoch_count,
-                     config.device)
+                     config.lr)
 
 
 @dataclass
@@ -39,7 +40,9 @@ class Config:
     sent_count: int
 
     device: str
+    emb_size: int
     epoch_count: int
+    lr: float
 
 
 def parse_args() -> Config:
@@ -60,10 +63,17 @@ def parse_args() -> Config:
                         help='Where to perform tensor operations, one of {} (default: {})'.format(
                             device_choices, default_device))
 
+    default_emb_size = 32
+    parser.add_argument('--emb-size', dest='emb_size', type=int, metavar='INT', default=default_emb_size,
+                        help='Embedding size for sentence and class embeddings (default: {})'.format(default_emb_size))
+
     default_epoch_count = 10
-    parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT',
-                        default=default_epoch_count,
+    parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT', default=default_epoch_count,
                         help='Number of training epochs (default: {})'.format(default_epoch_count))
+
+    default_learning_rate = 0.01
+    parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
+                        help='Learning rate (default: {})'.format(default_learning_rate))
 
     args = parser.parse_args()
 
@@ -71,32 +81,37 @@ def parse_args() -> Config:
                     args.class_count,
                     args.sent_count,
                     args.device,
-                    args.epoch_count)
+                    args.emb_size,
+                    args.epoch_count,
+                    args.lr)
 
-    return config
-
-
-def print_config(config: Config) -> None:
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ower-dataset-dir', config.ower_dataset_dir))
     logging.info('    {:24} {}'.format('class-count', config.class_count))
     logging.info('    {:24} {}'.format('sent-count', config.sent_count))
     logging.info('')
     logging.info('    {:24} {}'.format('--device', config.device))
+    logging.info('    {:24} {}'.format('--emb-size', config.emb_size))
     logging.info('    {:24} {}'.format('--epoch-count', config.epoch_count))
+    logging.info('    {:24} {}'.format('--lr', config.lr))
     logging.info('')
+
+    return config
 
 
 def train_classifier(ower_dir: OwerDir,
                      class_count: int,
                      sent_count: int,
+                     device: str,
+                     emb_size: int,
                      epoch_count: int,
-                     device: str
+                     lr: float
                      ) -> None:
+    
     train_loader, vocab = get_train_loader(ower_dir.train_samples_tsv, class_count, sent_count)
 
-    classifier = Classifier(vocab_size=len(vocab), emb_size=32, class_count=4).to(device)
-    optimizer = Adam(classifier.parameters(), lr=0.01)
+    classifier = Classifier(vocab_size=len(vocab), emb_size=emb_size, class_count=class_count).to(device)
+    optimizer = Adam(classifier.parameters(), lr=lr)
     criterion = BCEWithLogitsLoss()
 
     for epoch in range(epoch_count):
