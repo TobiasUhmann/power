@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='thesis-tools',
-    version='0.8.0',
+    version='0.10.0',
     install_requires=[
         'matplotlib',
         'pandas',
