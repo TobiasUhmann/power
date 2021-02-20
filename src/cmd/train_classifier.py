@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple
 
+import torch
 from torch import tensor, Tensor
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
@@ -24,13 +25,14 @@ def main():
     ower_dir = OwerDir('OWER Directory', Path(config.ower_dataset_dir))
     ower_dir.check()
 
-    train_classifier(ower_dir, config.epoch_count)
+    train_classifier(ower_dir, config.epoch_count, config.device)
 
 
 @dataclass
 class Config:
     ower_dataset_dir: str
 
+    device: str
     epoch_count: int
 
 
@@ -40,6 +42,12 @@ def parse_args() -> Config:
     parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
                         help='Path to (input) OWER Dataset Directory')
 
+    device_choices = ['cpu', 'cuda']
+    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    parser.add_argument('--device', metavar='STR', choices=device_choices, default=default_device,
+                        help='Where to perform tensor operations, one of {} (default: {})'.format(
+                            device_choices, default_device))
+
     default_epoch_count = 10
     parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT',
                         default=default_epoch_count,
@@ -48,6 +56,7 @@ def parse_args() -> Config:
     args = parser.parse_args()
 
     config = Config(ower_dataset_dir=args.ower_dataset_dir,
+                    device=args.device,
                     epoch_count=args.epoch_count)
 
     return config
@@ -57,14 +66,15 @@ def print_config(config: Config) -> None:
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ower-dataset-dir', config.ower_dataset_dir))
     logging.info('')
+    logging.info('    {:24} {}'.format('--device', config.device))
     logging.info('    {:24} {}'.format('--epoch-count', config.epoch_count))
     logging.info('')
 
 
-def train_classifier(ower_dir: OwerDir, epoch_count: int) -> None:
+def train_classifier(ower_dir: OwerDir, epoch_count: int, device:str) -> None:
     train_loader, vocab = get_train_loader(ower_dir.train_samples_tsv, 4, 3)
 
-    classifier = Classifier(vocab_size=len(vocab), emb_size=32, class_count=4)
+    classifier = Classifier(vocab_size=len(vocab), emb_size=32, class_count=4).to(device)
     optimizer = Adam(classifier.parameters(), lr=0.01)
     criterion = BCEWithLogitsLoss()
 
@@ -73,6 +83,8 @@ def train_classifier(ower_dir: OwerDir, epoch_count: int) -> None:
 
         for batch in train_loader:
             inputs_batch, labels_batch = batch
+            inputs_batch = inputs_batch.to(device)
+            labels_batch = labels_batch.to(device)
 
             outputs_batch = classifier(inputs_batch)
             loss = criterion(outputs_batch, labels_batch.float())
