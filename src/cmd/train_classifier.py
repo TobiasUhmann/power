@@ -6,6 +6,7 @@ import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from dao.ower.ower_dir import OwerDir
 from ower.classifier import Classifier
@@ -106,7 +107,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
     for epoch in range(epoch_count):
 
         train_loss = 0.0
-        for batch in train_loader:
+        for batch in tqdm(train_loader, leave=False):
             sents_batch, classes_batch = batch
             sents_batch = sents_batch.to(device)
             classes_batch = classes_batch.to(device)
@@ -122,7 +123,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
         valid_loss = 0.0
         with torch.no_grad():
-            for batch in valid_loader:
+            for batch in tqdm(valid_loader, leave=False):
                 sents_batch, classes_batch = batch
                 sents_batch = sents_batch.to(device)
                 classes_batch = classes_batch.to(device)
