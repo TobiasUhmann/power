@@ -58,21 +58,32 @@ def main():
 
     args = parser.parse_args()
 
+    ower_dataset_dir = args.ower_dataset_dir
+    class_count = args.class_count
+    sent_count = args.sent_count
+
+    batch_size = args.batch_size
+    device = args.device
+    emb_size = args.emb_size
+    epoch_count = args.epoch_count
+    lr = args.lr
+    sent_len = args.sent_len
+
     #
     # Print applied config
     #
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('ower-dataset-dir', args.ower_dataset_dir))
-    logging.info('    {:24} {}'.format('class-count', args.class_count))
-    logging.info('    {:24} {}'.format('sent-count', args.sent_count))
+    logging.info('    {:24} {}'.format('ower-dataset-dir', ower_dataset_dir))
+    logging.info('    {:24} {}'.format('class-count', class_count))
+    logging.info('    {:24} {}'.format('sent-count', sent_count))
     logging.info('')
-    logging.info('    {:24} {}'.format('--batch-size', args.batch_size))
-    logging.info('    {:24} {}'.format('--device', args.device))
-    logging.info('    {:24} {}'.format('--emb-size', args.emb_size))
-    logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
-    logging.info('    {:24} {}'.format('--lr', args.lr))
-    logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
+    logging.info('    {:24} {}'.format('--batch-size', batch_size))
+    logging.info('    {:24} {}'.format('--device', device))
+    logging.info('    {:24} {}'.format('--emb-size', emb_size))
+    logging.info('    {:24} {}'.format('--epoch-count', epoch_count))
+    logging.info('    {:24} {}'.format('--lr', lr))
+    logging.info('    {:24} {}'.format('--sent-len', sent_len))
     logging.info('')
 
     #
@@ -86,8 +97,7 @@ def main():
     # Run actual program
     #
 
-    train_classifier(ower_dir, args.class_count, args.sent_count, args.batch_size, args.device, args.emb_size,
-                     args.epoch_count, args.lr, args.sent_len)
+    train_classifier(ower_dir, class_count, sent_count, batch_size, device, emb_size, epoch_count, lr, sent_len)
 
 
 def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch_size, device: str, emb_size: int,
