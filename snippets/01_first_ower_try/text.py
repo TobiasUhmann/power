@@ -104,7 +104,7 @@ if __name__ == '__main__':
               ('is_actor', is_actor_field),
               ('context', context_field)]
 
-    train_dataset, test_datset = TabularDataset.splits(path='../data',
+    train_dataset, test_datset = TabularDataset.splits(path='../../data',
                                                        train='train_outputs.tsv',
                                                        # validation='valid_outputs.tsv',
                                                        test='test_outputs.tsv',

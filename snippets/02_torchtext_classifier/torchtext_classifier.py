@@ -1,4 +1,6 @@
 #
+# Build and train a text classifier (news article -> 4 topics).
+#
 # Refactored version of https://pytorch.org/tutorials/beginner/text_sentiment_ngrams_tutorial.html
 #
 

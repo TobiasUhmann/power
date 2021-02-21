@@ -30,13 +30,6 @@ class Classifier(Module):
         :return (batch_size, class_count)
         """
 
-        return self._forward(sents_batch)
-
-    #
-    # Helper
-    #
-
-    def _forward(self, sents_batch: Tensor) -> Tensor:
         log_path = f'{__name__}.{Classifier.__name__}.{Classifier.forward.__name__}'
 
         log_tensor(log_path, 'sents_batch', sents_batch,

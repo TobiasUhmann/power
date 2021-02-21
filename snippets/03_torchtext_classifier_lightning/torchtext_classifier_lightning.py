@@ -1,5 +1,5 @@
 #
-# PyTorch Lightning version of torchtext_classifier.py
+# PyTorch Lightning version of torchtext_classifier
 #
 
 import pickle
