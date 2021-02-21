@@ -81,31 +81,45 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, devic
 
     data_module = DataModule(str(ower_dir._path), class_count, sent_count, 64, 32)
     data_module.load_datasets()
-    
+
     train_loader = data_module.get_train_loader()
     valid_loader = data_module.get_valid_loader()
 
     classifier = Classifier(vocab_size=len(data_module.vocab), emb_size=emb_size, class_count=class_count).to(device)
     optimizer = Adam(classifier.parameters(), lr=lr)
-    criterion = BCEWithLogitsLoss()
+    criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * class_count).to(device))
 
     for epoch in range(epoch_count):
-        running_loss = 0.0
 
+        train_loss = 0.0
         for batch in train_loader:
-            inputs_batch, labels_batch = batch
-            inputs_batch = inputs_batch.to(device)
-            labels_batch = labels_batch.to(device)
+            sents_batch, classes_batch = batch
+            sents_batch = sents_batch.to(device)
+            classes_batch = classes_batch.to(device)
 
-            outputs_batch = classifier(inputs_batch)
-            loss = criterion(outputs_batch, labels_batch.float())
+            outputs_batch = classifier(sents_batch)
+            loss = criterion(outputs_batch, classes_batch.float())
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
-            logging.info(running_loss)
+            train_loss += loss.item()
+
+        valid_loss = 0.0
+        with torch.no_grad():
+            for batch in valid_loader:
+                sents_batch, classes_batch = batch
+                sents_batch = sents_batch.to(device)
+                classes_batch = classes_batch.to(device)
+
+                outputs_batch = classifier(sents_batch)
+                loss = criterion(outputs_batch, classes_batch.float())
+
+                valid_loss += loss.item()
+
+        logging.info('Epoch {}: train loss = {:.2e}, valid loss = {:.2e}'.format(
+            epoch, train_loss / len(train_loader), valid_loss / len(valid_loader)))
 
 
 if __name__ == '__main__':
