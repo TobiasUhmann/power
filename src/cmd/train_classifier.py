@@ -1,4 +1,5 @@
 import logging
+import pickle
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -102,17 +103,30 @@ def main():
 
 def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch_size, device: str, emb_size: int,
                      epoch_count: int, lr: float, sent_len) -> None:
+
+    #
+    # Load data
+    #
+
     data_module = DataModule(str(ower_dir._path), class_count, sent_count, batch_size, sent_len)
     data_module.load_datasets()
 
     train_loader = data_module.get_train_loader()
     valid_loader = data_module.get_valid_loader()
 
+    #
+    # Create classifier
+    #
+
     classifier = Classifier(vocab_size=len(data_module.vocab), emb_size=emb_size, class_count=class_count).to(device)
     optimizer = Adam(classifier.parameters(), lr=lr)
     criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * class_count).to(device))
 
     writer = SummaryWriter()
+
+    #
+    # Train and validate
+    #
 
     for epoch in range(epoch_count):
 
@@ -150,6 +164,13 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
             epoch, std_train_loss, std_valid_loss))
 
         writer.add_scalars('loss', {'train': std_train_loss, 'valid': std_valid_loss}, epoch)
+
+    #
+    # Save classifier
+    #
+
+    with open('data/classifier.pkl', 'wb') as f:
+        pickle.dump(classifier, f)
 
 
 if __name__ == '__main__':
