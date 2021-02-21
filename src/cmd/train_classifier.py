@@ -34,6 +34,10 @@ def main():
                         help='Where to perform tensor operations, one of {} (default: {})'.format(
                             device_choices, default_device))
 
+    default_batch_size = 64
+    parser.add_argument('--batch-size', dest='batch_size', type=int, metavar='INT', default=default_batch_size,
+                        help='Batch size (default: {})'.format(default_batch_size))
+
     default_emb_size = 32
     parser.add_argument('--emb-size', dest='emb_size', type=int, metavar='INT', default=default_emb_size,
                         help='Embedding size for sentence and class embeddings (default: {})'.format(default_emb_size))
@@ -46,6 +50,11 @@ def main():
     parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
                         help='Learning rate (default: {})'.format(default_learning_rate))
 
+    default_sent_len = 32
+    parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
+                        help='Sentence length short sentences are padded and long sentences cropped to'
+                             ' (default: {})'.format(default_sent_len))
+
     args = parser.parse_args()
 
     #
@@ -57,10 +66,12 @@ def main():
     logging.info('    {:24} {}'.format('class-count', args.class_count))
     logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('')
+    logging.info('    {:24} {}'.format('--batch-size', args.batch_size))
     logging.info('    {:24} {}'.format('--device', args.device))
     logging.info('    {:24} {}'.format('--emb-size', args.emb_size))
     logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
     logging.info('    {:24} {}'.format('--lr', args.lr))
+    logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
     logging.info('')
 
     #
@@ -74,13 +85,13 @@ def main():
     # Run actual program
     #
 
-    train_classifier(ower_dir, args.class_count, args.sent_count, args.device, args.emb_size, args.epoch_count, args.lr)
+    train_classifier(ower_dir, args.class_count, args.sent_count, args.batch_size, args.device, args.emb_size,
+                     args.epoch_count, args.lr, args.sent_len)
 
 
-def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, device: str, emb_size: int, epoch_count: int,
-                     lr: float) -> None:
-
-    data_module = DataModule(str(ower_dir._path), class_count, sent_count, 64, 32)
+def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch_size, device: str, emb_size: int,
+                     epoch_count: int, lr: float, sent_len) -> None:
+    data_module = DataModule(str(ower_dir._path), class_count, sent_count, batch_size, sent_len)
     data_module.load_datasets()
 
     train_loader = data_module.get_train_loader()
