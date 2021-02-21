@@ -1,5 +1,6 @@
 data/
 lightning_logs/
+runs/
 /src/snippets/**/data/
 /src/snippets/**/runs/
 

@@ -5,6 +5,7 @@ from pathlib import Path
 import torch
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
+from torch.utils.tensorboard import SummaryWriter
 
 from dao.ower.ower_dir import OwerDir
 from ower.classifier import Classifier
@@ -89,6 +90,8 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, devic
     optimizer = Adam(classifier.parameters(), lr=lr)
     criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * class_count).to(device))
 
+    writer = SummaryWriter()
+
     for epoch in range(epoch_count):
 
         train_loss = 0.0
@@ -118,8 +121,13 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, devic
 
                 valid_loss += loss.item()
 
+        std_train_loss = train_loss / len(train_loader)
+        std_valid_loss = valid_loss / len(valid_loader)
+
         logging.info('Epoch {}: train loss = {:.2e}, valid loss = {:.2e}'.format(
-            epoch, train_loss / len(train_loader), valid_loss / len(valid_loader)))
+            epoch, std_train_loss, std_valid_loss))
+
+        writer.add_scalars('loss', {'train': std_train_loss, 'valid': std_valid_loss}, epoch)
 
 
 if __name__ == '__main__':
