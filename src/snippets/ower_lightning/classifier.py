@@ -1,22 +1,40 @@
+"""
+The `OWER Classifier` takes an entity's sentences and maps them to the output classes.
+It implements a simple attention mechanism to focus on sentences that relate to the
+class in question.
+"""
+
+from typing import Tuple, Any
+
+import pytorch_lightning as pl
 import torch
-from torch import Tensor
-from torch.nn import Module, EmbeddingBag, Linear, Parameter, Softmax
+from pytorch_lightning import LightningModule
+from torch import nn, Tensor
+from torch.nn import EmbeddingBag, Linear, BCEWithLogitsLoss, Softmax, Parameter
 
-from ower.util import log_tensor
+from snippets.ower_lightning.util import log_tensor
 
 
-class Classifier(Module):
+class Classifier(LightningModule):
+    embedding_bag: nn.EmbeddingBag
+    linear: nn.Linear
 
-    embedding_bag: EmbeddingBag
-    linear: Linear
-    class_embs: Parameter
+    criterion: Any
+
+    prec: pl.metrics.Precision
+    recall: pl.metrics.Recall
+    f1: pl.metrics.F1
 
     def __init__(self, vocab_size: int, emb_size: int, class_count: int):
         super().__init__()
 
+        # Create layers
         self.embedding_bag = EmbeddingBag(vocab_size, emb_size)
         self.linear = Linear(class_count * emb_size, class_count)
-        self.class_embs = Parameter(torch.randn((class_count, emb_size)))
+        self.class_embs = Parameter(torch.rand((class_count, emb_size)))
+
+        # Loss function
+        self.criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * 4))
 
         # Init weights
         initrange = 0.5
@@ -24,19 +42,20 @@ class Classifier(Module):
         self.linear.weight.data.uniform_(-initrange, initrange)
         self.linear.bias.data.zero_()
 
+        # Add metrics
+        self.prec = pl.metrics.Precision(num_classes=4, multilabel=True)
+        self.recall = pl.metrics.Recall(num_classes=4, multilabel=True)
+        self.f1 = pl.metrics.F1(num_classes=4, multilabel=True)
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.01)
+
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
         :param sents_batch: (batch_size, sent_count, sent_len)
         :return (batch_size, class_count)
         """
 
-        return self._forward(sents_batch)
-
-    #
-    # Helper
-    #
-
-    def _forward(self, sents_batch: Tensor) -> Tensor:
         log_path = f'{__name__}.{Classifier.__name__}.{Classifier.forward.__name__}'
 
         log_tensor(log_path, 'sents_batch', sents_batch,
@@ -265,3 +284,38 @@ class Classifier(Module):
         weighted_batch = flat_weighted.reshape(batch_size, class_count, emb_size)
 
         return weighted_batch
+
+    def training_step(self, batch: Tuple[Tensor, Tensor], _batch_idx: int) -> Tensor:
+        sents_batch, classes_batch = batch
+
+        outputs_batch = self(sents_batch)
+        loss = self.criterion(outputs_batch, classes_batch.float())
+
+        self.log('loss (train)', loss.item())
+
+        return loss
+
+    def validation_step(self, batch: Tuple[Tensor, Tensor], _batch_index: int) -> None:
+        sents_batch, classes_batch = batch
+
+        outputs_batch = self(sents_batch)
+        loss = self.criterion(outputs_batch, classes_batch.float())
+
+        self.log('loss (valid)', loss.item())
+
+        # Update metrics
+        self.prec(outputs_batch, classes_batch)
+        self.recall(outputs_batch, classes_batch)
+        self.f1(outputs_batch, classes_batch)
+
+    def validation_epoch_end(self, outs) -> None:
+        print()
+        print('Precision', self.prec.compute())
+        print('Recall', self.recall.compute())
+        print('F1', self.f1.compute())
+
+    def test_step(self, batch: Tuple[Tensor, Tensor], batch_index: int) -> None:
+        self.validation_step(batch, batch_index)
+
+    def test_epoch_end(self, outs) -> None:
+        self.validation_epoch_end(outs)
