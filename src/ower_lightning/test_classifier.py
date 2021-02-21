@@ -3,7 +3,6 @@ from unittest import TestCase
 
 import torch
 from torch import tensor
-from torch.nn import BCEWithLogitsLoss
 
 from ower_lightning.classifier import Classifier
 

@@ -18,6 +18,12 @@ class Classifier(Module):
         self.linear = Linear(class_count * emb_size, class_count)
         self.class_embs = Parameter(torch.randn((class_count, emb_size)))
 
+        # Init weights
+        initrange = 0.5
+        self.embedding_bag.weight.data.uniform_(-initrange, initrange)
+        self.linear.weight.data.uniform_(-initrange, initrange)
+        self.linear.bias.data.zero_()
+
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
         :param sents_batch: (batch_size, sent_count, sent_len)
