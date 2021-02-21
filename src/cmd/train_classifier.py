@@ -133,6 +133,20 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
     for epoch in range(epoch_count):
 
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        _class_embs = classifier.class_embs.data
+        _word_embs = classifier.embedding_bag.weight[:10]
+        _atts = torch.mm(_class_embs, _word_embs.T)
+        plt.imshow(_atts.cpu().detach().numpy())
+        plt.show()
+
+        # a = np.random.random((16, 16))
+        # a = classifier.class_embs.data.cpu().numpy()
+        # plt.imshow(a, interpolation='nearest')
+        # plt.show()
+
         train_loss = 0.0
         for batch in tqdm(train_loader, leave=False):
             sents_batch, classes_batch = batch
