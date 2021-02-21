@@ -2,11 +2,14 @@ import logging
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import List
 
 import torch
+from torch import Tensor
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
+from torchtext.vocab import Vocab
 from tqdm import tqdm
 
 from dao.ower.ower_dir import OwerDir
@@ -120,7 +123,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
     classifier = Classifier(vocab_size=len(data_module.vocab), emb_size=emb_size, class_count=class_count).to(device)
     optimizer = Adam(classifier.parameters(), lr=lr)
-    criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([10] * class_count).to(device))
+    criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([80] * class_count).to(device))
 
     writer = SummaryWriter()
 
@@ -171,6 +174,48 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
     with open('data/classifier.pkl', 'wb') as f:
         pickle.dump(classifier, f)
+
+    #
+    # Test classifier
+    #
+
+    class_labels = ['is_married', 'is_male', 'is_american', 'is_actor']
+
+    def predict(texts: List[str], classifier: Classifier, vocab: Vocab):
+        text_1, text_2, text_3 = texts
+        words_1 = text_1.split()
+        words_2 = text_2.split()
+        words_3 = text_3.split()
+
+        tokens_1 = [vocab[word] for word in words_1]
+        tokens_2 = [vocab[word] for word in words_2]
+        tokens_3 = [vocab[word] for word in words_3]
+
+        with torch.no_grad():
+            sents = torch.tensor([tokens_1 + [0] * (sent_len - len(tokens_1)),
+                                  tokens_2 + [0] * (sent_len - len(tokens_2)),
+                                  tokens_3 + [0] * (sent_len - len(tokens_3))
+                                  ]).unsqueeze(0).to(device)
+
+            class_logits: Tensor = classifier(sents)
+            pred_classes = class_logits > 0.5
+
+            logging.info(f'class_logits = {class_logits}')
+
+            return pred_classes
+
+    ex_text_str_1 = "Barack Obama is married"
+    ex_text_str_2 = "Barack Obama is American"
+    ex_text_str_3 = "Barack Obama is an actor"
+
+    ex_text_strs = [ex_text_str_1, ex_text_str_2, ex_text_str_3]
+
+    pred_classes = predict(ex_text_strs, classifier, data_module.vocab)
+    # pred_labels = [class_labels[pred_class] for pred_class in pred_classes if pred_class == 1]
+
+    logging.info('Barack Obama')
+    for i, pred_class in enumerate(pred_classes[0]):
+        logging.info('{}: {}'.format(class_labels[i], pred_class))
 
 
 if __name__ == '__main__':
