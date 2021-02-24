@@ -1,0 +1,86 @@
+from typing import List
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from matplotlib import colors
+from torch import Tensor
+
+
+def plot_tensor(tensor_, title, labels):
+    assert tensor_.ndim <= 4
+    assert len(labels) == tensor_.ndim
+
+    min_abs = abs(torch.min(tensor_))
+    max_abs = abs(torch.max(tensor_))
+    vmin = -max(min_abs, max_abs)
+    vmax = max(min_abs, max_abs)
+
+    tensor_ = tensor_.detach()
+
+    if tensor_.ndim == 0:
+        tensor_ = np.expand_dims(tensor_, axis=0)
+        labels = [['']] + labels
+
+    if tensor_.ndim == 1:
+        tensor_ = np.expand_dims(tensor_, axis=0)
+        labels = [['']] + labels
+
+    if tensor_.ndim == 2:
+        plt.imshow(tensor_, vmin=vmin, vmax=vmax)
+        plt.xticks(range(tensor_.shape[1]), labels[1], rotation=90)
+        plt.yticks(range(tensor_.shape[0]), labels[0])
+        plt.colorbar()
+        plt.title(title)
+        plt.show()
+
+    else:
+        if tensor_.ndim == 3:
+            tensor_ = np.expand_dims(tensor_, axis=0)
+            labels = [['']] + labels
+
+        rows, cols = tensor_.shape[:2]
+        fig, axs = plt.subplots(rows, cols, squeeze=False)
+        fig.suptitle(title)
+
+        plt.setp(axs, xticks=range(tensor_.shape[-1]), xticklabels=labels[-1],
+                 yticks=range(tensor_.shape[-2]), yticklabels=labels[-2])
+
+        for ax in axs.flat:
+            plt.setp(ax.get_xticklabels(), rotation=90)
+
+        images = []
+        for i in range(rows):
+            for j in range(cols):
+                im = axs[i, j].imshow(tensor_[i, j], vmin=vmin, vmax=vmax)
+                images.append(im)
+                axs[i, j].label_outer()
+
+        norm = colors.Normalize(vmin=vmin, vmax=vmax)
+        for im in images:
+            im.set_norm(norm)
+
+        # Colorbar on right
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(images[0], cax=cbar_ax)
+
+        plt.show()
+
+
+def log_grad(tensor_, title, labels):
+    print(title)
+    print(tensor_)
+    plot_tensor(tensor_, title, labels)
+
+
+def log_tensor(tensor_: Tensor, title: str, labels: List[List[str]]):
+    assert len(labels) == tensor_.ndim
+
+    print(title)
+    print(tensor_)
+    plot_tensor(tensor_, title, labels)
+
+    if tensor_.requires_grad:
+        grad_title = f'{title}.grad'
+        tensor_.register_hook(lambda grad: log_grad(grad, grad_title, labels))
