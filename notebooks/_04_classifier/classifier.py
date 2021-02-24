@@ -27,7 +27,7 @@ class Classifier(Module):
         initrange = 0.5
         self.embedding_bag.weight.data.uniform_(-initrange, initrange)
         self.linear.weight.data.uniform_(-initrange, initrange)
-        self.linear.bias.data.zero_()
+        self.linear.bias.data.uniform_(-initrange, initrange)
 
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
