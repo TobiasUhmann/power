@@ -134,18 +134,6 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
     for epoch in range(epoch_count):
 
-        # Plot class - word attentions for <limit> words starting at <offset>
-        offset = 100
-        limit = 15
-        word_embs = classifier.embedding_bag.weight[offset:offset+limit]
-        class_embs = classifier.class_embs.data
-        atts = torch.mm(word_embs, class_embs.T)
-        plt.imshow(atts.cpu().detach().numpy())
-        vocab = data_module.vocab.itos
-        plt.yticks(range(limit), [vocab[offset + i] for i in range(limit)])
-        plt.xticks([0, 1, 2, 3], ['married', 'male', 'american', 'actor'], rotation=90)
-        plt.show()
-
         train_loss = 0.0
         for batch in tqdm(train_loader, leave=False):
             sents_batch, classes_batch = batch
