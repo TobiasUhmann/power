@@ -5,12 +5,15 @@ import numpy as np
 import torch
 from matplotlib import colors
 from torch import Tensor
+from torchtext.vocab import Vocab
 
 batch_size: int
 class_count: int
 emb_size: int
 sent_count: int
 sent_len: int
+
+vocab: Vocab
 vocab_size: int
 
 
@@ -47,7 +50,7 @@ def get_tok_lbls():
 
 
 def get_word_lbls():
-    return [f'word {i}' for i in range(vocab_size)]
+    return [vocab.itos[i] for i in range(vocab_size)]
 
 
 def plot_tensor(tensor_, title, labels):
@@ -71,7 +74,7 @@ def plot_tensor(tensor_, title, labels):
 
     if tensor_.ndim == 2:
         plt.imshow(tensor_, vmin=vmin, vmax=vmax)
-        plt.xticks(range(tensor_.shape[1]), labels[1], rotation=90)
+        plt.xticks(range(tensor_.shape[1]), labels[1], rotation=45, ha='right')
         plt.yticks(range(tensor_.shape[0]), labels[0])
         plt.colorbar()
         plt.title(title)
@@ -90,7 +93,7 @@ def plot_tensor(tensor_, title, labels):
                  yticks=range(tensor_.shape[-2]), yticklabels=labels[-2])
 
         for ax in axs.flat:
-            plt.setp(ax.get_xticklabels(), rotation=90)
+            plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
 
         images = []
         for i in range(rows):

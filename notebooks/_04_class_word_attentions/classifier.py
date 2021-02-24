@@ -2,8 +2,8 @@ import torch
 from torch import Tensor
 from torch.nn import Softmax, EmbeddingBag, Linear, Module, Parameter
 
-from notebooks._04_classifier.util import log_tensor, get_word_lbls, get_emb_lbls, get_tok_lbls, get_sent_lbls, \
-    get_ent_lbls, get_class_lbls, get_ent_class_lbls, get_mix_emb_lbls, get_ent_sent_lbls
+from notebooks._04_class_word_attentions.util import log_tensor, get_word_lbls, get_emb_lbls, get_tok_lbls, \
+    get_sent_lbls, get_ent_lbls, get_class_lbls, get_ent_class_lbls, get_mix_emb_lbls, get_ent_sent_lbls
 
 
 class Classifier(Module):
