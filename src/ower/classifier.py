@@ -30,97 +30,56 @@ class Classifier(Module):
         :return (batch_size, class_count)
         """
 
-        log_path = f'{__name__}.{Classifier.__name__}.{Classifier.forward.__name__}'
-
-        log_tensor(log_path, 'sents_batch', sents_batch,
-                   '(batch_size = {}, sent_count = {}, sent_len = {})'.format(*sents_batch.shape))
-
         #
         # Embed sentences
         #
-        # < sents_batch         (batch_size, sent_count, sent_len)
-        # < embedding_bag       EmbeddingBag
-        # > sent_embs_batch     (batch_size, sent_count, emb_size)
+        # < embedding_bag.weight  (vocab_size, emb_size)
+        # < sents_batch           (batch_size, sent_count, sent_len)
+        # > sent_embs_batch       (batch_size, sent_count, emb_size)
         #
 
-        embedding_bag = self.embedding_bag
-
-        log_tensor(log_path, 'embedding_bag.weight.data', embedding_bag.weight.data,
-                   '(vocab_size = {}, emb_size = {})'.format(*embedding_bag.weight.data.shape))
-
-        sent_embs_batch = self._embed_sents_batch(sents_batch, embedding_bag)
-
-        log_tensor(log_path, 'sent_embs_batch', sent_embs_batch,
-                   '(batch_size = {}, sent_count = {}, emb_size = {})'.format(*sent_embs_batch.shape))
+        sent_embs_batch = self.embed_sents(sents_batch)
 
         #
-        # Calc attentions
+        # Calculate attentions (which class matches which sentences)
         #
-        # < sent_embs_batch     (batch_size, sent_count, emb_size)
-        # < class_embs          (class_count, emb_size)
-        # > softs_batch         (batch_size, class_count, sent_count)
-        #
-
-        class_embs = self.class_embs
-
-        log_tensor(log_path, 'class_embs', class_embs,
-                   '(class_count = {}, emb_size = {})'.format(*class_embs.shape))
-
-        softs_batch = self._calc_attentions(sent_embs_batch, class_embs)
-
-        log_tensor(log_path, 'softs_batch', softs_batch,
-                   '(batch_size = {}, class_count = {}, sent_count = {})'.format(*softs_batch.shape))
-
-        #
-        # Weight sentences
-        #
-        # < sent_embs_batch     (batch_size, sent_count, emb_size)
-        # < softs_batch         (batch_size, class_count, sent_count)
-        # > weighted_batch      (batch_size, class_count, emb_size)
+        # < class_embs       (class_count, emb_size)
+        # < sent_embs_batch  (batch_size, sent_count, emb_size)
+        # > atts_batch       (batch_size, class_count, sent_count)
         #
 
-        weighted_batch = self._weight_sents(sent_embs_batch, softs_batch)
-
-        log_tensor(log_path, 'weighted_batch', weighted_batch,
-                   '(batch_size = {}, class_count = {}, emb_size = {})'.format(*weighted_batch.shape))
+        atts_batch = self.calc_atts(sent_embs_batch)
 
         #
-        # Concatenate weighted sentences
+        # For each class, mix sentences (as per class' attentions to sentences)
+        #
+        # < sent_embs_batch  (batch_size, sent_count, emb_size)
+        # < atts_batch       (batch_size, class_count, sent_count)
+        # > mixes_batch      (batch_size, class_count, emb_size)
+        #
+
+        mixes_batch = self.mix_sents(atts_batch)
+
+        #
+        # Concatenate mixes
         #
         # < weighted_batch  (batch_size, class_count, emb_size)
-        # > inputs_batch    (batch_size, class_count * emb_size)
+        # > concat_mixes_batch  (batch_size, class_count * emb_size)
         #
 
-        batch_size, class_count, emb_size = weighted_batch.shape
-
-        inputs_batch = weighted_batch.reshape(batch_size, class_count * emb_size)
-
-        log_tensor(log_path, 'inputs_batch', inputs_batch,
-                   '(batch_size = {}, class_count * emb_size = {})'.format(*inputs_batch.shape))
+        concat_mixes_batch = mixes_batch.reshape(batch_size, class_count * emb_size)
 
         #
-        # Linear layer
+        # Push concatenated mixes through linear layer
         #
-        # < inputs_batch    (batch_size, class_count * emb_size)
-        # > outputs_batch   (batch_size, class_count)
+        # < concat_mixes_batch  (batch_size, class_count * emb_size)
+        # > logits_batch        (batch_size, class_count)
         #
 
-        linear = self.linear
+        logits_batch = self.linear(concat_mixes_batch)
 
-        log_tensor(log_path, 'linear.weight.data', linear.weight.data,
-                   '(input_dim = {}, output_dim = {})'.format(*linear.weight.data.shape))
+        return logits_batch
 
-        log_tensor(log_path, 'linear.bias.data', linear.bias.data,
-                   '(output_dim = {})'.format(*linear.bias.data.shape))
-
-        outputs_batch = self.linear(inputs_batch)
-
-        log_tensor(log_path, 'outputs_batch', outputs_batch,
-                   '(batch_size = {}, class_count = {})'.format(*outputs_batch.shape))
-
-        return outputs_batch
-
-    @staticmethod
     def _embed_sents_batch(sents_batch: Tensor, embedding_bag: EmbeddingBag) -> Tensor:
         """
         :param sents_batch: (batch_size, sent_count, sent_len)

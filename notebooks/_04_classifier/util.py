@@ -6,6 +6,49 @@ import torch
 from matplotlib import colors
 from torch import Tensor
 
+batch_size: int
+class_count: int
+emb_size: int
+sent_count: int
+sent_len: int
+vocab_size: int
+
+
+def get_class_lbls():
+    return [f'class {i}' for i in range(class_count)]
+
+
+def get_emb_lbls():
+    return [f'emb {i}' for i in range(emb_size)]
+
+
+def get_ent_class_lbls():
+    return [f'ent {i} / class {j}' for i in range(batch_size) for j in range(class_count)]
+
+
+def get_ent_lbls():
+    return [f'ent {i}' for i in range(batch_size)]
+
+
+def get_ent_sent_lbls():
+    return [f'ent {i} / sent {j}' for i in range(batch_size) for j in range(sent_count)]
+
+
+def get_mix_emb_lbls():
+    return [f'mix {i} / class {j}' for i in range(class_count) for j in range(emb_size)]
+
+
+def get_sent_lbls():
+    return [f'sent {i}' for i in range(sent_count)]
+
+
+def get_tok_lbls():
+    return [f'tok {i}' for i in range(sent_len)]
+
+
+def get_word_lbls():
+    return [f'word {i}' for i in range(vocab_size)]
+
 
 def plot_tensor(tensor_, title, labels):
     assert tensor_.ndim <= 4
