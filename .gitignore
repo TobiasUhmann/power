@@ -1,6 +1,7 @@
 data/
 lightning_logs/
 runs/
+/notebooks/**/.vector_cache/
 /snippets/**/data/
 /snippets/**/runs/
 
