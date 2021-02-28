@@ -31,10 +31,10 @@ class ClassesTsv(BaseFile):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-    def read_classes(classes_tsv: str) -> List[Tuple[int, int]]:
+    def read_classes(self) -> List[Tuple[int, int]]:
         classes: List[Tuple[int, int]] = []
 
-        with open(classes_tsv, encoding='utf-8') as f:
+        with open(self._path, encoding='utf-8') as f:
             lines = f.readlines()
 
         for line in lines[1:]:
