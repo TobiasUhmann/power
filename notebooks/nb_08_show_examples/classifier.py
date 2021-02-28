@@ -7,25 +7,35 @@ class Classifier(Module):
     embedding_bag: EmbeddingBag
     linear: Linear
 
-    def __init__(self, vocab: Vocab, class_count: int):
+    def __init__(self, embedding_bag: EmbeddingBag, linear: Linear):
         super().__init__()
 
-        print('ok')
+        self.embedding_bag = embedding_bag
+        self.linear = linear
+
+    @classmethod
+    def from_random(cls, vocab: Vocab, emb_size: int, class_count: int):
+        embedding_bag = EmbeddingBag(num_embeddings=len(vocab), embedding_dim=emb_size)
+        linear = Linear(emb_size, class_count)
 
         initrange = 0.5
+        embedding_bag.weight.data.uniform_(-initrange, initrange)
+        linear.weight.data.uniform_(-initrange, initrange)
+        linear.bias.data.uniform_(-initrange, initrange)
 
-        if vocab.vectors is None:
-            self.embedding_bag = EmbeddingBag(num_embeddings=len(vocab), embedding_dim=200)
-            self.embedding_bag.weight.data.uniform_(-initrange, initrange)
-        else:
-            self.embedding_bag = EmbeddingBag.from_pretrained(vocab.vectors, freeze=False)
+        return cls(embedding_bag, linear)
 
-        emb_size = self.embedding_bag.weight.data.shape[1]
-        self.linear = Linear(emb_size, class_count)
+    @classmethod
+    def from_pre_trained(cls, vocab: Vocab, class_count: int, freeze=True):
+        embedding_bag = EmbeddingBag.from_pretrained(vocab.vectors, freeze=freeze)
+        linear = Linear(len(vocab.vectors.shape[1]), class_count)
 
-        # Init weights
-        self.linear.weight.data.uniform_(-initrange, initrange)
-        self.linear.bias.data.uniform_(-initrange, initrange)
+        initrange = 0.5
+        embedding_bag.weight.data.uniform_(-initrange, initrange)
+        linear.weight.data.uniform_(-initrange, initrange)
+        linear.bias.data.uniform_(-initrange, initrange)
+
+        return cls(embedding_bag, linear)
 
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
