@@ -1,22 +1,29 @@
 from torch import Tensor
 from torch.nn import EmbeddingBag, Linear, Module
-
-from notebooks._05_no_attention.util import log_tensor, get_ent_lbls, get_sent_lbls, get_emb_lbls
+from torchtext.vocab import Vocab
 
 
 class Classifier(Module):
     embedding_bag: EmbeddingBag
     linear: Linear
 
-    def __init__(self, vocab_size: int, emb_size: int, class_count: int):
+    def __init__(self, vocab: Vocab, class_count: int):
         super().__init__()
 
-        self.embedding_bag = EmbeddingBag(vocab_size, emb_size)
+        print('ok')
+
+        initrange = 0.5
+
+        if vocab.vectors is None:
+            self.embedding_bag = EmbeddingBag(num_embeddings=len(vocab), embedding_dim=200)
+            self.embedding_bag.weight.data.uniform_(-initrange, initrange)
+        else:
+            self.embedding_bag = EmbeddingBag.from_pretrained(vocab.vectors, freeze=False)
+
+        emb_size = self.embedding_bag.weight.data.shape[1]
         self.linear = Linear(emb_size, class_count)
 
         # Init weights
-        initrange = 0.5
-        self.embedding_bag.weight.data.uniform_(-initrange, initrange)
         self.linear.weight.data.uniform_(-initrange, initrange)
         self.linear.bias.data.uniform_(-initrange, initrange)
 
