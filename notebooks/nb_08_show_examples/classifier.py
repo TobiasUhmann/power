@@ -28,7 +28,7 @@ class Classifier(Module):
     @classmethod
     def from_pre_trained(cls, vocab: Vocab, class_count: int, freeze=True):
         embedding_bag = EmbeddingBag.from_pretrained(vocab.vectors, freeze=freeze)
-        linear = Linear(len(vocab.vectors.shape[1]), class_count)
+        linear = Linear(vocab.vectors.shape[1], class_count)
 
         initrange = 0.5
         embedding_bag.weight.data.uniform_(-initrange, initrange)
