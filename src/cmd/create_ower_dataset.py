@@ -100,9 +100,14 @@ def create_ower_dataset(
     print('Load triples from Triples TXTs...')
 
     split_dir = ryn_dir.split_dir
-    train_triples: List[Tuple[int, int, int]] = split_dir.cw_train_triples_txt.load_triples()
-    valid_triples: List[Tuple[int, int, int]] = split_dir.cw_valid_triples_txt.load_triples()
-    test_triples: List[Tuple[int, int, int]] = split_dir.ow_valid_triples_txt.load_triples()
+    cw_train_triples: List[Tuple[int, int, int]] = split_dir.cw_train_triples_txt.load_triples()
+    cw_valid_triples: List[Tuple[int, int, int]] = split_dir.cw_valid_triples_txt.load_triples()
+    ow_valid_triples: List[Tuple[int, int, int]] = split_dir.cw_valid_triples_txt.load_triples()
+    ow_test_triples: List[Tuple[int, int, int]] = split_dir.ow_valid_triples_txt.load_triples()
+
+    train_triples = cw_train_triples + cw_valid_triples
+    valid_triples = ow_valid_triples
+    test_triples = ow_test_triples
 
     print('Done')
 
