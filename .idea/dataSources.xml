@@ -49,5 +49,29 @@
         </library>
       </libraries>
     </data-source>
+    <data-source source="LOCAL" name="train [3]" uuid="f90171cf-00b9-4037-8ab2-6c06f9bd1866">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:C:\Users\Tobias\Documents\HSRM\Master\Thesis\thesis-tools\notebooks\nb_09_create_new_ower_dataset\data\ower\ower-v3-cde-irt-3\train.db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+      <libraries>
+        <library>
+          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.31.1/sqlite-jdbc-3.31.1.jar</url>
+        </library>
+      </libraries>
+    </data-source>
+    <data-source source="LOCAL" name="valid" uuid="d763a917-8952-4a5d-a1df-36d1d27616ca">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:C:\Users\Tobias\Documents\HSRM\Master\Thesis\thesis-tools\notebooks\nb_09_create_new_ower_dataset\data\ower\ower-v3-fb-irt-3\valid.db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+      <libraries>
+        <library>
+          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.31.1/sqlite-jdbc-3.31.1.jar</url>
+        </library>
+      </libraries>
+    </data-source>
   </component>
 </project>
