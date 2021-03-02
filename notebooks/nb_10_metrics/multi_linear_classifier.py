@@ -1,52 +1,51 @@
 import torch
 from torch import Tensor
-from torch.nn import EmbeddingBag, Linear, Module, Softmax, Parameter
+from torch.nn import EmbeddingBag, Module, Softmax, Parameter
 from torchtext.vocab import Vocab
 
 
 class Classifier(Module):
     embedding_bag: EmbeddingBag
     class_embs: Parameter
-    linear: Linear
+    multi_weight: Parameter
+    multi_bias: Parameter
 
-    def __init__(self, embedding_bag: EmbeddingBag, class_embs: Parameter, linear: Linear):
+    def __init__(self,
+                 embedding_bag: EmbeddingBag,
+                 class_embs: Parameter,
+                 multi_weight: Parameter,
+                 multi_bias: Parameter):
         super().__init__()
 
         self.embedding_bag = embedding_bag
         self.class_embs = class_embs
-        self.linear = linear
+        self.multi_weight = multi_weight
+        self.multi_bias = multi_bias
 
     @classmethod
     def from_random(cls, vocab: Vocab, emb_size: int, class_count: int):
         embedding_bag = EmbeddingBag(num_embeddings=len(vocab), embedding_dim=emb_size)
-        class_embs = Parameter(torch.randn((class_count, emb_size)))
-        linear = Linear(emb_size, class_count)
+        class_embs = Parameter(torch.randn(class_count, emb_size))
+        multi_weight = Parameter(torch.randn(class_count, emb_size, 2))
+        multi_bias = Parameter(torch.randn(class_count, 1, 2))
 
-        initrange = 0.5
-        embedding_bag.weight.data.uniform_(-initrange, initrange)
-        linear.weight.data.uniform_(-initrange, initrange)
-        linear.bias.data.uniform_(-initrange, initrange)
-
-        return cls(embedding_bag, class_embs, linear)
+        return cls(embedding_bag, class_embs, multi_weight, multi_bias)
 
     @classmethod
     def from_pre_trained(cls, vocab: Vocab, class_count: int, freeze=True):
         embedding_bag = EmbeddingBag.from_pretrained(vocab.vectors, freeze=freeze)
+
         emb_size = vocab.vectors.shape[1]
-        class_embs = Parameter(torch.randn((class_count, emb_size)))
-        linear = Linear(class_count * emb_size, class_count)
+        class_embs = Parameter(torch.randn(class_count, emb_size))
+        multi_weight = Parameter(torch.randn(class_count, emb_size, 2))
+        multi_bias = Parameter(torch.randn(class_count, 1, 2))
 
-        initrange = 0.5
-        embedding_bag.weight.data.uniform_(-initrange, initrange)
-        linear.weight.data.uniform_(-initrange, initrange)
-        linear.bias.data.uniform_(-initrange, initrange)
-
-        return cls(embedding_bag, class_embs, linear)
+        return cls(embedding_bag, class_embs, multi_weight, multi_bias)
 
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
         :param sents_batch: (batch_size, sent_count, sent_len)
-        :return (batch_size, class_count)
+        :return (batch_size, class_count, 2)
         """
 
         #
@@ -80,24 +79,14 @@ class Classifier(Module):
         mixes_batch = self.mix_sents(sent_embs_batch, atts_batch)
 
         #
-        # Concatenate mixes
+        # Push mixes through respective linear layers
         #
-        # < mixes_batch         (batch_size, class_count, emb_size)
-        # > concat_mixes_batch  (batch_size, class_count * emb_size)
-        #
-
-        batch_size, class_count, emb_size = mixes_batch.shape
-
-        concat_mixes_batch = mixes_batch.reshape(batch_size, class_count * emb_size)
-
-        #
-        # Push concatenated mixes through linear layer
-        #
-        # < concat_mixes_batch  (batch_size, class_count * emb_size)
-        # > logits_batch        (batch_size, class_count)
+        # < mixes_batch   (batch_size, class_count, emb_size)
+        # > logits_batch  (batch_size, class_count, 2)
         #
 
-        logits_batch = self.linear(concat_mixes_batch)
+        logits_batch = torch.bmm(mixes_batch.transpose(0, 1), self.multi_weight) + self.multi_bias
+        logits_batch = logits_batch.transpose(0, 1)
 
         return logits_batch
 
