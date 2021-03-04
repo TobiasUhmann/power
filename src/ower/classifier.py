@@ -1,219 +1,211 @@
 import torch
 from torch import Tensor
-from torch.nn import Module, EmbeddingBag, Linear, Parameter, Softmax
-
-from ower.util import log_tensor
+from torch.nn import Module, EmbeddingBag, Parameter, Softmax
+from torchtext.vocab import Vocab
 
 
 class Classifier(Module):
 
     embedding_bag: EmbeddingBag
-    linear: Linear
     class_embs: Parameter
+    multi_weight: Parameter
+    multi_bias: Parameter
 
-    def __init__(self, vocab_size: int, emb_size: int, class_count: int):
+    def __init__(self, embedding_bag: EmbeddingBag, class_count: int):
         super().__init__()
 
-        self.embedding_bag = EmbeddingBag(vocab_size, emb_size)
-        self.linear = Linear(class_count * emb_size, class_count)
-        self.class_embs = Parameter(torch.randn((class_count, emb_size)))
+        self.embedding_bag = embedding_bag
 
-        # Init weights
-        initrange = 0.5
-        self.embedding_bag.weight.data.uniform_(-initrange, initrange)
-        self.linear.weight.data.uniform_(-initrange, initrange)
-        self.linear.bias.data.zero_()
+        _, emb_size = embedding_bag.weight.data.shape
+        self.class_embs = Parameter(torch.randn(class_count, emb_size))
+        self.multi_weight = Parameter(torch.randn(class_count, emb_size))
+        self.multi_bias = Parameter(torch.randn(class_count, emb_size))
 
-    def forward(self, sents_batch: Tensor) -> Tensor:
+    @classmethod
+    def from_random(cls, vocab: Vocab, class_count: int):
+        vocab_size, emb_size = vocab.vectors.shape
+        embedding_bag = EmbeddingBag(num_embeddings=vocab_size, embedding_dim=emb_size)
+
+        return cls(embedding_bag, class_count)
+
+    @classmethod
+    def from_pre_trained(cls, vocab: Vocab, class_count: int):
+        embedding_bag = EmbeddingBag.from_pretrained(vocab.vectors)
+
+        return cls(embedding_bag, class_count)
+
+    def forward(self, tok_lists_batch: Tensor) -> Tensor:
         """
-        :param sents_batch: (batch_size, sent_count, sent_len)
+        :param tok_lists_batch: (batch_size, sent_count, sent_len)
         :return (batch_size, class_count)
         """
 
         #
-        # Embed sentences
+        # Embed token lists
         #
-        # < embedding_bag.weight  (vocab_size, emb_size)
-        # < sents_batch           (batch_size, sent_count, sent_len)
-        # > sent_embs_batch       (batch_size, sent_count, emb_size)
+        # < tok_lists_batch  (batch_size, sent_count, sent_len)
+        # > sents_batch      (batch_size, sent_count, emb_size)
         #
 
-        sent_embs_batch = self.embed_sents(sents_batch)
+        sents_batch = self._embed_tok_lists(tok_lists_batch)
 
         #
         # Calculate attentions (which class matches which sentences)
         #
-        # < class_embs       (class_count, emb_size)
-        # < sent_embs_batch  (batch_size, sent_count, emb_size)
-        # > atts_batch       (batch_size, class_count, sent_count)
+        # < sents_batch  (batch_size, sent_count, emb_size)
+        # > atts_batch   (batch_size, class_count, sent_count)
         #
 
-        atts_batch = self.calc_atts(sent_embs_batch)
+        atts_batch = self._calc_atts(sents_batch)
 
         #
-        # For each class, mix sentences (as per class' attentions to sentences)
+        # For each class, mix sentences according to attention
         #
-        # < sent_embs_batch  (batch_size, sent_count, emb_size)
-        # < atts_batch       (batch_size, class_count, sent_count)
-        # > mixes_batch      (batch_size, class_count, emb_size)
-        #
-
-        mixes_batch = self.mix_sents(atts_batch)
-
-        #
-        # Concatenate mixes
-        #
-        # < weighted_batch  (batch_size, class_count, emb_size)
-        # > concat_mixes_batch  (batch_size, class_count * emb_size)
+        # < atts_batch   (batch_size, class_count, sent_count)
+        # < sents_batch  (batch_size, sent_count, emb_size)
+        # > mixes_batch  (batch_size, class_count, emb_size)
         #
 
-        concat_mixes_batch = mixes_batch.reshape(batch_size, class_count * emb_size)
+        mixes_batch = torch.bmm(atts_batch, sents_batch)
 
         #
-        # Push concatenated mixes through linear layer
+        # Push mixes through linear layers
         #
         # < concat_mixes_batch  (batch_size, class_count * emb_size)
         # > logits_batch        (batch_size, class_count)
         #
 
-        logits_batch = self.linear(concat_mixes_batch)
+        logits_batch = self._multi_linear(mixes_batch)
 
         return logits_batch
 
-    def _embed_sents_batch(sents_batch: Tensor, embedding_bag: EmbeddingBag) -> Tensor:
+    def _embed_tok_lists(self, tok_lists_batch: Tensor) -> Tensor:
         """
-        :param sents_batch: (batch_size, sent_count, sent_len)
+        :param tok_lists_batch: (batch_size, sent_count, sent_len)
         :return: (batch_size, sent_count, emb_size)
         """
 
         #
         # Flatten batch
         #
-        # < sents_batch     (batch_size, sent_count, sent_len)
-        # > flat_sents      (batch_size * sent_count, sent_len)
+        # < tok_lists_batch  (batch_size, sent_count, sent_len)
+        # > flat_tok_lists   (batch_size * sent_count, sent_len)
         #
 
-        batch_size, sent_count, sent_len = sents_batch.shape
+        batch_size, sent_count, sent_len = tok_lists_batch.shape
 
-        flat_sents = sents_batch.reshape(batch_size * sent_count, sent_len)
+        flat_tok_lists = tok_lists_batch.reshape(batch_size * sent_count, sent_len)
 
         #
-        # Embed sentences
+        # Embed token lists
         #
-        # < flat_sents      (batch_size * sent_count, sent_len)
-        # > flat_sent_embs  (batch_size * sent_count, emb_size)
+        # < flat_tok_lists  (batch_size * sent_count, sent_len)
+        # > flat_sents      (batch_size * sent_count, emb_size)
         #
 
-        flat_sent_embs = embedding_bag(flat_sents)
+        flat_sents = self.embedding_bag(flat_tok_lists)
 
         #
         # Restore batch
         #
-        # < flat_sent_embs      (batch_size * sent_count, emb_size)
-        # > sent_embs_batch     (batch_size, sent_count, emb_size)
+        # < flat_sents   (batch_size * sent_count, emb_size)
+        # > sents_batch  (batch_size, sent_count, emb_size)
         #
 
-        emb_size = flat_sent_embs.shape[-1]
+        _, emb_size = flat_sents.shape
 
-        sent_embs_batch = flat_sent_embs.reshape(batch_size, sent_count, emb_size)
+        sents_batch = flat_sents.reshape(batch_size, sent_count, emb_size)
 
-        return sent_embs_batch
+        return sents_batch
 
-    @staticmethod
-    def _calc_attentions(sent_embs_batch: Tensor, class_embs: Tensor) -> Tensor:
+    def _calc_atts(self, sents_batch: Tensor) -> Tensor:
         """
-        :param sent_embs_batch: (batch_size, sent_count, emb_size)
+        :param sents_batch: (batch_size, sent_count, emb_size)
         :return: (batch_size, class_count, sent_count)
         """
 
         #
         # Expand class embeddings for bmm()
         #
-        # < class_embs          (class_count, emb_size)
-        # > class_embs_batch    (batch_size, class_count, emb_size)
+        # < self.class_embs   (class_count, emb_size)
+        # > class_embs_batch  (batch_size, class_count, emb_size)
         #
 
-        batch_size, sent_count, emb_size = sent_embs_batch.shape
-        class_count, _emb_size = class_embs.shape
+        batch_size, _, _ = sents_batch.shape
 
-        class_embs_batch = class_embs.expand(batch_size, class_count, emb_size)
+        class_embs_batch = self.class_embs.unsqueeze(0).expand(batch_size, -1, -1)
 
         #
         # Multiply each class with each sentence
         #
-        # < class_embs_batch    (batch_size, class_count, emb_size)
-        # < sent_embs_batch     (batch_size, sent_count, emb_size)
-        # > atts_batch          (batch_size, class_count, sent_count)
+        # < class_embs_batch  (batch_size, class_count, emb_size)
+        # < sents_batch       (batch_size, sent_count, emb_size)
+        # > atts_batch        (batch_size, class_count, sent_count)
         #
 
-        atts_batch = torch.bmm(class_embs_batch, sent_embs_batch.transpose(1, 2))
+        atts_batch = torch.bmm(class_embs_batch, sents_batch.transpose(1, 2))
 
         #
-        # Apply softmax over sentences
+        # Softmax over sentences
         #
-        # < atts_batch      (batch_size, class_count, sent_count)
-        # > softs_batch     (batch_size, class_count, sent_count)
+        # < atts_batch   (batch_size, class_count, sent_count)
+        # > softs_batch  (batch_size, class_count, sent_count)
         #
 
         softs_batch = Softmax(dim=-1)(atts_batch)
 
         return softs_batch
 
-    @staticmethod
-    def _weight_sents(sent_embs_batch: Tensor, softs_batch: Tensor) -> Tensor:
+    def _multi_linear(self, mixes_batch: Tensor) -> Tensor:
         """
-        :param sent_embs_batch: (batch_size, sent_count, emb_size)
-        :param softs_batch: (batch_size, class_count, sent_count)
-        :return: (batch_size, class_count, emb_size)
+        Push each sentence mix through its respective linear layer.
+
+        For example, push the "married" mix through the "married" layer
+        that predicts the "married" class for the mix.
+
+        :param mixes_batch: (batch_size, class_count, emb_size)
+        :return: (batch_size, class_count)
         """
 
         #
-        # Repeat each batch slice class_count times
+        # Transpose per entity mixes -> per class mixes
         #
-        # < sent_embs_batch     (batch_size, sent_count, emb_size)
-        # > expaned_batch       (batch_size, class_count, sent_count, emb_size)
-        #
-
-        batch_size, sent_count, emb_size = sent_embs_batch.shape
-        _batch_size, class_count, _sent_count = softs_batch.shape
-
-        expaned_batch = sent_embs_batch.unsqueeze(1).expand(-1, class_count, -1, -1)
-
-        #
-        # Flatten sentences for bmm()
-        #
-        # < expaned_batch   (batch_size, class_count, sent_count, emb_size)
-        # > flat_expanded   (batch_size * class_count, sent_count, emb_size)
+        # < mixes_batch  (batch_size, class_count, emb_size)
+        # > mixes_batch  (class_count, batch_size, emb_size)
         #
 
-        flat_expanded = expaned_batch.reshape(-1, sent_count, emb_size)
+        mixes_batch = mixes_batch.transpose(0, 1)
 
         #
-        # Flatten attentions for bmm()
+        # Per class weight/bias row vector -> col vector
         #
-        # < softs_batch     (batch_size, class_count, sent_count)
-        # > flat_softs      (batch_size * class_count, sent_count, 1)
-        #
-
-        flat_softs = softs_batch.reshape(batch_size * class_count, sent_count).unsqueeze(-1)
-
-        #
-        # Multiply each sentence with each attention
-        #
-        # < flat_expanded   (batch_size * class_count, sent_count, emb_size)
-        # < flat_softs      (batch_size * class_count, sent_count, 1)
-        # > flat_weighted   (batch_size * class_count, emb_size)
+        # < self.multi_weight  (class_count, emb_size)
+        # < self.multi_bias    (class_count, 1)
+        # > col_multi_weight   (class_count, emb_size, 1)
+        # > col_multi_bias     (class_count, 1, 1)
         #
 
-        flat_weighted = torch.bmm(flat_expanded.transpose(1, 2), flat_softs)
+        col_multi_weight = self.multi_weight.unsqueeze(-1)
+        col_multi_bias = self.multi_bias.unsqueeze(-1)
 
         #
-        # Restore batch
+        # Linear layers
         #
-        # < flat_weighted   (batch_size * class_count, emb_size)
-        # > weighted_batch  (batch_size, class_count, emb_size)
+        # < mixes_batch       (class_count, batch_size, emb_size)
+        # < col_multi_weight  (class_count, emb_size, 1)
+        # < col_multi_bias    (class_count, 1, 1)
+        # > logits_batch      (class_count, batch_size, 1)
         #
 
-        weighted_batch = flat_weighted.reshape(batch_size, class_count, emb_size)
+        logits_batch = torch.bmm(mixes_batch, col_multi_weight) + col_multi_bias
 
-        return weighted_batch
+        #
+        # Per class outputs col vector -> row vector & Restore per entity batch
+        #
+        # < logits_batch  (class_count, batch_size, 1)
+        # > logits_batch  (batch_size, class_count)
+        #
+
+        logits_batch = logits_batch.squeeze(-1).T
+
+        return logits_batch

@@ -45,7 +45,7 @@ class Classifier(Module):
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
         :param sents_batch: (batch_size, sent_count, sent_len)
-        :return (batch_size, class_count, 2)
+        :return (batch_size, class_count)
         """
 
         #
