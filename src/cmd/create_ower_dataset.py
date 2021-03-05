@@ -76,7 +76,7 @@ def main() -> None:
     # Create (output) OWER Dataset Directory if it does not exist already
     #
     
-    ower_dir = OwerDir('OWER Directory', Path(ower_dataset_dir))
+    ower_dir = OwerDir('OWER Directory', Path(ower_dataset_dir), 0, 0)
     ower_dir.create()
 
     #

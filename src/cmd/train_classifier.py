@@ -2,20 +2,20 @@ import logging
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
-import matplotlib.pyplot as plt
 import torch
-from torch import Tensor
+from sklearn.metrics import precision_score, recall_score, f1_score
+from torch import Tensor, tensor
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchtext.vocab import Vocab
 from tqdm import tqdm
 
-from dao.ower.ower_dir import OwerDir
+from dao.ower.ower_dir import OwerDir, Sample
 from ower.classifier import Classifier
-from ower.data_module import DataModule
 
 
 def main():
@@ -40,23 +40,23 @@ def main():
                         help='Where to perform tensor operations, one of {} (default: {})'.format(
                             device_choices, default_device))
 
-    default_batch_size = 64
+    default_batch_size = 1024
     parser.add_argument('--batch-size', dest='batch_size', type=int, metavar='INT', default=default_batch_size,
                         help='Batch size (default: {})'.format(default_batch_size))
 
-    default_emb_size = 32
+    default_emb_size = 256
     parser.add_argument('--emb-size', dest='emb_size', type=int, metavar='INT', default=default_emb_size,
                         help='Embedding size for sentence and class embeddings (default: {})'.format(default_emb_size))
 
-    default_epoch_count = 10
+    default_epoch_count = 50
     parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT', default=default_epoch_count,
                         help='Number of training epochs (default: {})'.format(default_epoch_count))
 
-    default_learning_rate = 0.01
+    default_learning_rate = 0.1
     parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
                         help='Learning rate (default: {})'.format(default_learning_rate))
 
-    default_sent_len = 32
+    default_sent_len = 64
     parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
                         help='Sentence length short sentences are padded and long sentences cropped to'
                              ' (default: {})'.format(default_sent_len))
@@ -95,7 +95,7 @@ def main():
     # Check that OWER Directory exists
     #
 
-    ower_dir = OwerDir('OWER Directory', Path(args.ower_dataset_dir))
+    ower_dir = OwerDir('OWER Directory', Path(args.ower_dataset_dir), class_count, sent_count)
     ower_dir.check()
 
     #
@@ -109,22 +109,42 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
                      epoch_count: int, lr: float, sent_len) -> None:
 
     #
-    # Load data
+    # Load datasets
     #
 
-    data_module = DataModule(str(ower_dir._path), class_count, sent_count, batch_size, sent_len)
-    data_module.load_datasets()
+    train_set: List[Sample]
+    valid_set: List[Sample]
 
-    train_loader = data_module.get_train_loader()
-    valid_loader = data_module.get_valid_loader()
+    train_set, valid_set, _, vocab = ower_dir.read_datasets(vectors='glove.twitter.27B.200d')
+
+    #
+    # Create dataloaders
+    #
+
+    def generate_batch(batch: List[Sample]) -> Tuple[Tensor, Tensor]:
+
+        _, gt_classes_batch, tok_lists_batch = zip(*batch)
+
+        cropped_sents_batch = [[sent[:sent_len]
+                                for sent in sents] for sents in tok_lists_batch]
+
+        padded_sents_batch = [[sent + [0] * (sent_len - len(sent))
+                               for sent in sents] for sents in cropped_sents_batch]
+
+        return tensor(padded_sents_batch), tensor(gt_classes_batch)
+
+    train_loader = DataLoader(train_set, batch_size=batch_size, collate_fn=generate_batch, shuffle=True)
+    valid_loader = DataLoader(valid_set, batch_size=batch_size, collate_fn=generate_batch)
 
     #
     # Create classifier
     #
 
-    classifier = Classifier(vocab_size=len(data_module.vocab), emb_size=emb_size, class_count=class_count).to(device)
+    # classifier = Classifier.from_random(len(vocab), emb_size, class_count).to(device)
+    classifier = Classifier.from_pre_trained(vocab, class_count).to(device)
+    print(classifier)
     optimizer = Adam(classifier.parameters(), lr=lr)
-    criterion = BCEWithLogitsLoss(pos_weight=torch.tensor([80] * class_count).to(device))
+    criterion = BCEWithLogitsLoss(pos_weight=tensor([40] * class_count).to(device))
 
     writer = SummaryWriter()
 
@@ -135,6 +155,11 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
     for epoch in range(epoch_count):
 
         train_loss = 0.0
+
+        # Valid gt/pred classes across all batches
+        train_gt_classes_stack: List[List[int]] = []
+        train_pred_classes_stack: List[List[int]] = []
+
         for batch in tqdm(train_loader, leave=False):
             sents_batch, classes_batch = batch
             sents_batch = sents_batch.to(device)
@@ -147,9 +172,20 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
             loss.backward()
             optimizer.step()
 
+            pred_classes_batch = (outputs_batch > 0).int()
+
+            train_gt_classes_stack += classes_batch.cpu().numpy().tolist()
+            train_pred_classes_stack += pred_classes_batch.cpu().numpy().tolist()
+
+
             train_loss += loss.item()
 
         valid_loss = 0.0
+
+        # Valid gt/pred classes across all batches
+        valid_gt_classes_stack: List[List[int]] = []
+        valid_pred_classes_stack: List[List[int]] = []
+
         with torch.no_grad():
             for batch in tqdm(valid_loader, leave=False):
                 sents_batch, classes_batch = batch
@@ -161,6 +197,12 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
                 valid_loss += loss.item()
 
+                pred_classes_batch = (outputs_batch > 0).int()
+
+                valid_gt_classes_stack += classes_batch.cpu().numpy().tolist()
+                valid_pred_classes_stack += pred_classes_batch.cpu().numpy().tolist()
+
+
         std_train_loss = train_loss / len(train_loader)
         std_valid_loss = valid_loss / len(valid_loader)
 
@@ -168,6 +210,28 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
             epoch, std_train_loss, std_valid_loss))
 
         writer.add_scalars('loss', {'train': std_train_loss, 'valid': std_valid_loss}, epoch)
+
+        # tps = train precisions, vps = valid precisions, etc.
+        tps = precision_score(train_gt_classes_stack, train_pred_classes_stack, average=None)
+        vps = precision_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None)
+        trs = recall_score(train_gt_classes_stack, train_pred_classes_stack, average=None)
+        vrs = recall_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None)
+        tfs = f1_score(train_gt_classes_stack, train_pred_classes_stack, average=None)
+        vfs = f1_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None)
+
+        mean_train_precision = tps.mean()
+        mean_valid_precision = vps.mean()
+        mean_train_recall = trs.mean()
+        mean_valid_recall = vrs.mean()
+        mean_train_f1 = tfs.mean()
+        mean_valid_f1 = vfs.mean()
+
+        print(f'    Precision:  train = {mean_train_precision:.2f}, valid = {mean_valid_precision:.2f}')
+        print(f'    Recall:  train = {mean_train_recall:.2f}, valid = {mean_valid_recall:.2f}')
+        print(f'    F1:  train = {mean_train_f1:.2f}, valid = {mean_valid_f1:.2f}')
+        writer.add_scalars('precision', {f'train': mean_train_precision, f'valid': mean_valid_precision}, epoch)
+        writer.add_scalars('recall', {f'train': mean_train_recall, f'valid': mean_valid_recall}, epoch)
+        writer.add_scalars('f1', {f'train': mean_train_f1, f'valid': mean_valid_f1}, epoch)
 
     #
     # Save classifier
@@ -211,7 +275,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
     ex_text_strs = [ex_text_str_1, ex_text_str_2, ex_text_str_3]
 
-    pred_classes = predict(ex_text_strs, classifier, data_module.vocab)
+    pred_classes = predict(ex_text_strs, classifier, vocab)
     # pred_labels = [class_labels[pred_class] for pred_class in pred_classes if pred_class == 1]
 
     logging.info('Barack Obama')
