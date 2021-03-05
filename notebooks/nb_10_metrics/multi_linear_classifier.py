@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-from torch.nn import EmbeddingBag, Module, Softmax, Parameter
+from torch.nn import EmbeddingBag, Module, Softmax, Parameter, Sigmoid
 from torchtext.vocab import Vocab
 
 
@@ -26,8 +26,8 @@ class Classifier(Module):
     def from_random(cls, vocab: Vocab, emb_size: int, class_count: int):
         embedding_bag = EmbeddingBag(num_embeddings=len(vocab), embedding_dim=emb_size)
         class_embs = Parameter(torch.randn(class_count, emb_size))
-        multi_weight = Parameter(torch.randn(class_count, emb_size, 2))
-        multi_bias = Parameter(torch.randn(class_count, 1, 2))
+        multi_weight = Parameter(torch.randn(class_count, emb_size))
+        multi_bias = Parameter(torch.randn(class_count, 1))
 
         return cls(embedding_bag, class_embs, multi_weight, multi_bias)
 
@@ -37,15 +37,15 @@ class Classifier(Module):
 
         emb_size = vocab.vectors.shape[1]
         class_embs = Parameter(torch.randn(class_count, emb_size))
-        multi_weight = Parameter(torch.randn(class_count, emb_size, 2))
-        multi_bias = Parameter(torch.randn(class_count, 1, 2))
+        multi_weight = Parameter(torch.randn(class_count, emb_size))
+        multi_bias = Parameter(torch.randn(class_count, 1))
 
         return cls(embedding_bag, class_embs, multi_weight, multi_bias)
 
     def forward(self, sents_batch: Tensor) -> Tensor:
         """
         :param sents_batch: (batch_size, sent_count, sent_len)
-        :return (batch_size, class_count, 2)
+        :return (batch_size, class_count)
         """
 
         #
@@ -82,11 +82,10 @@ class Classifier(Module):
         # Push mixes through respective linear layers
         #
         # < mixes_batch   (batch_size, class_count, emb_size)
-        # > logits_batch  (batch_size, class_count, 2)
+        # > logits_batch  (batch_size, class_count)
         #
 
-        logits_batch = torch.bmm(mixes_batch.transpose(0, 1), self.multi_weight) + self.multi_bias
-        logits_batch = logits_batch.transpose(0, 1)
+        logits_batch = self.multi_linear(mixes_batch)
 
         return logits_batch
 
@@ -230,3 +229,57 @@ class Classifier(Module):
         mixes_batch = flat_mixes.reshape(batch_size, class_count, emb_size)
 
         return mixes_batch
+
+    def multi_linear(self, mixes_batch: Tensor) -> Tensor:
+        """
+        Push each sentence mix through its respective linear layer.
+
+        For example, push the "married" mix through the "married" layer
+        that predicts the "married" class for the mix.
+
+        :param mixes_batch: (batch_size, class_count, emb_size)
+        :return: (batch_size, class_count)
+        """
+
+        #
+        # Transpose per entity mixes -> per class mixes
+        #
+        # < mixes_batch  (batch_size, class_count, emb_size)
+        # > mixes_batch  (class_count, batch_size, emb_size)
+        #
+
+        mixes_batch = mixes_batch.transpose(0, 1)
+
+        #
+        # Per class weight/bias row vector -> col vector
+        #
+        # < self.multi_weight  (class_count, emb_size)
+        # < self.multi_bias    (class_count, 1)
+        # > col_multi_weight   (class_count, emb_size, 1)
+        # > col_multi_bias     (class_count, 1, 1)
+        #
+
+        col_multi_weight = self.multi_weight.unsqueeze(-1)
+        col_multi_bias = self.multi_bias.unsqueeze(-1)
+
+        #
+        # Linear layers
+        #
+        # < mixes_batch       (class_count, batch_size, emb_size)
+        # < col_multi_weight  (class_count, emb_size, 1)
+        # < col_multi_bias    (class_count, 1, 1)
+        # > logits_batch      (class_count, batch_size, 1)
+        #
+
+        logits_batch = torch.bmm(mixes_batch, col_multi_weight) + col_multi_bias
+
+        #
+        # Per class outputs col vector -> row vector & Restore per entity batch
+        #
+        # < logits_batch  (class_count, batch_size, 1)
+        # > logits_batch  (batch_size, class_count)
+        #
+
+        logits_batch = logits_batch.squeeze(-1).T
+
+        return logits_batch
