@@ -107,7 +107,6 @@ def main():
 
 def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch_size, device: str, emb_size: int,
                      epoch_count: int, lr: float, sent_len) -> None:
-
     #
     # Load datasets
     #
@@ -177,7 +176,6 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
             train_gt_classes_stack += classes_batch.cpu().numpy().tolist()
             train_pred_classes_stack += pred_classes_batch.cpu().numpy().tolist()
 
-
             train_loss += loss.item()
 
         valid_loss = 0.0
@@ -201,7 +199,6 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
                 valid_gt_classes_stack += classes_batch.cpu().numpy().tolist()
                 valid_pred_classes_stack += pred_classes_batch.cpu().numpy().tolist()
-
 
         std_train_loss = train_loss / len(train_loader)
         std_valid_loss = valid_loss / len(valid_loader)
