@@ -141,7 +141,6 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
     # classifier = Classifier.from_random(len(vocab), emb_size, class_count).to(device)
     classifier = Classifier.from_pre_trained(vocab, class_count).to(device)
-    print(classifier)
     optimizer = Adam(classifier.parameters(), lr=lr)
     criterion = BCEWithLogitsLoss(pos_weight=tensor([40] * class_count).to(device))
 
@@ -159,7 +158,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
         train_gt_classes_stack: List[List[int]] = []
         train_pred_classes_stack: List[List[int]] = []
 
-        for batch in tqdm(train_loader, leave=False):
+        for batch in tqdm(train_loader, desc=f'Epoch {epoch}'):
             sents_batch, classes_batch = batch
             sents_batch = sents_batch.to(device)
             classes_batch = classes_batch.to(device)
@@ -185,7 +184,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
         valid_pred_classes_stack: List[List[int]] = []
 
         with torch.no_grad():
-            for batch in tqdm(valid_loader, leave=False):
+            for batch in tqdm(valid_loader, desc=f'Epoch {epoch}'):
                 sents_batch, classes_batch = batch
                 sents_batch = sents_batch.to(device)
                 classes_batch = classes_batch.to(device)
@@ -203,8 +202,8 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
         std_train_loss = train_loss / len(train_loader)
         std_valid_loss = valid_loss / len(valid_loader)
 
-        logging.info('Epoch {}: train loss = {:.2e}, valid loss = {:.2e}'.format(
-            epoch, std_train_loss, std_valid_loss))
+        # logging.info('Epoch {}: train loss = {:.2e}, valid loss = {:.2e}'.format(
+        #     epoch, std_train_loss, std_valid_loss))
 
         writer.add_scalars('loss', {'train': std_train_loss, 'valid': std_valid_loss}, epoch)
 
@@ -223,9 +222,6 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
         mean_train_f1 = tfs.mean()
         mean_valid_f1 = vfs.mean()
 
-        print(f'    Precision:  train = {mean_train_precision:.2f}, valid = {mean_valid_precision:.2f}')
-        print(f'    Recall:  train = {mean_train_recall:.2f}, valid = {mean_valid_recall:.2f}')
-        print(f'    F1:  train = {mean_train_f1:.2f}, valid = {mean_valid_f1:.2f}')
         writer.add_scalars('precision', {f'train': mean_train_precision, f'valid': mean_valid_precision}, epoch)
         writer.add_scalars('recall', {f'train': mean_train_recall, f'valid': mean_valid_recall}, epoch)
         writer.add_scalars('f1', {f'train': mean_train_f1, f'valid': mean_valid_f1}, epoch)
