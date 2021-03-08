@@ -1,7 +1,10 @@
 import torch
 from torch import Tensor
-from torch.nn import Module, EmbeddingBag, Parameter, Softmax
+from torch.nn import Module, EmbeddingBag, Parameter, Softmax, Sigmoid
 from torchtext.vocab import Vocab
+
+
+debug = {}
 
 
 class Classifier(Module):
@@ -56,6 +59,9 @@ class Classifier(Module):
         #
 
         atts_batch = self._calc_atts(sents_batch)
+
+        if debug['enabled']:
+            debug['atts_batch'] = atts_batch
 
         #
         # For each class, mix sentences according to attention
@@ -151,6 +157,7 @@ class Classifier(Module):
         # > softs_batch  (batch_size, class_count, sent_count)
         #
 
-        softs_batch = Softmax(dim=-1)(atts_batch)
+        # softs_batch = Softmax(dim=-1)(atts_batch)
+        softs_batch = Sigmoid()(atts_batch)
 
         return softs_batch
