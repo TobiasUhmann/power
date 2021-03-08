@@ -60,7 +60,7 @@ class Classifier(Module):
 
         atts_batch = self._calc_atts(sents_batch)
 
-        if debug['enabled']:
+        if 'enabled' in debug and debug['enabled']:
             debug['atts_batch'] = atts_batch
 
         #
