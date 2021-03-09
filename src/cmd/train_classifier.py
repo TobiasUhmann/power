@@ -2,8 +2,10 @@ import logging
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
+from random import shuffle
 from typing import List, Tuple
 
+import numpy as np
 import torch
 from sklearn.metrics import precision_score, recall_score, f1_score
 from torch import Tensor, tensor
@@ -120,20 +122,33 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
     # Create dataloaders
     #
 
-    def generate_batch(batch: List[Sample]) -> Tuple[Tensor, Tensor]:
+    def generate_batch(batch: List[Sample]) -> Tuple[Tensor, Tensor, Tensor]:
 
-        _, gt_classes_batch, tok_lists_batch = zip(*batch)
+        ent_batch, gt_classes_batch, tok_lists_batch = zip(*batch)
 
-        cropped_sents_batch = [[sent[:sent_len]
-                                for sent in sents] for sents in tok_lists_batch]
+        cropped_tok_lists_batch = [[tok_list[:sent_len]
+                                    for tok_list in tok_lists] for tok_lists in tok_lists_batch]
 
-        padded_sents_batch = [[sent + [0] * (sent_len - len(sent))
-                               for sent in sents] for sents in cropped_sents_batch]
+        padded_tok_lists_batch = [[tok_list + [0] * (sent_len - len(tok_list))
+                                   for tok_list in tok_lists] for tok_lists in cropped_tok_lists_batch]
 
-        return tensor(padded_sents_batch), tensor(gt_classes_batch)
+        for padded_tok_lists in padded_tok_lists_batch:
+            shuffle(padded_tok_lists)
+
+        return tensor(ent_batch), tensor(padded_tok_lists_batch), tensor(gt_classes_batch)
 
     train_loader = DataLoader(train_set, batch_size=batch_size, collate_fn=generate_batch, shuffle=True)
     valid_loader = DataLoader(valid_set, batch_size=batch_size, collate_fn=generate_batch)
+
+    #
+    # Calc class weights
+    #
+
+    _, train_classes_stack, _ = zip(*train_set)
+    train_classes_stack = np.array(train_classes_stack)
+    train_freqs = train_classes_stack.mean(axis=0)
+
+    class_weights = tensor(1 / train_freqs).to(device)
 
     #
     # Create classifier
@@ -142,7 +157,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
     # classifier = Classifier.from_random(len(vocab), emb_size, class_count).to(device)
     classifier = Classifier.from_pre_trained(vocab, class_count).to(device)
     optimizer = Adam(classifier.parameters(), lr=lr)
-    criterion = BCEWithLogitsLoss(pos_weight=tensor([40] * class_count).to(device))
+    criterion = BCEWithLogitsLoss(pos_weight=class_weights)
 
     writer = SummaryWriter()
 
