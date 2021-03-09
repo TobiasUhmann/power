@@ -2,7 +2,7 @@
 data/
 lightning_logs/
 runs/
-/notebooks/nb_10_metrics/.vector_cache/
+/notebooks/nb_12_visualize_attentions/.vector_cache/
 /snippets/**/data/
 /snippets/**/runs/
 
