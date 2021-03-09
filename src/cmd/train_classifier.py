@@ -5,6 +5,7 @@ from pathlib import Path
 from random import shuffle
 from typing import List, Tuple
 
+import numpy as np
 import torch
 from sklearn.metrics import precision_score, recall_score, f1_score
 from torch import Tensor, tensor
@@ -140,13 +141,23 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
     valid_loader = DataLoader(valid_set, batch_size=batch_size, collate_fn=generate_batch)
 
     #
+    # Calc class weights
+    #
+
+    _, train_classes_stack, _ = zip(*train_set)
+    train_classes_stack = np.array(train_classes_stack)
+    train_freqs = train_classes_stack.mean(axis=0)
+
+    class_weights = tensor(1 / train_freqs).to(device)
+
+    #
     # Create classifier
     #
 
     # classifier = Classifier.from_random(len(vocab), emb_size, class_count).to(device)
     classifier = Classifier.from_pre_trained(vocab, class_count).to(device)
     optimizer = Adam(classifier.parameters(), lr=lr)
-    criterion = BCEWithLogitsLoss(pos_weight=tensor([4] * class_count).to(device))
+    criterion = BCEWithLogitsLoss(pos_weight=class_weights)
 
     writer = SummaryWriter()
 
