@@ -24,7 +24,7 @@ class Rule:
 
 
 if __name__ == '__main__':
-    with open('../data/beta-100') as fh:
+    with open('../data/anyburl/rules/FB15-237/alpha-100') as fh:
         lines = fh.readlines()
 
     rules = []

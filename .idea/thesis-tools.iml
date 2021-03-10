@@ -8,6 +8,7 @@
       <excludeFolder url="file://$MODULE_DIR$/data" />
       <excludeFolder url="file://$MODULE_DIR$/docs/source/apidoc" />
       <excludeFolder url="file://$MODULE_DIR$/docs/build" />
+      <excludeFolder url="file://$MODULE_DIR$/notebooks/nb_13_more_classes/data" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (thesis-tools)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
