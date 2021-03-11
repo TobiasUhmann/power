@@ -29,7 +29,7 @@ class RynTriplesTxt(BaseFile):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-    def read_triples(self) -> List[Tuple[int, int, int]]:
+    def load_triples(self) -> List[Tuple[int, int, int]]:
         """
         :return: [(head RID, relation RID, tail RID)]
         """

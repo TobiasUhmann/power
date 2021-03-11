@@ -28,7 +28,7 @@ class RynLabelsTxt(BaseFile):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-    def read_rid_to_label(self) -> Dict[int, str]:
+    def load_rid_to_label(self) -> Dict[int, str]:
         """
         :return: {entity RID: entity label}
         """
