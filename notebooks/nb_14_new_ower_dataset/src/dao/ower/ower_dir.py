@@ -29,7 +29,7 @@ from torchtext.vocab import Vocab
 
 from dao.base_dir import BaseDir
 from dao.ower.ower_samples_tsv import SamplesTsv
-from dao.ower.tmp.tmp_dir import TmpDir
+from src.dao.ower.tmp.tmp_dir import TmpDir
 
 
 @dataclass

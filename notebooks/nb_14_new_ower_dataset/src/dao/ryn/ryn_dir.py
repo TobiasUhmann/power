@@ -29,8 +29,8 @@ class RynDir(BaseDir):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-        self.split_dir = RynSplitDir('Ryn Split Directory', path.joinpath('split'))
-        self.text_dir = RynTextDir('Ryn Text Directory', path.joinpath('text'))
+        self.split_dir = RynSplitDir('Ryn Split Directory', path.joinpath('../../../../../src/dao/ryn/split'))
+        self.text_dir = RynTextDir('Ryn Text Directory', path.joinpath('../../../../../src/dao/ryn/text'))
 
     def check(self) -> None:
         super().check()
