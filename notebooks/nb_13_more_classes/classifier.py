@@ -159,5 +159,6 @@ class Classifier(Module):
 
         # softs_batch = Softmax(dim=-1)(atts_batch)
         softs_batch = Sigmoid()(atts_batch)
+        # softs_batch = atts_batch
 
         return softs_batch

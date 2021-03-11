@@ -53,14 +53,15 @@ def get_word_lbls():
     return [vocab.itos[i] for i in range(vocab_size)]
 
 
-def plot_tensor(tensor_, title, labels):
+def plot_tensor(tensor_, title, labels, vmin=None, vmax=None):
     assert tensor_.ndim <= 4
     assert len(labels) == tensor_.ndim
 
-    min_abs = abs(torch.min(tensor_))
-    max_abs = abs(torch.max(tensor_))
-    vmin = -max(min_abs, max_abs)
-    vmax = max(min_abs, max_abs)
+    if vmin is None and vmax is None:
+        min_abs = abs(torch.min(tensor_))
+        max_abs = abs(torch.max(tensor_))
+        vmin = -max(min_abs, max_abs)
+        vmax = max(min_abs, max_abs)
 
     tensor_ = tensor_.detach()
 
