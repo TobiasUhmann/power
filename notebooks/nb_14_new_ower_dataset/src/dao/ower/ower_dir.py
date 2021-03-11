@@ -11,6 +11,9 @@ for debuggin purposes.
 
         tmp/            # OWER Temp Directory
 
+        ent_labels.txt  # OWER Entity Labels TXT
+        rel_labels.txt  # OWER Relation Labels TXT
+
         classes.tsv     # OWER Classes TSV
 
         test.tsv        # OWER Test Samples TSV
@@ -31,6 +34,7 @@ from dao.base_dir import BaseDir
 from dao.ower.classes_tsv import ClassesTsv
 from dao.ower.ower_samples_tsv import SamplesTsv
 from dao.ower.tmp.tmp_dir import TmpDir
+from dao.ryn.split.ryn_labels_txt import RynLabelsTxt
 
 
 @dataclass
@@ -46,6 +50,9 @@ class Sample:
 class OwerDir(BaseDir):
     tmp_dir: TmpDir
 
+    ent_labels_txt: RynLabelsTxt
+    rel_labels_txt: RynLabelsTxt
+
     classes_tsv: ClassesTsv
 
     train_samples_tsv: SamplesTsv
@@ -56,6 +63,9 @@ class OwerDir(BaseDir):
         super().__init__(name, path)
 
         self.tmp_dir = TmpDir('OWER Temp Directory', path.joinpath('tmp'))
+
+        self.ent_labels_txt = RynLabelsTxt('OWER Entity Labels TXT', path.joinpath('ent_labels.txt'))
+        self.rel_labels_txt = RynLabelsTxt('OWER Relation Labels TXT', path.joinpath('rel_labels.txt'))
 
         self.classes_tsv = ClassesTsv('OWER Classes TSV', path.joinpath('classes.tsv'))
 

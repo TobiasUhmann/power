@@ -4,9 +4,8 @@ the `OWER Samples TSV`s.
 """
 
 import csv
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from dao.base_file import BaseFile
 
@@ -16,32 +15,29 @@ class ClassesTsv(BaseFile):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-    @dataclass
-    class Row:
-        rel: int
-        tail: int
-        freq: float
-        label: str
+    def save(self, rows: List[Tuple[int, int, float, str]]) -> None:
+        """
+        :param rows: [(rel, tail, freq, label)]
+        """
 
-    def save(self, rows: List[Row]) -> None:
-        with open(self._path, 'w', encoding='utf-8') as f:
+        with open(self._path, 'w', encoding='utf-8', newline='') as f:
             csv_writer = csv.writer(f, delimiter='\t')
             csv_writer.writerow(('rel', 'tail', 'freq', 'label'))
 
             for row in rows:
-                csv_writer.writerow((row.rel, row.tail, row.freq, row.label))
+                csv_writer.writerow(row)
 
-    def load(self) -> List[Row]:
+    def load(self) -> List[Tuple[int, int, float, str]]:
+        """
+        :return: [(rel, tail, freq, label)]
+        """
+
         with open(self._path, 'r', encoding='utf-8') as f:
             csv_reader = csv.reader(f, delimiter='\t')
             csv_reader.next()
 
             rows = []
             for rel, tail, freq, label in csv_reader:
-                rel = int(rel)
-                tail = int(tail)
-                freq = float(freq)
-
-                rows.append(ClassesTsv.Row(rel, tail, freq, label))
+                rows.append((int(rel), int(tail), float(freq), label))
 
         return rows
