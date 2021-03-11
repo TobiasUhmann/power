@@ -27,14 +27,27 @@ class RynSentencesTxt(BaseFile):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-    def load_ent_to_sentences(self) -> Dict[int, Set[str]]:
-        ent_to_contexts: Dict[int, Set[str]] = defaultdict(set)
+    def read_ent_to_sents(self) -> Dict[int, Set[str]]:
+        """
+        :return: {entity RID: {entity sentences}}
+        """
 
+        # Read all lines into memory
         with open(self._path, encoding='utf-8') as f:
             lines = f.readlines()
 
-        for line in lines[1:]:
-            ent, _, context = line.split(' | ')
-            ent_to_contexts[int(ent)].add(context.strip())
+        # Assert that first line is doc header
+        assert lines[0].startswith('#')
 
-        return ent_to_contexts
+        ## Parse doc body
+        ##
+        ## Each line should have the format
+        ## entity RID | entity label | sentence
+
+        ent_to_sents: Dict[int, Set[str]] = defaultdict(set)
+
+        for line in lines[1:]:
+            ent, _, sent = line.split(' | ')
+            ent_to_sents[int(ent)].add(sent.strip())
+
+        return ent_to_sents
