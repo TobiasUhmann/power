@@ -84,6 +84,30 @@ class TriplesDb(BaseFile):
         with connect(self._path) as conn:
             conn.executemany(sql, triples)
 
+    def select_count(self) -> int:
+        sql = 'SELECT COUNT(*) FROM triples'
+
+        row = connect(self._path).execute(sql).fetchone()
+
+        return row[0]
+
+    def select_top_rel_tails(self, limit: int) -> List[Tuple[int, int, int]]:
+        sql = '''
+            SELECT rel, tail, COUNT(*) AS count
+            FROM triples
+            GROUP BY rel, tail
+            ORDER BY count DESC
+            LIMIT ?
+        '''
+
+        with connect(self._path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, (limit,))
+            rows = cursor.fetchall()
+            cursor.close()
+
+        return [(row[0], row[1], row[2]) for row in rows]
+
     def select_heads_with_rel_tail(self, rel: int, tail: int) -> Set[int]:
         sql = '''
             SELECT head
