@@ -28,6 +28,7 @@ from torchtext.data import Field, TabularDataset
 from torchtext.vocab import Vocab
 
 from dao.base_dir import BaseDir
+from dao.ower.classes_tsv import ClassesTsv
 from dao.ower.ower_samples_tsv import SamplesTsv
 from dao.ower.tmp.tmp_dir import TmpDir
 
@@ -45,6 +46,8 @@ class Sample:
 class OwerDir(BaseDir):
     tmp_dir: TmpDir
 
+    classes_tsv: ClassesTsv
+
     train_samples_tsv: SamplesTsv
     valid_samples_tsv: SamplesTsv
     test_samples_tsv: SamplesTsv
@@ -54,6 +57,8 @@ class OwerDir(BaseDir):
 
         self.tmp_dir = TmpDir('OWER Temp Directory', path.joinpath('tmp'))
 
+        self.classes_tsv = ClassesTsv('OWER Classes TSV', path.joinpath('classes.tsv'))
+
         self.train_samples_tsv = SamplesTsv('OWER Train Samples TSV', path.joinpath('train.tsv'))
         self.valid_samples_tsv = SamplesTsv('OWER Valid Samples TSV', path.joinpath('valid.tsv'))
         self.test_samples_tsv = SamplesTsv('OWER Test Samples TSV', path.joinpath('test.tsv'))
@@ -62,6 +67,8 @@ class OwerDir(BaseDir):
         super().check()
 
         self.tmp_dir.check()
+
+        self.classes_tsv.check()
 
         self.train_samples_tsv.check()
         self.valid_samples_tsv.check()

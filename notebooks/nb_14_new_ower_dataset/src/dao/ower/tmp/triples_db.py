@@ -30,7 +30,7 @@ purposes.
 
 |
 """
-
+from dataclasses import dataclass
 from pathlib import Path
 from sqlite3 import connect
 from typing import List, Tuple, Set
@@ -91,7 +91,13 @@ class TriplesDb(BaseFile):
 
         return row[0]
 
-    def select_top_rel_tails(self, limit: int) -> List[Tuple[int, int, int]]:
+    @dataclass
+    class TopRelTail:
+        rel: int
+        tail: int
+        count: int
+
+    def select_top_rel_tails(self, limit: int) -> List[TopRelTail]:
         sql = '''
             SELECT rel, tail, COUNT(*) AS count
             FROM triples
@@ -106,7 +112,7 @@ class TriplesDb(BaseFile):
             rows = cursor.fetchall()
             cursor.close()
 
-        return [(row[0], row[1], row[2]) for row in rows]
+        return [TriplesDb.TopRelTail(row[0], row[1], row[2]) for row in rows]
 
     def select_heads_with_rel_tail(self, rel: int, tail: int) -> Set[int]:
         sql = '''
