@@ -31,19 +31,11 @@ purposes.
 |
 """
 
-from dataclasses import dataclass
 from pathlib import Path
 from sqlite3 import connect
 from typing import List, Tuple, Set
 
 from dao.base_file import BaseFile
-
-
-@dataclass
-class DbTriple:
-    head: int
-    rel: int
-    tail: int
 
 
 class TriplesDb(BaseFile):
@@ -52,30 +44,30 @@ class TriplesDb(BaseFile):
         super().__init__(name, path)
 
     def create_triples_table(self) -> None:
+        create_table_sql = '''
+            CREATE TABLE triples (
+                head    INT,
+                rel     INT,
+                tail    INT
+            )
+        '''
+
+        create_head_index_sql = '''
+            CREATE INDEX head_index
+            ON triples(head)
+        '''
+
+        create_rel_index_sql = '''
+            CREATE INDEX rel_index
+            ON triples(rel)
+        '''
+
+        create_tail_index_sql = '''
+            CREATE INDEX tail_index
+            ON triples(tail)
+        '''
+
         with connect(self._path) as conn:
-            create_table_sql = '''
-                CREATE TABLE triples (
-                    head    INT,
-                    rel     INT,
-                    tail    INT
-                )
-            '''
-
-            create_head_index_sql = '''
-                CREATE INDEX head_index
-                ON triples(head)
-            '''
-
-            create_rel_index_sql = '''
-                CREATE INDEX rel_index
-                ON triples(rel)
-            '''
-
-            create_tail_index_sql = '''
-                CREATE INDEX tail_index
-                ON triples(tail)
-            '''
-
             cursor = conn.cursor()
             cursor.execute(create_table_sql)
             cursor.execute(create_head_index_sql)
@@ -83,26 +75,26 @@ class TriplesDb(BaseFile):
             cursor.execute(create_tail_index_sql)
             cursor.close()
 
-    def insert_triples(self, db_triples: List[DbTriple]) -> None:
+    def insert_triples(self, triples: List[Tuple[int, int, int]]) -> None:
+        sql = '''
+            INSERT INTO triples (head, rel, tail)
+            VALUES (?, ?, ?)
+        '''
+
         with connect(self._path) as conn:
-            sql = '''
-                INSERT INTO triples (head, rel, tail)
-                VALUES (?, ?, ?)
-            '''
+            conn.executemany(sql, triples)
 
-            conn.executemany(sql, ((t.head, t.rel, t.tail) for t in db_triples))
+    def select_heads_with_rel_tail(self, rel: int, tail: int) -> Set[int]:
+        sql = '''
+            SELECT head
+            FROM triples
+            WHERE rel = ? AND tail = ?
+        '''
 
-    def select_entities_with_class(self, class_: Tuple[int, int]) -> Set[int]:
         with connect(self._path) as conn:
-            sql = '''
-                SELECT head
-                FROM triples
-                WHERE rel = ? AND tail = ?
-            '''
-
             cursor = conn.cursor()
-            cursor.execute(sql, (class_[0], class_[1]))
+            cursor.execute(sql, (rel, tail))
             rows = cursor.fetchall()
             cursor.close()
 
-            return {row[0] for row in rows}
+        return {row[0] for row in rows}
