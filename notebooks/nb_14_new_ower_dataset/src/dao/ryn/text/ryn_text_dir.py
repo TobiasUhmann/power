@@ -17,21 +17,21 @@ The `Ryn Text Directory` contains the entities' sentences.
 from pathlib import Path
 
 from dao.base_dir import BaseDir
-from dao.ryn.text.ryn_sentences_txt import RynSentencesTxt
+from dao.ryn.text.sents_txt import SentsTxt
 
 
 class RynTextDir(BaseDir):
 
-    cw_train_sentences_txt: RynSentencesTxt
-    ow_valid_sentences_txt: RynSentencesTxt
-    ow_test_sentences_txt: RynSentencesTxt
+    cw_train_sentences_txt: SentsTxt
+    ow_valid_sentences_txt: SentsTxt
+    ow_test_sentences_txt: SentsTxt
 
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
         
-        self.cw_train_sentences_txt = RynSentencesTxt('Ryn CW Train Sentences TXT', path.joinpath('cw.train-sentences.txt'))
-        self.ow_valid_sentences_txt = RynSentencesTxt('Ryn OW Valid Sentences TXT', path.joinpath('ow.valid-sentences.txt'))
-        self.ow_test_sentences_txt = RynSentencesTxt('Ryn OW Test Sentences TXT', path.joinpath('ow.test-sentences.txt'))
+        self.cw_train_sentences_txt = SentsTxt('Ryn CW Train Sentences TXT', path.joinpath('cw.train-sentences.txt'))
+        self.ow_valid_sentences_txt = SentsTxt('Ryn OW Valid Sentences TXT', path.joinpath('ow.valid-sentences.txt'))
+        self.ow_test_sentences_txt = SentsTxt('Ryn OW Test Sentences TXT', path.joinpath('ow.test-sentences.txt'))
 
     def check(self) -> None:
         super().check()

@@ -5,20 +5,20 @@ from pathlib import Path
 
 
 class BaseDir:
-    _name: str
-    _path: Path
+    name: str
+    path: Path
 
     def __init__(self, name: str, path: Path):
-        self._name = name
-        self._path = path
+        self.name = name
+        self.path = path
 
     def check(self) -> None:
         """
         Check that directory exists, exit if it does not.
         """
 
-        if not isdir(self._path):
-            logging.error(f'{self._name} not found')
+        if not isdir(self.path):
+            logging.error(f'{self.name} not found')
             exit()
 
     def create(self) -> None:
@@ -26,4 +26,4 @@ class BaseDir:
         Create directory if it does not exist already.
         """
 
-        makedirs(self._path, exist_ok=True)
+        makedirs(self.path, exist_ok=True)

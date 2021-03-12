@@ -6,10 +6,10 @@ as well as the sentences describing the entities.
 
 ::
 
-    ryn/            # Ryn Directory
+    ryn/          # Ryn Directory
 
-        split/      # Ryn Split Directory
-        text/       # Ryn Text Directory
+        split/    # Ryn Split Directory
+        text/     # Ryn Text Directory
 
 |
 """
@@ -17,20 +17,20 @@ as well as the sentences describing the entities.
 from pathlib import Path
 
 from dao.base_dir import BaseDir
-from dao.ryn.split.ryn_split_dir import RynSplitDir
-from dao.ryn.text.ryn_text_dir import RynTextDir
+from dao.ryn.split.split_dir import SplitDir
+from dao.ryn.text.text_dir import TextDir
 
 
 class RynDir(BaseDir):
 
-    split_dir: RynSplitDir
-    text_dir: RynTextDir
+    split_dir: SplitDir
+    text_dir: TextDir
 
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-        self.split_dir = RynSplitDir('Ryn Split Directory', path.joinpath('split'))
-        self.text_dir = RynTextDir('Ryn Text Directory', path.joinpath('text'))
+        self.split_dir = SplitDir('Ryn Split Directory', path.joinpath('split'))
+        self.text_dir = TextDir('Ryn Text Directory', path.joinpath('text'))
 
     def check(self) -> None:
         super().check()
