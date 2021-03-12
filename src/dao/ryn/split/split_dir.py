@@ -36,16 +36,16 @@ class SplitDir(BaseDir):
     ow_valid_triples_txt: TriplesTxt
     ow_test_triples_txt: TriplesTxt
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
-        self.ent_labels_txt = LabelsTxt('Ryn Entity Labels TXT', path.joinpath('entity2id.txt'))
-        self.rel_labels_txt = LabelsTxt('Ryn Relation Labels TXT', path.joinpath('relation2id.txt'))
+        self.ent_labels_txt = LabelsTxt(path.joinpath('entity2id.txt'))
+        self.rel_labels_txt = LabelsTxt(path.joinpath('relation2id.txt'))
         
-        self.cw_train_triples_txt = TriplesTxt('Ryn CW Train Triples TXT', path.joinpath('cw.train2id.txt'))
-        self.cw_valid_triples_txt = TriplesTxt('Ryn CW Valid Triples TXT', path.joinpath('cw.valid2id.txt'))
-        self.ow_valid_triples_txt = TriplesTxt('Ryn OW Valid Triples TXT', path.joinpath('ow.valid2id.txt'))
-        self.ow_test_triples_txt = TriplesTxt('Ryn OW Test Triples TXT', path.joinpath('ow.test2id.txt'))
+        self.cw_train_triples_txt = TriplesTxt(path.joinpath('cw.train2id.txt'))
+        self.cw_valid_triples_txt = TriplesTxt(path.joinpath('cw.valid2id.txt'))
+        self.ow_valid_triples_txt = TriplesTxt(path.joinpath('ow.valid2id.txt'))
+        self.ow_test_triples_txt = TriplesTxt(path.joinpath('ow.test2id.txt'))
 
     def check(self) -> None:
         super().check()

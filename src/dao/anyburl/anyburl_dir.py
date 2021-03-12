@@ -17,22 +17,22 @@ as input to mine rules.
 
 from pathlib import Path
 
-from dao.anyburl.anyburl_triples_txt import AnyburlTriplesTxt
+from dao.anyburl.triples_txt import TriplesTxt
 from dao.base_dir import BaseDir
 
 
 class AnyburlDir(BaseDir):
     
-    train_triples_txt: AnyburlTriplesTxt
-    valid_triples_txt: AnyburlTriplesTxt
-    test_triples_txt: AnyburlTriplesTxt
+    train_triples_txt: TriplesTxt
+    valid_triples_txt: TriplesTxt
+    test_triples_txt: TriplesTxt
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
         
-        self.train_triples_txt = AnyburlTriplesTxt('AnyBURL Train Triples TXT', path.joinpath('train.txt'))
-        self.valid_triples_txt = AnyburlTriplesTxt('AnyBURL Valid Triples TXT', path.joinpath('valid.txt'))
-        self.test_triples_txt = AnyburlTriplesTxt('AnyBURL Test Triples TXT', path.joinpath('test.txt'))
+        self.train_triples_txt = TriplesTxt(path.joinpath('train.txt'))
+        self.valid_triples_txt = TriplesTxt(path.joinpath('valid.txt'))
+        self.test_triples_txt = TriplesTxt(path.joinpath('test.txt'))
 
     def check(self) -> None:
         super().check()

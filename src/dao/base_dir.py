@@ -1,25 +1,19 @@
-import logging
+import errno
+import os
 from os import makedirs
 from os.path import isdir
 from pathlib import Path
 
 
 class BaseDir:
-    name: str
     path: Path
 
-    def __init__(self, name: str, path: Path):
-        self.name = name
+    def __init__(self, path: Path):
         self.path = path
 
     def check(self) -> None:
-        """
-        Check that directory exists, exit if it does not.
-        """
-
         if not isdir(self.path):
-            logging.error(f'{self.name} not found')
-            exit()
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), self.path)
 
     def create(self) -> None:
         """

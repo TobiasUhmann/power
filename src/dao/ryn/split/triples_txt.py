@@ -26,8 +26,8 @@ from dao.base_file import BaseFile
 
 class TriplesTxt(BaseFile):
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
     def load(self) -> List[Tuple[int, int, int]]:
         """

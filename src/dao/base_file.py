@@ -1,21 +1,15 @@
-import logging
+import errno
+import os
 from os.path import isfile
 from pathlib import Path
 
 
 class BaseFile:
-    name: str
     path: Path
 
-    def __init__(self, name: str, path: Path):
-        self.name = name
+    def __init__(self, path: Path):
         self.path = path
 
     def check(self) -> None:
-        """
-        Check that file exists, exit if it does not.
-        """
-
         if not isfile(self.path):
-            logging.error(f'{self.name} not found')
-            exit()
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), self.path)

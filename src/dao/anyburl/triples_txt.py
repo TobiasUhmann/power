@@ -24,12 +24,12 @@ from typing import List, Tuple
 from dao.base_file import BaseFile
 
 
-class AnyburlTriplesTxt(BaseFile):
+class TriplesTxt(BaseFile):
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
     def save_triples(self, triples: List[Tuple[str, str, str]]) -> None:
-        with open(self._path, 'w', encoding='utf-8') as f:
+        with open(self.path, 'w', encoding='utf-8') as f:
             for head, rel, tail in triples:
                 f.write(f'{head}\t{rel}\t{tail}\n')

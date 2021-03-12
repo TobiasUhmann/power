@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict
 
 from dao.anyburl.anyburl_dir import assert_not_existing
-from dao.anyburl.anyburl_triples_txt import save_triples
+from dao.anyburl.triples_txt import save_triples
 from dao.ryn.split.split_dir import SplitDir
 
 

@@ -26,12 +26,12 @@ class TextDir(BaseDir):
     ow_valid_sents_txt: SentsTxt
     ow_test_sents_txt: SentsTxt
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
         
-        self.cw_train_sents_txt = SentsTxt('Ryn CW Train Sentences TXT', path.joinpath('cw.train-sentences.txt'))
-        self.ow_valid_sents_txt = SentsTxt('Ryn OW Valid Sentences TXT', path.joinpath('ow.valid-sentences.txt'))
-        self.ow_test_sents_txt = SentsTxt('Ryn OW Test Sentences TXT', path.joinpath('ow.test-sentences.txt'))
+        self.cw_train_sents_txt = SentsTxt(path.joinpath('cw.train-sentences.txt'))
+        self.ow_valid_sents_txt = SentsTxt(path.joinpath('ow.valid-sentences.txt'))
+        self.ow_test_sents_txt = SentsTxt(path.joinpath('ow.test-sentences.txt'))
 
     def check(self) -> None:
         super().check()

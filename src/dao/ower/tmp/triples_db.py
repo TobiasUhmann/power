@@ -40,8 +40,8 @@ from dao.base_file import BaseFile
 
 class TriplesDb(BaseFile):
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
     def create_triples_table(self) -> None:
         create_table_sql = '''

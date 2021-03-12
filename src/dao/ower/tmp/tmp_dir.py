@@ -25,12 +25,12 @@ class TmpDir(BaseDir):
     valid_triples_db: TriplesDb
     test_triples_db: TriplesDb
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
-        self.train_triples_db = TriplesDb('OWER Train Triples DB', path.joinpath('train.db'))
-        self.valid_triples_db = TriplesDb('OWER Valid Triples DB', path.joinpath('valid.db'))
-        self.test_triples_db = TriplesDb('OWER Test Triples DB', path.joinpath('test.db'))
+        self.train_triples_db = TriplesDb(path.joinpath('train.db'))
+        self.valid_triples_db = TriplesDb(path.joinpath('valid.db'))
+        self.test_triples_db = TriplesDb(path.joinpath('test.db'))
 
     def check(self) -> None:
         super().check()

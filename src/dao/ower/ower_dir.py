@@ -44,19 +44,19 @@ class OwerDir(BaseDir):
     valid_samples_tsv: SamplesTsv
     test_samples_tsv: SamplesTsv
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
-        self.tmp_dir = TmpDir('OWER Temp Directory', path.joinpath('tmp'))
+        self.tmp_dir = TmpDir(path.joinpath('tmp'))
 
-        self.ent_labels_txt = LabelsTxt('OWER Entity Labels TXT', path.joinpath('ent_labels.txt'))
-        self.rel_labels_txt = LabelsTxt('OWER Relation Labels TXT', path.joinpath('rel_labels.txt'))
+        self.ent_labels_txt = LabelsTxt(path.joinpath('ent_labels.txt'))
+        self.rel_labels_txt = LabelsTxt(path.joinpath('rel_labels.txt'))
 
-        self.classes_tsv = ClassesTsv('OWER Classes TSV', path.joinpath('classes.tsv'))
+        self.classes_tsv = ClassesTsv(path.joinpath('classes.tsv'))
 
-        self.train_samples_tsv = SamplesTsv('OWER Train Samples TSV', path.joinpath('train.tsv'))
-        self.valid_samples_tsv = SamplesTsv('OWER Valid Samples TSV', path.joinpath('valid.tsv'))
-        self.test_samples_tsv = SamplesTsv('OWER Test Samples TSV', path.joinpath('test.tsv'))
+        self.train_samples_tsv = SamplesTsv(path.joinpath('train.tsv'))
+        self.valid_samples_tsv = SamplesTsv(path.joinpath('valid.tsv'))
+        self.test_samples_tsv = SamplesTsv(path.joinpath('test.tsv'))
 
     def check(self) -> None:
         super().check()

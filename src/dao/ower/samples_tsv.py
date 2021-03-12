@@ -27,8 +27,8 @@ from dao.base_file import BaseFile
 
 class SamplesTsv(BaseFile):
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
     def save(self, ent_lbl_classes_sents_list: List[Tuple[int, str, List[int], List[str]]]) -> None:
         """

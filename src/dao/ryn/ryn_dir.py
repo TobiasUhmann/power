@@ -26,11 +26,11 @@ class RynDir(BaseDir):
     split_dir: SplitDir
     text_dir: TextDir
 
-    def __init__(self, name: str, path: Path):
-        super().__init__(name, path)
+    def __init__(self, path: Path):
+        super().__init__(path)
 
-        self.split_dir = SplitDir('Ryn Split Directory', path.joinpath('split'))
-        self.text_dir = TextDir('Ryn Text Directory', path.joinpath('text'))
+        self.split_dir = SplitDir(path.joinpath('split'))
+        self.text_dir = TextDir(path.joinpath('text'))
 
     def check(self) -> None:
         super().check()
