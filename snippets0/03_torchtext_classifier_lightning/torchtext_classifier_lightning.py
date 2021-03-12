@@ -13,8 +13,8 @@ from torch import Tensor
 from torchtext.data.utils import ngrams_iterator
 from torchtext.vocab import Vocab
 
-from snippets.torchtext_classifier_lightning.classifier import Classifier
-from snippets.torchtext_classifier_lightning.data_module import DataModule
+from snippets0.torchtext_classifier_lightning.classifier import Classifier
+from snippets0.torchtext_classifier_lightning.data_module import DataModule
 
 BATCH_SIZE = 16
 EMB_SIZE = 32

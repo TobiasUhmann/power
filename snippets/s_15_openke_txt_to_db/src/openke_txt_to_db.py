@@ -1,3 +1,16 @@
+"""
+Load the triples from the OpenKE train/valid/test TXTs into an Sqlite DB for
+easier exploration. The Freebase MIDs used in the OpenKE dataset are translated
+to Wikidata labels.
+
+Example rows in output triples DB::
+
+    train    Dominican Republic    /location/country/form_of_government    republic
+    train    Mighty Morphin ...    /tv/tv_program/regular_cast./tv/r...    Wendee Lee
+
+|
+"""
+
 import json
 import sqlite3
 

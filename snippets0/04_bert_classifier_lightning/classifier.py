@@ -10,8 +10,8 @@ from torch.nn import Sequential, CrossEntropyLoss
 from torchnlp.utils import lengths_to_mask
 from transformers import AutoModel
 
-from snippets.bert_classifier_lightning.data_module import DataModule
-from snippets.bert_classifier_lightning.utils import mask_fill
+from snippets0.bert_classifier_lightning.data_module import DataModule
+from snippets0.bert_classifier_lightning.utils import mask_fill
 
 
 class Classifier(pl.LightningModule):

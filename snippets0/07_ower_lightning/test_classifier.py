@@ -4,7 +4,7 @@ from unittest import TestCase
 import torch
 from torch import tensor
 
-from snippets.ower_lightning.classifier import Classifier
+from snippets0.ower_lightning.classifier import Classifier
 
 
 class TestClassifier(TestCase):
