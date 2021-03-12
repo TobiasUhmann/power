@@ -1,7 +1,7 @@
 from torch import Tensor
 from torch.nn import EmbeddingBag, Linear, Module
 
-from snippets.s_05_no_attention.util import log_tensor, get_ent_lbls, get_sent_lbls, get_emb_lbls
+from experiments.ex_06_no_attention_all_data.util import log_tensor, get_ent_lbls, get_sent_lbls, get_emb_lbls
 
 
 class Classifier(Module):

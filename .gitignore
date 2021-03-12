@@ -2,7 +2,7 @@
 data/
 lightning_logs/
 runs/
-/snippets/s_13_more_classes/.vector_cache/
+/experiments/ex_13_more_classes/.vector_cache/
 /snippets0/**/data/
 /snippets0/**/runs/
 
