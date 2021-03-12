@@ -27,7 +27,7 @@ class RynSentencesTxt(BaseFile):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-    def load_ent_to_sents(self) -> Dict[int, Set[str]]:
+    def load(self) -> Dict[int, Set[str]]:
         """
         :return: {entity RID: {entity sentences}}
         """

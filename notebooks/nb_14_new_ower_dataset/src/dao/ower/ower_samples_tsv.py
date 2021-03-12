@@ -20,7 +20,7 @@ The `OWER Samples TSV` contains the input data for training the
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from dao.base_file import BaseFile
 
@@ -30,16 +30,13 @@ class SamplesTsv(BaseFile):
     def __init__(self, name: str, path: Path):
         super().__init__(name, path)
 
-    def write_samples_tsv(self, rows: List) -> None:
-        with open(self._path, 'w', encoding='utf-8') as f:
-            for row in rows:
-                ent = row[0]
-                classes = row[1:-1]
-                sentences = row[-1]
+    def save(self, ent_lbl_classes_sents_list: List[Tuple[int, str, List[int], List[str]]]) -> None:
+        """
+        :param ent_lbl_classes_sents_list: [(ent, label, [has class], [sent]]
+        """
 
-                f.write(str(ent))
-                for class_ in classes:
-                    f.write(f'\t{str(class_)}')
-                for sentence in sentences:
-                    f.write(f'\t{sentence}')
-                f.write('\n')
+        with open(self._path, 'w', encoding='utf-8') as f:
+            for ent, label, classes, sents in ent_lbl_classes_sents_list:
+
+                f.write('{:6}\t{:40}\t{}\t  {}\n'.format(
+                    ent, label, '\t'.join((str(c) for c in classes)), '\t    '.join(sents)))
