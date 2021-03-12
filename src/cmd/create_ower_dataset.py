@@ -1,96 +1,77 @@
 """
-Create an `OWER Dataset` from a `Ryn Dataset`.
-
-Usage
------
-
-
+Create an `OWER Dataset` from a `Ryn Dataset`
 """
 
+import logging
 from argparse import ArgumentParser
 from collections import defaultdict
-from os.path import isfile
 from pathlib import Path
 from typing import List, Tuple, Dict, Set
 
-from dao.classes_tsv import read_classes_tsv
 from dao.ower.ower_dir import OwerDir
-from dao.ower.ower_triples_db import DbTriple
 from dao.ryn.ryn_dir import RynDir
 
 
 def main() -> None:
-    #
-    # Parse args
-    #
+    """ Parse args, log config, check files and run program"""
+
+    ## Parse args
 
     parser = ArgumentParser()
 
-    parser.add_argument('ryn_dataset_dir', metavar='ryn-dataset-dir',
-                        help='Path to (input) Ryn Dataset Directory')
+    parser.add_argument('ryn_dir_path', metavar='ryn-dir',
+                        help='Path to (input) Ryn Directory')
 
-    parser.add_argument('classes_tsv', metavar='classes-tsv',
-                        help='Path to (input) Classes TSV')
+    parser.add_argument('ower_dir_path', metavar='ower-dir',
+                        help='Path to (output) OWER Directory')
 
-    parser.add_argument('num_sentences', metavar='num-sentences', type=int,
-                        help='Number of sentences per entity, entities with less sentences'
-                             ' will be dropped')
+    default_class_count = 100
+    parser.add_argument('--class-count', dest='class_count', type=int, metavar='INT', default=default_class_count,
+                        help='Number of classes (default: {})'.format(default_class_count))
 
-    parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
-                        help='Path to (output) OWER Dataset Directory')
+    default_sent_count = 5
+    parser.add_argument('--sent-count', dest='sent_count', type=int, metavar='INT', default=default_sent_count,
+                        help='Number of sentences per entity. Entities for which not enough sentences'
+                             ' are availabe are dropped. (default: {})'.format(default_sent_count))
 
     args = parser.parse_args()
 
-    ryn_dataset_dir = args.ryn_dataset_dir
-    classes_tsv = args.classes_tsv
-    num_sentences = args.num_sentences
-    ower_dataset_dir = args.ower_dataset_dir
+    ryn_dir_path = args.ryn_dir_path
+    ower_dir_path = args.ower_dir_path
 
-    #
-    # Print applied config
-    #
+    class_count = args.class_count
+    sent_count = args.sent_count
 
-    print('Applied config:')
-    print('    {:20} {}'.format('ryn-dataset-dir', ryn_dataset_dir))
-    print('    {:20} {}'.format('classes-tsv', classes_tsv))
-    print('    {:20} {}'.format('num-sentences', num_sentences))
-    print('    {:20} {}'.format('ower-dataset-dir', ower_dataset_dir))
-    print()
+    ## Log applied config
 
-    #
-    # Assert that (input) Ryn Directory exists
-    #
+    logging.info('Applied config:')
+    logging.info('    {:24} {}'.format('ryn-dir', ryn_dir_path))
+    logging.info('    {:24} {}'.format('ower-dir', ower_dir_path))
+    logging.info('')
+    logging.info('    {:24} {}'.format('--class-count', class_count))
+    logging.info('    {:24} {}'.format('--sent-count', sent_count))
+    logging.info('')
 
-    ryn_dir = RynDir('Ryn Directory', Path(ryn_dataset_dir))
+    ## Assert that (input) Ryn Directory exists
+
+    ryn_dir = RynDir('Ryn Directory', Path(ryn_dir_path))
     ryn_dir.check()
 
-    #
-    # Assert that (input) Classes TSV exists
-    #
+    ## Create (output) OWER Directory if it does not exist yet
 
-    if not isfile(classes_tsv):
-        print('Classes TSV not found')
-        exit()
-
-    #
-    # Create (output) OWER Dataset Directory if it does not exist already
-    #
-    
-    ower_dir = OwerDir('OWER Directory', Path(ower_dataset_dir), 0, 0)
+    ower_dir = OwerDir('OWER Directory', Path(ower_dir_path))
     ower_dir.create()
 
-    #
-    # Run actual program
-    #
+    ## Run actual program
 
-    create_ower_dataset(ryn_dir, classes_tsv, num_sentences, ower_dir)
+    create_ower_dataset(ryn_dir, ower_dir, class_count, sent_count)
 
 
 def create_ower_dataset(
         ryn_dir: RynDir,
-        classes_tsv: str,
-        num_sentences: int,
-        ower_dir: OwerDir
+        ower_dir: OwerDir,
+        class_count: int,
+        sent_count: int
 ) -> None:
     #
     # Load triples from Triples TXTs
