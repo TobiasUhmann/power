@@ -71,3 +71,8 @@ class OwerDir(BaseDir):
         self.train_samples_tsv.check()
         self.valid_samples_tsv.check()
         self.test_samples_tsv.check()
+
+    def create(self) -> None:
+        super().create()
+
+        self.tmp_dir.create()
