@@ -14,6 +14,7 @@
       <excludeFolder url="file://$MODULE_DIR$/experiments/data" />
       <excludeFolder url="file://$MODULE_DIR$/experiments/ex_16_store_ryn_dataset_as_txt/data" />
       <excludeFolder url="file://$MODULE_DIR$/experiments/ex_17_create_anyburl_dataset/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_18_read_anyburl_rules/data" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (thesis-tools)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -24,7 +24,7 @@ class Rule:
 
 
 if __name__ == '__main__':
-    with open('../data/anyburl/rules/FB15-237/alpha-100') as fh:
+    with open('data/anyburl/rules/FB15-237/alpha-100') as fh:
         lines = fh.readlines()
 
     rules = []
@@ -59,11 +59,11 @@ if __name__ == '__main__':
     good_rules = [rule for rule in constant_rules if rule.fires > 100 and rule.confidence > 0.5]
     good_rules.sort(key=lambda rule: rule.confidence, reverse=True)
 
-    for good_rule in good_rules[:20]:
+    for good_rule in good_rules[:10]:
         print(good_rule)
 
-    print(len(rules))
-    print(len(good_rules))
+    print(len(rules), 'rules')
+    print(len(good_rules), 'good rules')
     # print(counter)
     #
     # print(len(constant_rules))
