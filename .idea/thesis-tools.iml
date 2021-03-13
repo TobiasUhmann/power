@@ -9,12 +9,13 @@
       <excludeFolder url="file://$MODULE_DIR$/docs/source/apidoc" />
       <excludeFolder url="file://$MODULE_DIR$/docs/build" />
       <excludeFolder url="file://$MODULE_DIR$/experiments/ex_13_more_classes/data" />
-      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_14_new_ower_dataset/data" />
-      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_15_openke_txt_to_db/data" />
+      <excludeFolder url="file://$MODULE_DIR$/../test/26-new-ower-dataset/data" />
+      <excludeFolder url="file://$MODULE_DIR$/../test/09-openke-txt-to-db/data" />
       <excludeFolder url="file://$MODULE_DIR$/experiments/data" />
-      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_16_store_ryn_dataset_as_txt/data" />
-      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_17_create_anyburl_dataset/data" />
-      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_18_read_anyburl_rules/data" />
+      <excludeFolder url="file://$MODULE_DIR$/../test/10-store-ryn-dataset-as-txt/data" />
+      <excludeFolder url="file://$MODULE_DIR$/../test/11-create-anyburl-dataset/data" />
+      <excludeFolder url="file://$MODULE_DIR$/../test/12-read-anyburl-rules/data" />
+      <excludeFolder url="file://$MODULE_DIR$/.vector_cache" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (thesis-tools)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
