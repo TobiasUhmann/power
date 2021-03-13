@@ -143,13 +143,10 @@ def main():
 
         ## Log
 
-        std_train_loss = train_loss / len(train_loader)
-        std_valid_loss = valid_loss / len(valid_loader)
+        train_loss /= len(train_loader)
+        valid_loss /= len(valid_loader)
 
-        # logging.info('Epoch {}: train loss = {:.2e}, valid loss = {:.2e}'.format(
-        #     epoch, std_train_loss, std_valid_loss))
-
-        writer.add_scalars('loss', {'train': std_train_loss, 'valid': std_valid_loss}, epoch)
+        writer.add_scalars('loss', {'train': train_loss, 'valid': valid_loss}, epoch)
 
         # tps = train precisions, vps = valid precisions, etc.
         tps = precision_score(train_gt_classes_stack, train_pred_classes_stack, average=None)
@@ -159,16 +156,22 @@ def main():
         tfs = f1_score(train_gt_classes_stack, train_pred_classes_stack, average=None)
         vfs = f1_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None)
 
-        mean_train_precision = tps.mean()
-        mean_valid_precision = vps.mean()
-        mean_train_recall = trs.mean()
-        mean_valid_recall = vrs.mean()
-        mean_train_f1 = tfs.mean()
-        mean_valid_f1 = vfs.mean()
+        for i, (tp, vp, tr, vr, tf, vf) in enumerate(zip(tps, vps, trs, vrs, tfs, vfs)):
+            writer.add_scalars('precision', {f'train {i}': tp, f'valid {i}': vp}, epoch)
+            writer.add_scalars('recall', {f'train {i}': tr, f'valid {i}': vr}, epoch)
+            writer.add_scalars('f1', {f'train {i}': tf, f'valid {i}': vf}, epoch)
 
-        writer.add_scalars('precision', {f'train': mean_train_precision, f'valid': mean_valid_precision}, epoch)
-        writer.add_scalars('recall', {f'train': mean_train_recall, f'valid': mean_valid_recall}, epoch)
-        writer.add_scalars('f1', {f'train': mean_train_f1, f'valid': mean_valid_f1}, epoch)
+        # tps = train precisions, vps = valid precisions, etc.
+        tp = precision_score(train_gt_classes_stack, train_pred_classes_stack, average=None).mean()
+        vp = precision_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None).mean()
+        tr = recall_score(train_gt_classes_stack, train_pred_classes_stack, average=None).mean()
+        vr = recall_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None).mean()
+        tf = f1_score(train_gt_classes_stack, train_pred_classes_stack, average=None).mean()
+        vf = f1_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None).mean()
+
+        writer.add_scalars('precision', {f'train': tp, f'valid': vp}, epoch)
+        writer.add_scalars('recall', {f'train': tr, f'valid': vr}, epoch)
+        writer.add_scalars('f1', {f'train': tf, f'valid': vf}, epoch)
 
     ## Save classifier
 
