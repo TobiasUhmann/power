@@ -2,13 +2,19 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/experiments/nb_11_attention_metrics" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/notebooks/nb_11_attention_metrics" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/data" />
       <excludeFolder url="file://$MODULE_DIR$/docs/source/apidoc" />
       <excludeFolder url="file://$MODULE_DIR$/docs/build" />
-      <excludeFolder url="file://$MODULE_DIR$/notebooks/nb_13_more_classes/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_13_more_classes/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_14_new_ower_dataset/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_15_openke_txt_to_db/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_16_store_ryn_dataset_as_txt/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_17_create_anyburl_dataset/data" />
+      <excludeFolder url="file://$MODULE_DIR$/experiments/ex_18_read_anyburl_rules/data" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (thesis-tools)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

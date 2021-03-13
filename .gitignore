@@ -2,9 +2,9 @@
 data/
 lightning_logs/
 runs/
-/notebooks/nb_13_more_classes/.vector_cache/
-/snippets/**/data/
-/snippets/**/runs/
+/experiments/ex_13_more_classes/.vector_cache/
+/snippets0/**/data/
+/snippets0/**/runs/
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm,venv
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,pycharm,venv
