@@ -21,51 +21,13 @@ from ower.classifier import Classifier
 
 
 def main():
-    #
-    # Parse args
-    #
+    logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
 
-    parser = ArgumentParser()
+    ## Parse args
 
-    parser.add_argument('ower_dataset_dir', metavar='ower-dataset-dir',
-                        help='Path to (input) OWER Dataset Directory')
+    args = parse_args()
 
-    parser.add_argument('class_count', metavar='class-count', type=int,
-                        help='Number of classes distinguished by the classifier')
-
-    parser.add_argument('sent_count', metavar='sent-count', type=int,
-                        help='Number of sentences per entity')
-
-    device_choices = ['cpu', 'cuda']
-    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    parser.add_argument('--device', metavar='STR', choices=device_choices, default=default_device,
-                        help='Where to perform tensor operations, one of {} (default: {})'.format(
-                            device_choices, default_device))
-
-    default_batch_size = 1024
-    parser.add_argument('--batch-size', dest='batch_size', type=int, metavar='INT', default=default_batch_size,
-                        help='Batch size (default: {})'.format(default_batch_size))
-
-    default_emb_size = 256
-    parser.add_argument('--emb-size', dest='emb_size', type=int, metavar='INT', default=default_emb_size,
-                        help='Embedding size for sentence and class embeddings (default: {})'.format(default_emb_size))
-
-    default_epoch_count = 50
-    parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT', default=default_epoch_count,
-                        help='Number of training epochs (default: {})'.format(default_epoch_count))
-
-    default_learning_rate = 0.1
-    parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
-                        help='Learning rate (default: {})'.format(default_learning_rate))
-
-    default_sent_len = 64
-    parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
-                        help='Sentence length short sentences are padded and long sentences cropped to'
-                             ' (default: {})'.format(default_sent_len))
-
-    args = parser.parse_args()
-
-    ower_dataset_dir = args.ower_dataset_dir
+    ower_dir_path = args.ower_dir
     class_count = args.class_count
     sent_count = args.sent_count
 
@@ -76,51 +38,19 @@ def main():
     lr = args.lr
     sent_len = args.sent_len
 
-    #
-    # Print applied config
-    #
+    ## Check that (input) OWER Directory exists
 
-    logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('ower-dataset-dir', ower_dataset_dir))
-    logging.info('    {:24} {}'.format('class-count', class_count))
-    logging.info('    {:24} {}'.format('sent-count', sent_count))
-    logging.info('')
-    logging.info('    {:24} {}'.format('--batch-size', batch_size))
-    logging.info('    {:24} {}'.format('--device', device))
-    logging.info('    {:24} {}'.format('--emb-size', emb_size))
-    logging.info('    {:24} {}'.format('--epoch-count', epoch_count))
-    logging.info('    {:24} {}'.format('--lr', lr))
-    logging.info('    {:24} {}'.format('--sent-len', sent_len))
-    logging.info('')
-
-    #
-    # Check that OWER Directory exists
-    #
-
-    ower_dir = OwerDir('OWER Directory', Path(args.ower_dataset_dir), class_count, sent_count)
+    ower_dir = OwerDir(Path(ower_dir_path))
     ower_dir.check()
 
-    #
-    # Run actual program
-    #
-
-    train_classifier(ower_dir, class_count, sent_count, batch_size, device, emb_size, epoch_count, lr, sent_len)
-
-
-def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch_size, device: str, emb_size: int,
-                     epoch_count: int, lr: float, sent_len) -> None:
-    #
-    # Load datasets
-    #
+    ## Load datasets
 
     train_set: List[Sample]
     valid_set: List[Sample]
 
-    train_set, valid_set, _, vocab = ower_dir.read_datasets(vectors='glove.twitter.27B.200d')
+    train_set, valid_set, _, vocab = ower_dir.read_datasets(class_count, sent_count, vectors='glove.twitter.27B.200d')
 
-    #
-    # Create dataloaders
-    #
+    ## Create dataloaders
 
     def generate_batch(batch: List[Sample]) -> Tuple[Tensor, Tensor, Tensor]:
 
@@ -140,9 +70,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
     train_loader = DataLoader(train_set, batch_size=batch_size, collate_fn=generate_batch, shuffle=True)
     valid_loader = DataLoader(valid_set, batch_size=batch_size, collate_fn=generate_batch)
 
-    #
-    # Calc class weights
-    #
+    ## Calc class weights
 
     _, train_classes_stack, _ = zip(*train_set)
     train_classes_stack = np.array(train_classes_stack)
@@ -150,22 +78,19 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
     class_weights = tensor(1 / train_freqs).to(device)
 
-    #
-    # Create classifier
-    #
+    ## Create classifier
 
-    # classifier = Classifier.from_random(len(vocab), emb_size, class_count).to(device)
     classifier = Classifier.from_pre_trained(vocab, class_count).to(device)
     optimizer = Adam(classifier.parameters(), lr=lr)
     criterion = BCEWithLogitsLoss(pos_weight=class_weights)
 
     writer = SummaryWriter()
 
-    #
-    # Train and validate
-    #
+    ## Train and validate
 
     for epoch in range(epoch_count):
+
+        ## Train
 
         train_loss = 0.0
 
@@ -174,7 +99,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
         train_pred_classes_stack: List[List[int]] = []
 
         for batch in tqdm(train_loader, desc=f'Epoch {epoch}'):
-            sents_batch, classes_batch = batch
+            _, sents_batch, classes_batch = batch
             sents_batch = sents_batch.to(device)
             classes_batch = classes_batch.to(device)
 
@@ -192,6 +117,8 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
             train_loss += loss.item()
 
+        ## Validate
+
         valid_loss = 0.0
 
         # Valid gt/pred classes across all batches
@@ -200,7 +127,7 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
         with torch.no_grad():
             for batch in tqdm(valid_loader, desc=f'Epoch {epoch}'):
-                sents_batch, classes_batch = batch
+                _, sents_batch, classes_batch = batch
                 sents_batch = sents_batch.to(device)
                 classes_batch = classes_batch.to(device)
 
@@ -213,6 +140,8 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
 
                 valid_gt_classes_stack += classes_batch.cpu().numpy().tolist()
                 valid_pred_classes_stack += pred_classes_batch.cpu().numpy().tolist()
+
+        ## Log
 
         std_train_loss = train_loss / len(train_loader)
         std_valid_loss = valid_loss / len(valid_loader)
@@ -241,16 +170,12 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
         writer.add_scalars('recall', {f'train': mean_train_recall, f'valid': mean_valid_recall}, epoch)
         writer.add_scalars('f1', {f'train': mean_train_f1, f'valid': mean_valid_f1}, epoch)
 
-    #
-    # Save classifier
-    #
+    ## Save classifier
 
     with open('data/classifier.pkl', 'wb') as f:
         pickle.dump(classifier, f)
 
-    #
-    # Test classifier
-    #
+    ## Test classifier
 
     class_labels = ['is_married', 'is_male', 'is_american', 'is_actor']
 
@@ -291,6 +216,62 @@ def train_classifier(ower_dir: OwerDir, class_count: int, sent_count: int, batch
         logging.info('{}: {}'.format(class_labels[i], pred_class))
 
 
+def parse_args():
+    parser = ArgumentParser()
+
+    parser.add_argument('ower_dir', metavar='ower-dir',
+                        help='Path to (input) OWER Directory')
+
+    parser.add_argument('class_count', metavar='class-count', type=int,
+                        help='Number of classes distinguished by the classifier')
+
+    parser.add_argument('sent_count', metavar='sent-count', type=int,
+                        help='Number of sentences per entity')
+
+    device_choices = ['cpu', 'cuda']
+    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    parser.add_argument('--device', metavar='STR', choices=device_choices, default=default_device,
+                        help='Where to perform tensor operations, one of {} (default: {})'.format(
+                            device_choices, default_device))
+
+    default_batch_size = 1024
+    parser.add_argument('--batch-size', dest='batch_size', type=int, metavar='INT', default=default_batch_size,
+                        help='Batch size (default: {})'.format(default_batch_size))
+
+    default_emb_size = 256
+    parser.add_argument('--emb-size', dest='emb_size', type=int, metavar='INT', default=default_emb_size,
+                        help='Embedding size for sentence and class embeddings (default: {})'.format(default_emb_size))
+
+    default_epoch_count = 50
+    parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT', default=default_epoch_count,
+                        help='Number of training epochs (default: {})'.format(default_epoch_count))
+
+    default_learning_rate = 0.1
+    parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
+                        help='Learning rate (default: {})'.format(default_learning_rate))
+
+    default_sent_len = 64
+    parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
+                        help='Sentence length short sentences are padded and long sentences cropped to'
+                             ' (default: {})'.format(default_sent_len))
+
+    args = parser.parse_args()
+
+    ## Log applied config
+
+    logging.info('Applied config:')
+    logging.info('    {:24} {}'.format('ower-dir', args.ower_dir))
+    logging.info('    {:24} {}'.format('class-count', args.class_count))
+    logging.info('    {:24} {}'.format('sent-count', args.sent_count))
+    logging.info('    {:24} {}'.format('--batch-size', args.batch_size))
+    logging.info('    {:24} {}'.format('--device', args.device))
+    logging.info('    {:24} {}'.format('--emb-size', args.emb_size))
+    logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
+    logging.info('    {:24} {}'.format('--lr', args.lr))
+    logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
+
+    return args
+
+
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
     main()

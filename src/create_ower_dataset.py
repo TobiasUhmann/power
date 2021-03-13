@@ -21,7 +21,7 @@ def main():
     class_count = args.class_count
     sent_count = args.sent_count
 
-    ## Assert that (input) Ryn Directory exists
+    ## Check that (input) Ryn Directory exists
 
     ryn_dir = RynDir(Path(ryn_dir_path))
     ryn_dir.check()
