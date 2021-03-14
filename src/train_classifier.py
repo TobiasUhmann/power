@@ -16,8 +16,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchtext.vocab import Vocab
 from tqdm import tqdm
 
+import baseline.classifier
+import ower.classifier
 from dao.ower.ower_dir import OwerDir, Sample
-from ower.classifier import Classifier
 
 
 def main():
@@ -36,6 +37,7 @@ def main():
     emb_size = args.emb_size
     epoch_count = args.epoch_count
     lr = args.lr
+    model = args.model
     sent_len = args.sent_len
 
     ## Check that (input) OWER Directory exists
@@ -80,7 +82,13 @@ def main():
 
     ## Create classifier
 
-    classifier = Classifier.from_pre_trained(vocab, class_count).to(device)
+    if model == 'base':
+        classifier = baseline.classifier.Classifier(len(vocab), 200, class_count).to(device)
+    elif model == 'ower':
+        classifier = ower.classifier.Classifier.from_pre_trained(vocab, class_count).to(device)
+    else:
+        raise
+
     optimizer = Adam(classifier.parameters(), lr=lr)
     criterion = BCEWithLogitsLoss(pos_weight=class_weights)
 
@@ -182,7 +190,7 @@ def main():
 
     class_labels = ['is_married', 'is_male', 'is_american', 'is_actor']
 
-    def predict(texts: List[str], classifier: Classifier, vocab: Vocab):
+    def predict(texts: List[str], classifier, vocab: Vocab):
         text_1, text_2, text_3 = texts
         words_1 = text_1.split()
         words_2 = text_2.split()
@@ -233,7 +241,7 @@ def parse_args():
 
     device_choices = ['cpu', 'cuda']
     default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    parser.add_argument('--device', metavar='STR', choices=device_choices, default=default_device,
+    parser.add_argument('--device', choices=device_choices, default=default_device,
                         help='Where to perform tensor operations, one of {} (default: {})'.format(
                             device_choices, default_device))
 
@@ -253,6 +261,10 @@ def parse_args():
     parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
                         help='Learning rate (default: {})'.format(default_learning_rate))
 
+    model_choices = ['base', 'ower']
+    default_model = 'ower'
+    parser.add_argument('--model', dest='model', choices=model_choices, default=default_model)
+
     default_sent_len = 64
     parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
                         help='Sentence length short sentences are padded and long sentences cropped to'
@@ -271,6 +283,7 @@ def parse_args():
     logging.info('    {:24} {}'.format('--emb-size', args.emb_size))
     logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
     logging.info('    {:24} {}'.format('--lr', args.lr))
+    logging.info('    {:24} {}'.format('--model', args.model))
     logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
 
     return args
