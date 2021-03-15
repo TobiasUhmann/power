@@ -24,10 +24,74 @@ from dao.ower.ower_dir import OwerDir, Sample
 def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
 
-    ## Parse args
-
     args = parse_args()
 
+    train_classifier(args)
+
+
+def parse_args():
+    parser = ArgumentParser()
+
+    parser.add_argument('ower_dir', metavar='ower-dir',
+                        help='Path to (input) OWER Directory')
+
+    parser.add_argument('class_count', metavar='class-count', type=int,
+                        help='Number of classes distinguished by the classifier')
+
+    parser.add_argument('sent_count', metavar='sent-count', type=int,
+                        help='Number of sentences per entity')
+
+    device_choices = ['cpu', 'cuda']
+    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    parser.add_argument('--device', choices=device_choices, default=default_device,
+                        help='Where to perform tensor operations, one of {} (default: {})'.format(
+                            device_choices, default_device))
+
+    default_batch_size = 1024
+    parser.add_argument('--batch-size', dest='batch_size', type=int, metavar='INT', default=default_batch_size,
+                        help='Batch size (default: {})'.format(default_batch_size))
+
+    default_emb_size = 256
+    parser.add_argument('--emb-size', dest='emb_size', type=int, metavar='INT', default=default_emb_size,
+                        help='Embedding size for sentence and class embeddings (default: {})'.format(default_emb_size))
+
+    default_epoch_count = 50
+    parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT', default=default_epoch_count,
+                        help='Number of training epochs (default: {})'.format(default_epoch_count))
+
+    default_learning_rate = 0.1
+    parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
+                        help='Learning rate (default: {})'.format(default_learning_rate))
+
+    model_choices = ['base', 'ower']
+    default_model = 'ower'
+    parser.add_argument('--model', dest='model', choices=model_choices, default=default_model)
+
+    default_sent_len = 64
+    parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
+                        help='Sentence length short sentences are padded and long sentences cropped to'
+                             ' (default: {})'.format(default_sent_len))
+
+    args = parser.parse_args()
+
+    ## Log applied config
+
+    logging.info('Applied config:')
+    logging.info('    {:24} {}'.format('ower-dir', args.ower_dir))
+    logging.info('    {:24} {}'.format('class-count', args.class_count))
+    logging.info('    {:24} {}'.format('sent-count', args.sent_count))
+    logging.info('    {:24} {}'.format('--batch-size', args.batch_size))
+    logging.info('    {:24} {}'.format('--device', args.device))
+    logging.info('    {:24} {}'.format('--emb-size', args.emb_size))
+    logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
+    logging.info('    {:24} {}'.format('--lr', args.lr))
+    logging.info('    {:24} {}'.format('--model', args.model))
+    logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
+
+    return args
+
+
+def train_classifier(args):
     ower_dir_path = args.ower_dir
     class_count = args.class_count
     sent_count = args.sent_count
@@ -83,7 +147,7 @@ def main():
     ## Create classifier
 
     if model == 'base':
-        classifier = baseline.classifier.Classifier(len(vocab), 200, class_count).to(device)
+        classifier = baseline.classifier.Classifier.from_pre_trained(vocab, class_count).to(device)
     elif model == 'ower':
         classifier = ower.classifier.Classifier.from_pre_trained(vocab, class_count).to(device)
     else:
@@ -149,12 +213,14 @@ def main():
                 valid_gt_classes_stack += classes_batch.cpu().numpy().tolist()
                 valid_pred_classes_stack += pred_classes_batch.cpu().numpy().tolist()
 
-        ## Log
+        ## Log loss
 
         train_loss /= len(train_loader)
         valid_loss /= len(valid_loader)
 
         writer.add_scalars('loss', {'train': train_loss, 'valid': valid_loss}, epoch)
+
+        ## Log metrics for most/least common classes
 
         # tps = train precisions, vps = valid precisions, etc.
         tps = precision_score(train_gt_classes_stack, train_pred_classes_stack, average=None)
@@ -164,129 +230,36 @@ def main():
         tfs = f1_score(train_gt_classes_stack, train_pred_classes_stack, average=None)
         vfs = f1_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None)
 
-        for i, (tp, vp, tr, vr, tf, vf) in enumerate(zip(tps, vps, trs, vrs, tfs, vfs)):
-            writer.add_scalars('precision', {f'train {i}': tp, f'valid {i}': vp}, epoch)
-            writer.add_scalars('recall', {f'train {i}': tr, f'valid {i}': vr}, epoch)
-            writer.add_scalars('f1', {f'train {i}': tf, f'valid {i}': vf}, epoch)
+        # Log metrics for each class c
+        for c, (tp, vp, tr, vr, tf, vf), in enumerate(zip(tps, vps, trs, vrs, tfs, vfs)):
 
-        # tps = train precisions, vps = valid precisions, etc.
-        tp = precision_score(train_gt_classes_stack, train_pred_classes_stack, average=None).mean()
-        vp = precision_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None).mean()
-        tr = recall_score(train_gt_classes_stack, train_pred_classes_stack, average=None).mean()
-        vr = recall_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None).mean()
-        tf = f1_score(train_gt_classes_stack, train_pred_classes_stack, average=None).mean()
-        vf = f1_score(valid_gt_classes_stack, valid_pred_classes_stack, average=None).mean()
+            # many classes -> log only first and last ones
+            if (class_count > 2*3) and (3 <= c <= len(tps)-3 - 1):
+                continue
 
-        writer.add_scalars('precision', {f'train': tp, f'valid': vp}, epoch)
-        writer.add_scalars('recall', {f'train': tr, f'valid': vr}, epoch)
-        writer.add_scalars('f1', {f'train': tf, f'valid': vf}, epoch)
+            writer.add_scalars('precision', {f'train_{c}': tp}, epoch)
+            writer.add_scalars('precision', {f'valid_{c}': vp}, epoch)
+            writer.add_scalars('recall', {f'train_{c}': tr}, epoch)
+            writer.add_scalars('recall', {f'valid_{c}': vr}, epoch)
+            writer.add_scalars('f1', {f'train_{c}': tf}, epoch)
+            writer.add_scalars('f1', {f'valid_{c}': vf}, epoch)
 
-    ## Save classifier
+        ## Log macro metrics over all classes
 
-    with open('data/classifier.pkl', 'wb') as f:
-        pickle.dump(classifier, f)
+        # mtp = mean train precision, mvp = mean valid precision, etc.
+        mtp = tps.mean()
+        mvp = vps.mean()
+        mtr = trs.mean()
+        mvr = vrs.mean()
+        mtf = tfs.mean()
+        mvf = vfs.mean()
 
-    ## Test classifier
-
-    class_labels = ['is_married', 'is_male', 'is_american', 'is_actor']
-
-    def predict(texts: List[str], classifier, vocab: Vocab):
-        text_1, text_2, text_3 = texts
-        words_1 = text_1.split()
-        words_2 = text_2.split()
-        words_3 = text_3.split()
-
-        tokens_1 = [vocab[word] for word in words_1]
-        tokens_2 = [vocab[word] for word in words_2]
-        tokens_3 = [vocab[word] for word in words_3]
-
-        with torch.no_grad():
-            sents = torch.tensor([tokens_1 + [0] * (sent_len - len(tokens_1)),
-                                  tokens_2 + [0] * (sent_len - len(tokens_2)),
-                                  tokens_3 + [0] * (sent_len - len(tokens_3))
-                                  ]).unsqueeze(0).to(device)
-
-            class_logits: Tensor = classifier(sents)
-            pred_classes = class_logits > 0.5
-
-            logging.info(f'class_logits = {class_logits}')
-
-            return pred_classes
-
-    ex_text_str_1 = "Barack Obama is married"
-    ex_text_str_2 = "Barack Obama is American"
-    ex_text_str_3 = "Barack Obama is an actor"
-
-    ex_text_strs = [ex_text_str_1, ex_text_str_2, ex_text_str_3]
-
-    pred_classes = predict(ex_text_strs, classifier, vocab)
-    # pred_labels = [class_labels[pred_class] for pred_class in pred_classes if pred_class == 1]
-
-    logging.info('Barack Obama')
-    for i, pred_class in enumerate(pred_classes[0]):
-        logging.info('{}: {}'.format(class_labels[i], pred_class))
-
-
-def parse_args():
-    parser = ArgumentParser()
-
-    parser.add_argument('ower_dir', metavar='ower-dir',
-                        help='Path to (input) OWER Directory')
-
-    parser.add_argument('class_count', metavar='class-count', type=int,
-                        help='Number of classes distinguished by the classifier')
-
-    parser.add_argument('sent_count', metavar='sent-count', type=int,
-                        help='Number of sentences per entity')
-
-    device_choices = ['cpu', 'cuda']
-    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    parser.add_argument('--device', choices=device_choices, default=default_device,
-                        help='Where to perform tensor operations, one of {} (default: {})'.format(
-                            device_choices, default_device))
-
-    default_batch_size = 1024
-    parser.add_argument('--batch-size', dest='batch_size', type=int, metavar='INT', default=default_batch_size,
-                        help='Batch size (default: {})'.format(default_batch_size))
-
-    default_emb_size = 256
-    parser.add_argument('--emb-size', dest='emb_size', type=int, metavar='INT', default=default_emb_size,
-                        help='Embedding size for sentence and class embeddings (default: {})'.format(default_emb_size))
-
-    default_epoch_count = 50
-    parser.add_argument('--epoch-count', dest='epoch_count', type=int, metavar='INT', default=default_epoch_count,
-                        help='Number of training epochs (default: {})'.format(default_epoch_count))
-
-    default_learning_rate = 0.1
-    parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
-                        help='Learning rate (default: {})'.format(default_learning_rate))
-
-    model_choices = ['base', 'ower']
-    default_model = 'ower'
-    parser.add_argument('--model', dest='model', choices=model_choices, default=default_model)
-
-    default_sent_len = 64
-    parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
-                        help='Sentence length short sentences are padded and long sentences cropped to'
-                             ' (default: {})'.format(default_sent_len))
-
-    args = parser.parse_args()
-
-    ## Log applied config
-
-    logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('ower-dir', args.ower_dir))
-    logging.info('    {:24} {}'.format('class-count', args.class_count))
-    logging.info('    {:24} {}'.format('sent-count', args.sent_count))
-    logging.info('    {:24} {}'.format('--batch-size', args.batch_size))
-    logging.info('    {:24} {}'.format('--device', args.device))
-    logging.info('    {:24} {}'.format('--emb-size', args.emb_size))
-    logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
-    logging.info('    {:24} {}'.format('--lr', args.lr))
-    logging.info('    {:24} {}'.format('--model', args.model))
-    logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
-
-    return args
+        writer.add_scalars('precision', {'train': mtp}, epoch)
+        writer.add_scalars('precision', {'valid': mvp}, epoch)
+        writer.add_scalars('recall', {'train': mtr}, epoch)
+        writer.add_scalars('recall', {'valid': mvr}, epoch)
+        writer.add_scalars('f1', {'train': mtf}, epoch)
+        writer.add_scalars('f1', {'valid': mvf}, epoch)
 
 
 if __name__ == '__main__':
