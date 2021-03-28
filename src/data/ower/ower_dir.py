@@ -87,8 +87,8 @@ class OwerDir(BaseDir):
         self.valid_samples_tsv.check()
         self.test_samples_tsv.check()
 
-    def create(self) -> None:
-        super().create()
+    def create(self, overwrite=False) -> None:
+        super().create(overwrite=overwrite)
 
         self.tmp_dir.create()
 

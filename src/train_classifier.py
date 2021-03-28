@@ -1,5 +1,6 @@
 import logging
-import pickle
+import os
+import random
 from argparse import ArgumentParser
 from pathlib import Path
 from random import shuffle
@@ -13,7 +14,6 @@ from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from torchtext.vocab import Vocab
 from tqdm import tqdm
 
 import baseline.classifier
@@ -25,6 +25,9 @@ def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
 
     args = parse_args()
+
+    if args.random_seed:
+        random.seed(args.random_seed)
 
     train_classifier(args)
 
@@ -67,6 +70,9 @@ def parse_args():
     default_model = 'ower'
     parser.add_argument('--model', dest='model', choices=model_choices, default=default_model)
 
+    parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
+                        help='Use together with PYTHONHASHSEED for reproducibility')
+
     default_sent_len = 64
     parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
                         help='Sentence length short sentences are padded and long sentences cropped to'
@@ -87,6 +93,9 @@ def parse_args():
     logging.info('    {:24} {}'.format('--lr', args.lr))
     logging.info('    {:24} {}'.format('--model', args.model))
     logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
+
+    logging.info('Environment variables:')
+    logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
 
     return args
 

@@ -38,8 +38,8 @@ class RynDir(BaseDir):
         self.split_dir.check()
         self.text_dir.check()
 
-    def create(self) -> None:
-        super().create()
+    def create(self, overwrite=False) -> None:
+        super().create(overwrite=overwrite)
 
         self.split_dir.create()
         self.text_dir.create()

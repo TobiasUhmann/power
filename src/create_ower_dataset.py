@@ -1,4 +1,6 @@
 import logging
+import os
+import random
 from argparse import ArgumentParser
 from pathlib import Path
 from random import sample
@@ -16,25 +18,32 @@ def main():
 
     args = parse_args()
 
+    if args.random_seed:
+        random.seed(args.random_seed)
+
     ryn_dir_path = args.ryn_dir
     ower_dir_path = args.ower_dir
 
     class_count = args.class_count
     sent_count = args.sent_count
 
-    ## Check that (input) Ryn Directory exists
+    ## Check (input) Ryn Directory
+
+    logging.info('Check (input) Ryn Directory ...')
 
     ryn_dir = RynDir(Path(ryn_dir_path))
     ryn_dir.check()
 
-    ## Create (output) OWER Directory if it does not exist yet
+    ## Create (output) OWER Directory
+
+    logging.info('Create (output) OWER Directory ...')
 
     ower_dir = OwerDir(Path(ower_dir_path))
     ower_dir.create()
 
     ## Load Ryn Triples TXTs
 
-    logging.info('Load Ryn Triples TXTs...')
+    logging.info('Load Ryn Triples TXTs ...')
 
     split_dir = ryn_dir.split_dir
     cw_train_triples: List[Tuple[int, int, int]] = split_dir.cw_train_triples_txt.load()
@@ -48,7 +57,7 @@ def main():
 
     ## Save triples to OWER Triples DBs
 
-    logging.info('Save triples to OWER Triples DBs...')
+    logging.info('Save triples to OWER Triples DBs ...')
 
     train_triples_db = ower_dir.tmp_dir.train_triples_db
     train_triples_db.create_triples_table()
@@ -64,10 +73,14 @@ def main():
 
     ## Copy Ryn Label TXTs to OWER Dir
 
+    logging.info('Copy Ryn Label TXTs to OWER Dir ...')
+
     copyfile(ryn_dir.split_dir.ent_labels_txt.path, ower_dir.ent_labels_txt.path)
     copyfile(ryn_dir.split_dir.rel_labels_txt.path, ower_dir.rel_labels_txt.path)
 
     ## Query most common classes and write them to Classes TSV
+
+    logging.info('Create Classes TSV ...')
 
     rel_tail_supps = ower_dir.tmp_dir.train_triples_db.select_top_rel_tails(class_count)
 
@@ -82,7 +95,7 @@ def main():
 
     ## Query classes' entities
 
-    logging.info("Query classes' entities...")
+    logging.info("Query classes' entities ...")
 
     train_class_ents = []
     valid_class_ents = []
@@ -102,7 +115,7 @@ def main():
 
     ## Create OWER Sample TSVs
 
-    logging.info('Create OWER Sample TSVs...')
+    logging.info('Create OWER Sample TSVs ...')
 
     train_ent_to_sents: Dict[int, Set[str]] = ryn_dir.text_dir.cw_train_sents_txt.load()
     valid_ent_to_sents: Dict[int, Set[str]] = ryn_dir.text_dir.ow_valid_sents_txt.load()
@@ -141,7 +154,7 @@ def main():
     ower_dir.valid_samples_tsv.save(valid_samples)
     ower_dir.test_samples_tsv.save(test_samples)
 
-    logging.info('Finished')
+    logging.info('Finished successfully')
 
 
 def parse_args():
@@ -157,6 +170,12 @@ def parse_args():
     parser.add_argument('--class-count', dest='class_count', type=int, metavar='INT', default=default_class_count,
                         help='Number of classes (default: {})'.format(default_class_count))
 
+    parser.add_argument('--overwrite', dest='overwrite', action='store_true',
+                        help='Overwrite output files if they already exist')
+
+    parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
+                        help='Use together with PYTHONHASHSEED for reproducibility')
+
     default_sent_count = 5
     parser.add_argument('--sent-count', dest='sent_count', type=int, metavar='INT', default=default_sent_count,
                         help='Number of sentences per entity. Entities for which not enough sentences'
@@ -170,7 +189,11 @@ def parse_args():
     logging.info('    {:24} {}'.format('ryn-dir', args.ryn_dir))
     logging.info('    {:24} {}'.format('ower-dir', args.ower_dir))
     logging.info('    {:24} {}'.format('--class-count', args.class_count))
+    logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
     logging.info('    {:24} {}'.format('--sent-count', args.sent_count))
+
+    logging.info('Environment variables:')
+    logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
 
     return args
 
