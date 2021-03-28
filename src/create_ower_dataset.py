@@ -5,8 +5,8 @@ from random import sample
 from shutil import copyfile
 from typing import Dict, Set, List, Tuple
 
-from dao.ower.ower_dir import OwerDir
-from dao.ryn.ryn_dir import RynDir
+from data.ower.ower_dir import OwerDir
+from data.ryn.ryn_dir import RynDir
 
 
 def main():

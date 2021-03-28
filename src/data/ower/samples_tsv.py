@@ -22,7 +22,7 @@ The `OWER Samples TSV` contains the input data for training the
 from pathlib import Path
 from typing import List, Tuple
 
-from dao.base_file import BaseFile
+from data.base_file import BaseFile
 
 
 class SamplesTsv(BaseFile):

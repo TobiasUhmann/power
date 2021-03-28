@@ -2,9 +2,9 @@ import logging
 from argparse import ArgumentParser
 from pathlib import Path
 
-from dao.anyburl.anyburl_dir import AnyburlDir
-from dao.anyburl.facts_tsv import Fact
-from dao.ryn.split.split_dir import SplitDir
+from data.anyburl.anyburl_dir import AnyburlDir
+from data.anyburl.facts_tsv import Fact
+from data.ryn.split.split_dir import SplitDir
 
 
 def main():

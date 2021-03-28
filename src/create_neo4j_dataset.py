@@ -2,11 +2,11 @@ import logging
 from argparse import ArgumentParser
 from pathlib import Path
 
-from dao.neo4j.EntitiesTsv import Entity
-from dao.neo4j.FactsTsv import Fact
-from dao.neo4j.RelationsTsv import Relation
-from dao.neo4j.neo4j_dir import Neo4jDir
-from dao.ryn.split.split_dir import SplitDir
+from data.neo4j.entities_tsv import Entity
+from data.neo4j.facts_tsv import Fact
+from data.neo4j.relations_tsv import Relation
+from data.neo4j.neo4j_dir import Neo4jDir
+from data.ryn.split.split_dir import SplitDir
 
 
 def main():

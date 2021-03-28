@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
-from dao.base_file import BaseFile
+from data.base_file import BaseFile
 
 
 @dataclass

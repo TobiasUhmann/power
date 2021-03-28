@@ -18,8 +18,8 @@ in the `Ryn Split Directory`, but in a form that can be read by AnyBURL.
 
 from pathlib import Path
 
-from dao.anyburl.facts_tsv import FactsTsv
-from dao.base_dir import BaseDir
+from data.anyburl.facts_tsv import FactsTsv
+from data.base_dir import BaseDir
 
 
 class AnyburlDir(BaseDir):

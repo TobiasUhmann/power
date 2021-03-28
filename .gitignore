@@ -1,6 +1,6 @@
-.vector_cache/
-data/
-runs/
+/.vector_cache/
+/data/
+/runs/
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm,venv
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,pycharm,venv

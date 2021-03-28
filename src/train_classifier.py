@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 import baseline.classifier
 import ower.classifier
-from dao.ower.ower_dir import OwerDir, Sample
+from data.ower.ower_dir import OwerDir, Sample
 
 
 def main():
