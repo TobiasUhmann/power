@@ -1,6 +1,7 @@
 import logging
 from argparse import ArgumentParser
 from pathlib import Path
+from random import sample
 from shutil import copyfile
 from typing import Dict, Set, List, Tuple
 
@@ -126,7 +127,9 @@ def main():
                 logging.warning(f"Entity '{ent_to_label[ent]}' ({ent}) has less than {sent_count} sentences. Skipping")
                 continue
 
-            ent_lbl_classes_sents_list.append((ent, ent_to_label[ent], ent_classes, sents))
+            some_sents = sample(sents, sent_count)
+
+            ent_lbl_classes_sents_list.append((ent, ent_to_label[ent], ent_classes, some_sents))
 
         return ent_lbl_classes_sents_list
 
