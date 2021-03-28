@@ -89,6 +89,8 @@ def create_neo4j_dataset(args):
                      for head, rel, tail in ow_test_triples]
     neo4j_dir.ow_test_facts_tsv.save(ow_test_facts)
 
+    logging.info('Finished')
+
 
 if __name__ == '__main__':
     main()

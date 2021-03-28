@@ -90,6 +90,8 @@ def create_anyburl_dataset(args):
     ow_test_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                       for head, rel, tail in ow_test_triples]
     anyburl_dir.ow_test_facts_tsv.save(ow_test_facts)
+
+    logging.info('Finished')
     
 
 if __name__ == '__main__':

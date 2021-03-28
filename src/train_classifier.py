@@ -234,7 +234,7 @@ def train_classifier(args):
         for c, (tp, vp, tr, vr, tf, vf), in enumerate(zip(tps, vps, trs, vrs, tfs, vfs)):
 
             # many classes -> log only first and last ones
-            if (class_count > 2*3) and (3 <= c <= len(tps)-3 - 1):
+            if (class_count > 2 * 3) and (3 <= c <= len(tps) - 3 - 1):
                 continue
 
             writer.add_scalars('precision', {f'train_{c}': tp}, epoch)
@@ -260,6 +260,8 @@ def train_classifier(args):
         writer.add_scalars('recall', {'valid': mvr}, epoch)
         writer.add_scalars('f1', {'train': mtf}, epoch)
         writer.add_scalars('f1', {'valid': mvf}, epoch)
+
+    logging.info('Finished')
 
 
 if __name__ == '__main__':

@@ -141,6 +141,8 @@ def main():
     ower_dir.valid_samples_tsv.save(valid_samples)
     ower_dir.test_samples_tsv.save(test_samples)
 
+    logging.info('Finished')
+
 
 def parse_args():
     parser = ArgumentParser()
