@@ -1,46 +1,48 @@
 """
-The `AnyBURL Directory` contains the `AnyBURL Dataset`, which is the KG defined
-in the `Ryn Split Directory`, but in a form that can be read by AnyBURL.
+The `AnyBURL Directory` contains the `AnyBURL Facts Directory` that contains
+the input `AnyBURL Dataset` for rule mining using AnyBURL as well as the
+`AnyBURL Rules Directory` that contains the resulting, mined rules used
+by the `POWER Ruler` later on.
 
 **Structure**
 
 ::
 
-    anyburl/                # AnyBURL Directory
+    anyburl/                    # AnyBURL Directory
 
-        cw_train_facts.tsv  # AnyBURL CW Train Facts TSV
-        cw_valid_facts.tsv  # AnyBURL CW Valid Facts TSV
-        ow_valid_facts.tsv  # AnyBURL OW Valid Facts TSV
-        ow_test_facts.tsv   # AnyBURL OW Test Facts TSV
+        facts/                  # AnyBURL Facts Directory
+
+            cw_train_facts.tsv  # AnyBURL CW Train Facts TSV
+            cw_valid_facts.tsv  # AnyBURL CW Valid Facts TSV
+            ow_valid_facts.tsv  # AnyBURL OW Valid Facts TSV
+            ow_test_facts.tsv   # AnyBURL OW Test Facts TSV
+
+        rules/                  # AnyBURL Rules Directory
+
+            cw_train_rules.tsv  # AnyBURL CW Train Rules TSV
 
 |
 """
 
 from pathlib import Path
 
-from data.anyburl.facts_tsv import FactsTsv
+from data.anyburl.facts.facts_dir import FactsDir
+from data.anyburl.rules.rules_dir import RulesDir
 from data.base_dir import BaseDir
 
 
 class AnyburlDir(BaseDir):
-
-    cw_train_facts_tsv: FactsTsv
-    cw_valid_facts_tsv: FactsTsv
-    ow_valid_facts_tsv: FactsTsv
-    ow_test_facts_tsv: FactsTsv
+    facts_dir: FactsDir
+    rules_dir: RulesDir
 
     def __init__(self, path: Path):
         super().__init__(path)
 
-        self.cw_train_facts_tsv = FactsTsv(path.joinpath('cw_train_facts.tsv'))
-        self.cw_valid_facts_tsv = FactsTsv(path.joinpath('cw_valid_facts.tsv'))
-        self.ow_valid_facts_tsv = FactsTsv(path.joinpath('ow_valid_facts.tsv'))
-        self.ow_test_facts_tsv = FactsTsv(path.joinpath('ow_test_facts.tsv'))
+        self.facts_dir = FactsDir(path.joinpath('facts'))
+        self.rules_dir = RulesDir(path.joinpath('rules'))
 
     def check(self) -> None:
         super().check()
 
-        self.cw_train_facts_tsv.check()
-        self.cw_valid_facts_tsv.check()
-        self.ow_valid_facts_tsv.check()
-        self.ow_test_facts_tsv.check()
+        self.facts_dir.check()
+        self.rules_dir.check()

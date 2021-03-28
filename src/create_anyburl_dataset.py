@@ -5,8 +5,8 @@ from argparse import ArgumentParser
 from pathlib import Path
 from random import shuffle
 
-from data.anyburl.anyburl_dir import AnyburlDir
-from data.anyburl.facts_tsv import Fact
+from data.anyburl.facts.facts_dir import FactsDir
+from data.anyburl.facts.facts_tsv import Fact
 from data.ryn.split.split_dir import SplitDir
 
 
@@ -27,8 +27,8 @@ def parse_args():
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) Ryn Split Directory')
 
-    parser.add_argument('anyburl_dir', metavar='anyburl-dir',
-                        help='Path to (output) AnyBURL Directory')
+    parser.add_argument('facts_dir', metavar='facts-dir',
+                        help='Path to (output) AnyBURL Facts Directory')
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -44,7 +44,7 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
-    logging.info('    {:24} {}'.format('anyburl-dir', args.anyburl_dir))
+    logging.info('    {:24} {}'.format('facts-dir', args.facts_dir))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
 
     logging.info('Environment variables:')
@@ -55,7 +55,7 @@ def parse_args():
 
 def create_anyburl_dataset(args):
     split_dir_path = args.split_dir
-    anyburl_dir_path = args.anyburl_dir
+    facts_dir_path = args.facts_dir
 
     overwrite = args.overwrite
 
@@ -69,13 +69,13 @@ def create_anyburl_dataset(args):
     split_dir.check()
 
     #
-    # Create (output) AnyBURL Directory
+    # Create (output) AnyBURL Facts Directory
     #
 
-    logging.info('Create (output) AnyBURL Directory ...')
+    logging.info('Create (output) AnyBURL Facts Directory ...')
 
-    anyburl_dir = AnyburlDir(Path(anyburl_dir_path))
-    anyburl_dir.create(overwrite=overwrite)
+    facts_dir = FactsDir(Path(facts_dir_path))
+    facts_dir.create(overwrite=overwrite)
 
     #
     # Create dataset
@@ -98,28 +98,28 @@ def create_anyburl_dataset(args):
     shuffle(cw_train_triples)
     cw_train_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                       for head, rel, tail in cw_train_triples]
-    anyburl_dir.cw_train_facts_tsv.save(cw_train_facts)
+    facts_dir.cw_train_facts_tsv.save(cw_train_facts)
 
     # Create AnyBURL CW Valid Facts TSV
     cw_valid_triples = split_dir.cw_valid_triples_txt.load()
     shuffle(cw_valid_triples)
     cw_valid_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                       for head, rel, tail in cw_valid_triples]
-    anyburl_dir.cw_valid_facts_tsv.save(cw_valid_facts)
+    facts_dir.cw_valid_facts_tsv.save(cw_valid_facts)
 
     # Create AnyBURL OW Valid Facts TSV
     ow_valid_triples = split_dir.ow_valid_triples_txt.load()
     shuffle(ow_valid_triples)
     ow_valid_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                       for head, rel, tail in ow_valid_triples]
-    anyburl_dir.ow_valid_facts_tsv.save(ow_valid_facts)
+    facts_dir.ow_valid_facts_tsv.save(ow_valid_facts)
 
     # Create AnyBURL OW Test Facts TSV
     ow_test_triples = split_dir.ow_test_triples_txt.load()
     shuffle(ow_test_triples)
     ow_test_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                      for head, rel, tail in ow_test_triples]
-    anyburl_dir.ow_test_facts_tsv.save(ow_test_facts)
+    facts_dir.ow_test_facts_tsv.save(ow_test_facts)
 
     logging.info('Finished successfully')
 
