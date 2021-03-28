@@ -7,8 +7,11 @@ from dao.base_file import BaseFile
 
 @dataclass
 class Relation:
-    id: int
-    label: str
+    rel: int
+    rel_lbl: str
+
+    def __iter__(self):
+        return iter((self.rel, self.rel_lbl))
 
 
 class RelationsTsv(BaseFile):
@@ -18,7 +21,8 @@ class RelationsTsv(BaseFile):
 
     def save(self, relations: List[Relation]) -> None:
         with open(self.path, 'w', encoding='utf-8') as f:
-            f.write('{:6}\t{}\n'.format('ID', 'Label'))
+            row = '\t'.join(['{}'] * 2) + '\n'
 
-            for relation in relations:
-                f.write('{:6}\t{}\n'.format(relation.id, relation.label))
+            f.write(row.format('rel', 'rel_lbl'))
+            for rel, rel_lbl in relations:
+                f.write(row.format(rel, rel_lbl))

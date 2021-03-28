@@ -7,8 +7,11 @@ from dao.base_file import BaseFile
 
 @dataclass
 class Entity:
-    id: int
-    label: str
+    ent: int
+    ent_lbl: str
+
+    def __iter__(self):
+        return iter((self.ent, self.ent_lbl))
 
 
 class EntitiesTsv(BaseFile):
@@ -18,7 +21,8 @@ class EntitiesTsv(BaseFile):
 
     def save(self, entities: List[Entity]) -> None:
         with open(self.path, 'w', encoding='utf-8') as f:
-            f.write('{:6}\t{}\n'.format('ID', 'Label'))
+            row = '\t'.join(['{}'] * 2) + '\n'
 
-            for entity in entities:
-                f.write('{:6}\t{}\n'.format(entity.id, entity.label))
+            f.write(row.format('ent', 'ent_lbl'))
+            for ent, ent_lbl in entities:
+                f.write(row.format(ent, ent_lbl))

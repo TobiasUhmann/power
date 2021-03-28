@@ -65,24 +65,28 @@ def create_neo4j_dataset(args):
     entities = [Entity(ent, lbl) for ent, lbl in ent_to_lbl.items()]
     neo4j_dir.entities_tsv.save(entities)
 
-    ent_to_rel = split_dir.rel_labels_txt.load()
-    relations = [Relation(rel, lbl) for rel, lbl in ent_to_rel.items()]
+    rel_to_lbl = split_dir.rel_labels_txt.load()
+    relations = [Relation(rel, lbl) for rel, lbl in rel_to_lbl.items()]
     neo4j_dir.relations_tsv.save(relations)
 
     cw_train_triples = split_dir.cw_train_triples_txt.load()
-    cw_train_facts = [Fact(head, rel, tail) for head, rel, tail in cw_train_triples]
+    cw_train_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+                      for head, rel, tail in cw_train_triples]
     neo4j_dir.cw_train_facts_tsv.save(cw_train_facts)
 
     cw_valid_triples = split_dir.cw_valid_triples_txt.load()
-    cw_valid_facts = [Fact(head, rel, tail) for head, rel, tail in cw_valid_triples]
+    cw_valid_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+                      for head, rel, tail in cw_valid_triples]
     neo4j_dir.cw_valid_facts_tsv.save(cw_valid_facts)
 
     ow_valid_triples = split_dir.ow_valid_triples_txt.load()
-    ow_valid_facts = [Fact(head, rel, tail) for head, rel, tail in ow_valid_triples]
+    ow_valid_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+                      for head, rel, tail in ow_valid_triples]
     neo4j_dir.ow_valid_facts_tsv.save(ow_valid_facts)
 
     ow_test_triples = split_dir.ow_test_triples_txt.load()
-    ow_test_facts = [Fact(head, rel, tail) for head, rel, tail in ow_test_triples]
+    ow_test_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+                     for head, rel, tail in ow_test_triples]
     neo4j_dir.ow_test_facts_tsv.save(ow_test_facts)
 
 
