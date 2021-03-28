@@ -3,23 +3,22 @@ import os
 import random
 from argparse import ArgumentParser
 from pathlib import Path
+from random import shuffle
 
-from data.neo4j.entities_tsv import Entity
-from data.neo4j.facts_tsv import Fact
-from data.neo4j.relations_tsv import Relation
-from data.neo4j.neo4j_dir import Neo4jDir
+from data.anyburl.anyburl_dir import AnyburlDir
+from data.anyburl.facts_tsv import Fact
 from data.ryn.split.split_dir import SplitDir
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
 
     args = parse_args()
 
     if args.random_seed:
         random.seed(args.random_seed)
 
-    create_neo4j_dataset(args)
+    create_anyburl_dataset(args)
 
 
 def parse_args():
@@ -28,8 +27,8 @@ def parse_args():
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) Ryn Split Directory')
 
-    parser.add_argument('neo4j_dir', metavar='neo4j-dir',
-                        help='Path to (output) Neo4j Directory')
+    parser.add_argument('anyburl_dir', metavar='anyburl-dir',
+                        help='Path to (output) AnyBURL Directory')
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -45,7 +44,7 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
-    logging.info('    {:24} {}'.format('neo4j-dir', args.neo4j_dir))
+    logging.info('    {:24} {}'.format('anyburl-dir', args.anyburl_dir))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
 
     logging.info('Environment variables:')
@@ -54,9 +53,11 @@ def parse_args():
     return args
 
 
-def create_neo4j_dataset(args):
+def create_anyburl_dataset(args):
     split_dir_path = args.split_dir
-    neo4j_dir_path = args.neo4j_dir
+    anyburl_dir_path = args.anyburl_dir
+
+    overwrite = args.overwrite
 
     #
     # Check (input) Ryn Split Directory
@@ -64,18 +65,17 @@ def create_neo4j_dataset(args):
 
     logging.info('Check (input) Ryn Split Directory ...')
 
-
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
     #
-    # Create (output) Neo4j Directory
+    # Create (output) AnyBURL Directory
     #
 
-    logging.info('Create (output) Neo4j Directory ...')
+    logging.info('Create (output) AnyBURL Directory ...')
 
-    neo4j_dir = Neo4jDir(Path(neo4j_dir_path))
-    neo4j_dir.create()
+    anyburl_dir = AnyburlDir(Path(anyburl_dir_path))
+    anyburl_dir.create(overwrite=overwrite)
 
     #
     # Create dataset
@@ -87,39 +87,41 @@ def create_neo4j_dataset(args):
     ent_to_lbl = split_dir.ent_labels_txt.load()
     rel_to_lbl = split_dir.rel_labels_txt.load()
 
-    # Create Neo4j Entities TSV
-    entities = [Entity(ent, lbl) for ent, lbl in ent_to_lbl.items()]
-    neo4j_dir.entities_tsv.save(entities)
+    def stringify_ent(ent):
+        return f"{ent}_{ent_to_lbl[ent].replace(' ', '_')}"
 
-    # Create Neo4j Relations TSV
-    relations = [Relation(rel, lbl) for rel, lbl in rel_to_lbl.items()]
-    neo4j_dir.relations_tsv.save(relations)
+    def stringify_rel(rel):
+        return f"{rel}_{rel_to_lbl[rel].replace(' ', '_')}"
 
-    # Create Neo4j CW Train Facts TSV
+    # Create AnyBURL CW Train Facts TSV
     cw_train_triples = split_dir.cw_train_triples_txt.load()
-    cw_train_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+    shuffle(cw_train_triples)
+    cw_train_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                       for head, rel, tail in cw_train_triples]
-    neo4j_dir.cw_train_facts_tsv.save(cw_train_facts)
+    anyburl_dir.cw_train_facts_tsv.save(cw_train_facts)
 
-    # Create Neo4j CW Valid Facts TSV
+    # Create AnyBURL CW Valid Facts TSV
     cw_valid_triples = split_dir.cw_valid_triples_txt.load()
-    cw_valid_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+    shuffle(cw_valid_triples)
+    cw_valid_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                       for head, rel, tail in cw_valid_triples]
-    neo4j_dir.cw_valid_facts_tsv.save(cw_valid_facts)
+    anyburl_dir.cw_valid_facts_tsv.save(cw_valid_facts)
 
-    # Create Neo4j OW Valid Facts TSV
+    # Create AnyBURL OW Valid Facts TSV
     ow_valid_triples = split_dir.ow_valid_triples_txt.load()
-    ow_valid_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+    shuffle(ow_valid_triples)
+    ow_valid_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                       for head, rel, tail in ow_valid_triples]
-    neo4j_dir.ow_valid_facts_tsv.save(ow_valid_facts)
+    anyburl_dir.ow_valid_facts_tsv.save(ow_valid_facts)
 
-    # Create Neo4j OW Test Facts TSV
+    # Create AnyBURL OW Test Facts TSV
     ow_test_triples = split_dir.ow_test_triples_txt.load()
-    ow_test_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+    shuffle(ow_test_triples)
+    ow_test_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                      for head, rel, tail in ow_test_triples]
-    neo4j_dir.ow_test_facts_tsv.save(ow_test_facts)
+    anyburl_dir.ow_test_facts_tsv.save(ow_test_facts)
 
-    logging.info('Finished')
+    logging.info('Finished successfully')
 
 
 if __name__ == '__main__':

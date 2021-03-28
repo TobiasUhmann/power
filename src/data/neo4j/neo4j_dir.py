@@ -21,10 +21,10 @@ in the `Ryn Split Directory`, but in a form that can be imported to Neo4j.
 
 from pathlib import Path
 
-from dao.base_dir import BaseDir
-from dao.neo4j.EntitiesTsv import EntitiesTsv
-from dao.neo4j.FactsTsv import FactsTsv
-from dao.neo4j.RelationsTsv import RelationsTsv
+from data.base_dir import BaseDir
+from data.neo4j.entities_tsv import EntitiesTsv
+from data.neo4j.facts_tsv import FactsTsv
+from data.neo4j.relations_tsv import RelationsTsv
 
 
 class Neo4jDir(BaseDir):

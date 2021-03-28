@@ -1,5 +1,6 @@
 import logging
-import pickle
+import os
+import random
 from argparse import ArgumentParser
 from pathlib import Path
 from random import shuffle
@@ -13,18 +14,20 @@ from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from torchtext.vocab import Vocab
 from tqdm import tqdm
 
 import baseline.classifier
 import ower.classifier
-from dao.ower.ower_dir import OwerDir, Sample
+from data.ower.ower_dir import OwerDir, Sample
 
 
 def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
 
     args = parse_args()
+
+    if args.random_seed:
+        random.seed(args.random_seed)
 
     train_classifier(args)
 
@@ -67,6 +70,9 @@ def parse_args():
     default_model = 'ower'
     parser.add_argument('--model', dest='model', choices=model_choices, default=default_model)
 
+    parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
+                        help='Use together with PYTHONHASHSEED for reproducibility')
+
     default_sent_len = 64
     parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
                         help='Sentence length short sentences are padded and long sentences cropped to'
@@ -87,6 +93,9 @@ def parse_args():
     logging.info('    {:24} {}'.format('--lr', args.lr))
     logging.info('    {:24} {}'.format('--model', args.model))
     logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
+
+    logging.info('Environment variables:')
+    logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
 
     return args
 
@@ -234,7 +243,7 @@ def train_classifier(args):
         for c, (tp, vp, tr, vr, tf, vf), in enumerate(zip(tps, vps, trs, vrs, tfs, vfs)):
 
             # many classes -> log only first and last ones
-            if (class_count > 2*3) and (3 <= c <= len(tps)-3 - 1):
+            if (class_count > 2 * 3) and (3 <= c <= len(tps) - 3 - 1):
                 continue
 
             writer.add_scalars('precision', {f'train_{c}': tp}, epoch)
@@ -260,6 +269,8 @@ def train_classifier(args):
         writer.add_scalars('recall', {'valid': mvr}, epoch)
         writer.add_scalars('f1', {'train': mtf}, epoch)
         writer.add_scalars('f1', {'valid': mvf}, epoch)
+
+    logging.info('Finished')
 
 
 if __name__ == '__main__':
