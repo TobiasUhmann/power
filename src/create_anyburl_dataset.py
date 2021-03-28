@@ -1,6 +1,7 @@
 import logging
 import os
 import random
+import re
 from argparse import ArgumentParser
 from pathlib import Path
 from random import shuffle
@@ -87,11 +88,14 @@ def create_anyburl_dataset(args):
     ent_to_lbl = split_dir.ent_labels_txt.load()
     rel_to_lbl = split_dir.rel_labels_txt.load()
 
+    def escape(text):
+        return re.sub('[^0-9a-zA-Z]', '_', text)
+
     def stringify_ent(ent):
-        return f"{ent}_{ent_to_lbl[ent].replace(' ', '_')}"
+        return f"{ent}_{escape(ent_to_lbl[ent])}"
 
     def stringify_rel(rel):
-        return f"{rel}_{rel_to_lbl[rel].replace(' ', '_')}"
+        return f"{rel}_{escape(rel_to_lbl[rel])}"
 
     # Create AnyBURL CW Train Facts TSV
     cw_train_triples = split_dir.cw_train_triples_txt.load()

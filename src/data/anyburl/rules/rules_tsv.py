@@ -83,7 +83,7 @@ class RulesTsv(BaseFile):
         rel_str = match.group(1)
         rel = int(rel_str.split('_')[0])
 
-        tail_str = match.group(2)
+        tail_str = match.group(3)
         tail = tail_str if len(tail_str) == 1 else int(tail_str.split('_')[0])
 
         return Fact(head, rel, tail)
