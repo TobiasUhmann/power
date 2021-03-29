@@ -3,6 +3,9 @@ import os
 import random
 from argparse import ArgumentParser
 from pathlib import Path
+from pprint import pprint
+
+from neo4j import GraphDatabase
 
 from data.anyburl.rules.rules_dir import RulesDir
 
@@ -77,7 +80,30 @@ def train_ruler(args):
 
     rules = rules_dir.cw_train_rules_tsv.load()
 
-    print(rules)
+    good_rules = [rule for rule in rules if rule.confidence > 0.8]
+    good_rules.sort(key=lambda rule: rule.confidence, reverse=True)
+    pprint(good_rules[:5])
+
+    #
+    # Connect to Neo4j
+    #
+
+    def match_heads(tx, rel: int, tail: int):
+        cypher = f'''
+            MATCH (h)-[:R_{rel}]->(t)
+            WHERE t.id = $tail
+            RETURN h, t
+        '''
+
+        result = tx.run(cypher, tail=tail)
+
+        return [record for record in result]
+
+    driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '1234567890'))
+    with driver.session() as session:
+        result = session.write_transaction(match_heads, rel=15, tail=13337)
+        pprint(result)
+    driver.close()
 
 
 if __name__ == '__main__':
