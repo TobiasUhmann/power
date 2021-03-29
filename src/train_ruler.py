@@ -4,7 +4,6 @@ import random
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-from pprint import pprint
 from typing import Set, List
 
 from neo4j import GraphDatabase
@@ -21,7 +20,7 @@ from models.var import Var
 
 
 def main():
-    logging.basicConfig(format='# %(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
 
     args = parse_args()
 
@@ -207,6 +206,8 @@ def train_ruler(args):
     logging.info('Save ruler ...')
 
     model_dir.ruler_pkl.save(ruler)
+
+    logging.info('Finished successfully')
 
 
 def get_defaultdict():
