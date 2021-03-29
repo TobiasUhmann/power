@@ -10,7 +10,7 @@ from typing import Set, List
 from neo4j import GraphDatabase
 
 from data.anyburl.rules.rules_dir import RulesDir
-from data.ower.model.model_dir import ModelDir
+from data.power.model.model_dir import ModelDir
 from data.ryn.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from data.base_dir import BaseDir
-from data.ower.model.ruler_pkl import RulerPkl
+from data.power.model.ruler_pkl import RulerPkl
 
 
 class ModelDir(BaseDir):

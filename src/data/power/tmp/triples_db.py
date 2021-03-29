@@ -1,6 +1,6 @@
 """
-The `OWER Triples DB` contains the triples in a queryable database. It is built as
-an intermediate step while building the `OWER Directory` and kept for debugging
+The `POWER Triples DB` contains the triples in a queryable database. It is built as
+an intermediate step while building the `POWER Directory` and kept for debugging
 purposes.
 
 **Structure**
