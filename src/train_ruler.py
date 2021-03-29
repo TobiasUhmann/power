@@ -4,20 +4,23 @@ import random
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-from pprint import pprint, pformat
+from pprint import pprint
+from typing import Set, List
 
 from neo4j import GraphDatabase
 
 from data.anyburl.rules.rules_dir import RulesDir
+from data.ryn.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
 from models.rel import Rel
 from models.rule import Rule
+from models.split import Split
 from models.var import Var
 
 
 def main():
-    logging.basicConfig(format='# %(asctime)s | %(levelname)-7s | %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='# %(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
 
     args = parse_args()
 
@@ -32,6 +35,9 @@ def parse_args():
 
     parser.add_argument('rules_dir', metavar='rules-dir',
                         help='Path to (input) AnyBURL Rules Directory')
+
+    parser.add_argument('split_dir', metavar='split-dir',
+                        help='Path to (input) Ryn Split Directory')
 
     parser.add_argument('model_dir', metavar='model-dir',
                         help='Path to (output) POWER Model Directory')
@@ -50,6 +56,7 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('rules-dir', args.rules_dir))
+    logging.info('    {:24} {}'.format('split-dir', args.rules_dir))
     logging.info('    {:24} {}'.format('model-dir', args.model_dir))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
 
@@ -61,6 +68,7 @@ def parse_args():
 
 def train_ruler(args):
     rules_dir_path = args.rules_dir
+    split_dir_path = args.split_dir
     model_dir_path = args.model_dir
 
     overwrite = args.overwrite
@@ -73,6 +81,15 @@ def train_ruler(args):
 
     rules_dir = RulesDir(Path(rules_dir_path))
     rules_dir.check()
+
+    #
+    # Check (input) Ryn Split Directory
+    #
+
+    logging.info('Check (input) Ryn Split Directory ...')
+
+    split_dir = SplitDir(Path(split_dir_path))
+    split_dir.check()
 
     #
     # Create (output) POWER Model Directory
@@ -88,6 +105,18 @@ def train_ruler(args):
     rel_to_lbl = rules_dir.rel_labels_txt.load()
 
     #
+    #
+    #
+
+    cw_train_triples = split_dir.cw_train_triples_txt.load()
+    cw_train_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                      for head, rel, tail in cw_train_triples}
+
+    cw_valid_triples = split_dir.cw_valid_triples_txt.load()
+    cw_valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                      for head, rel, tail in cw_valid_triples}
+
+    #
     # Read rules
     #
 
@@ -98,7 +127,7 @@ def train_ruler(args):
     good_rules.sort(key=lambda rule: rule.conf, reverse=True)
 
     short_rules = [rule for rule in good_rules if len(rule.body) == 1]
-    pprint(short_rules)
+    log_rules('Rules', short_rules)
 
     #
     #
@@ -129,13 +158,12 @@ def train_ruler(args):
     driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '1234567890'))
     unsupported_rules = 0
 
-    pred = defaultdict(list)
+    pred = defaultdict(lambda: defaultdict(list))
 
     with driver.session() as session:
-        for rule in short_rules[:5]:
+        for rule in short_rules[:1000]:
 
-            logging.info(f'Process rule:\n'
-                         f'{rule}')
+            logging.info(f'Process rule {rule}')
 
             #
             # Process rule body
@@ -158,8 +186,7 @@ def train_ruler(args):
 
             if logging.getLogger().level == logging.DEBUG:
                 groundings = [Fact.from_neo4j(rec) for rec in records]
-                logging.debug(f'Groundings:\n'
-                              f'{pformat(groundings)}')
+                log_facts('Groundings', groundings, cw_train_facts, cw_valid_facts)
 
             #
             # Process rule head
@@ -168,10 +195,10 @@ def train_ruler(args):
             head_fact = rule.head
 
             if type(head_fact.head) == Var and type(head_fact.tail) == Ent:
-                pred_facts = [Fact(ent, head_fact.rel, head_fact.tail, None) for ent in ents]
+                pred_facts = [Fact(ent, head_fact.rel, head_fact.tail) for ent in ents]
 
             elif type(head_fact.head) == Ent and type(head_fact.tail) == Var:
-                pred_facts = [Fact(head_fact.head, head_fact.rel, ent, None) for ent in ents]
+                pred_facts = [Fact(head_fact.head, head_fact.rel, ent) for ent in ents]
 
             else:
                 logging.warning(f'Unsupported rule head in rule {rule}. Skipping.')
@@ -179,15 +206,40 @@ def train_ruler(args):
                 continue
 
             for fact in pred_facts:
-                pred[fact.head].append((fact.rel, fact.tail))
+                if fact not in cw_train_facts:
+                    pred[fact.head][(fact.rel, fact.tail)].append(rule)
 
-            logging.debug(f'Predictions:\n'
-                          f'{pformat(pred_facts)}')
+            if logging.getLogger().level == logging.DEBUG:
+                log_facts('Predictions', pred_facts, cw_train_facts, cw_valid_facts)
 
     print()
     pprint(pred)
 
     driver.close()
+
+
+def log_rules(msg: str, rules: List[Rule], display_max=10):
+    if logging.getLogger().level == logging.DEBUG:
+
+        logging.debug(f'{msg} ({display_max}/{len(rules)}):')
+        for rule in rules[:display_max]:
+            logging.debug(str(rule))
+
+
+def log_facts(msg: str, facts: List[Fact], cw_train_facts: Set[Fact], cw_valid_facts: Set[Fact], display_max=10):
+    if logging.getLogger().level == logging.DEBUG:
+
+        logging.debug(f'{msg} ({display_max}/{len(facts)}):')
+        for fact in facts[:display_max]:
+
+            if fact in cw_train_facts:
+                split_str = Split.cw_train.name + ':'
+            elif fact in cw_valid_facts:
+                split_str = Split.cw_valid.name + ':'
+            else:
+                split_str = str(None) + ':'
+
+            logging.debug(f'{split_str:10} {fact}')
 
 
 if __name__ == '__main__':
