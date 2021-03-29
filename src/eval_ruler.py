@@ -7,6 +7,7 @@ from pathlib import Path
 
 from data.power.model.model_dir import ModelDir
 from data.ryn.split.split_dir import SplitDir
+from models.ent import Ent
 from models.fact import Fact
 
 
@@ -93,6 +94,9 @@ def eval_ruler(args):
     logging.info('Load ruler ...')
 
     ruler = model_dir.ruler_pkl.load()
+
+    ents = [Ent(id, lbl) for id, lbl in ent_to_lbl.items()]
+    print(ents)
 
     logging.info('Finished successfully')
 

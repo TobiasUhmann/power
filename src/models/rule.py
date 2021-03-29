@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Dict
 
-import data
+import data.anyburl.rules.rules_tsv
 
 from models.fact import Fact
 

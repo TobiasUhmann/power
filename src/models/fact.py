@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Union, Dict
 
-import data
 from neo4j import Record
 
+import data.anyburl.rules.rules_tsv
 from models.ent import Ent
 from models.rel import Rel
 from models.var import Var
