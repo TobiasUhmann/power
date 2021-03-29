@@ -2,6 +2,7 @@ import logging
 import os
 import random
 from argparse import ArgumentParser
+from collections import defaultdict
 from pathlib import Path
 from pprint import pprint
 
@@ -82,27 +83,88 @@ def train_ruler(args):
 
     good_rules = [rule for rule in rules if rule.confidence > 0.8]
     good_rules.sort(key=lambda rule: rule.confidence, reverse=True)
-    pprint(good_rules[:5])
+
+    short_rules = [rule for rule in good_rules if len(rule.body) == 1]
+    pprint(short_rules)
 
     #
-    # Connect to Neo4j
+    #
     #
 
-    def match_heads(tx, rel: int, tail: int):
+    def query_heads(tx, rel: int, tail: int):
         cypher = f'''
-            MATCH (h)-[:R_{rel}]->(t)
-            WHERE t.id = $tail
-            RETURN h, t
+            MATCH (head)-[:R_{rel}]->(tail)
+            WHERE tail.id = $tail
+            RETURN head
         '''
 
         result = tx.run(cypher, tail=tail)
 
         return [record for record in result]
 
+    def query_tails(tx, head: int, rel: int):
+        cypher = f'''
+            MATCH (head)-[:R_{rel}]->(tail)
+            WHERE head.id = $head
+            RETURN tail
+        '''
+
+        result = tx.run(cypher, head=head)
+
+        return [record for record in result]
+
     driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '1234567890'))
+    unsupported_rules = 0
+
+    pred = defaultdict(list)
+
     with driver.session() as session:
-        result = session.write_transaction(match_heads, rel=15, tail=13337)
-        pprint(result)
+        for rule in short_rules[:5]:
+
+            print()
+            pprint(rule)
+
+            #
+            # Process rule body
+            #
+
+            body_fact = rule.body[0]
+
+            if type(body_fact.head) == str and type(body_fact.tail) == int:
+                ents = session.write_transaction(query_heads, rel=body_fact.rel, tail=body_fact.tail)
+                pprint(ents)
+
+            elif type(body_fact.head) == int and type(body_fact.tail) == str:
+                ents = session.write_transaction(query_tails, head=body_fact.head, rel=body_fact.rel)
+                pprint(ents)
+
+            else:
+                logging.warning(f'Unsupported rule body in rule {rule}')
+                unsupported_rules += 1
+                continue
+
+            #
+            # Process rule head
+            #
+
+            head_fact = rule.head
+
+            if type(head_fact.head) == str and type(head_fact.tail) == int:
+                for ent in ents:
+                    pred[ent].append(((head_fact.rel, head_fact.tail), rule))
+
+            elif type(head_fact.head) == int and type(head_fact.tail) == int:
+                for ent in ents:
+                    pred[head_fact.head].append(((head_fact.rel, ent), rule))
+
+            else:
+                logging.warning(f'Unsupported rule head in rule {rule}')
+                unsupported_rules += 1
+                continue
+
+    print()
+    pprint(pred)
+
     driver.close()
 
 
