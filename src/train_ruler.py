@@ -10,6 +10,7 @@ from typing import Set, List
 from neo4j import GraphDatabase
 
 from data.anyburl.rules.rules_dir import RulesDir
+from data.ower.model.model_dir import ModelDir
 from data.ryn.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
@@ -97,6 +98,9 @@ def train_ruler(args):
 
     logging.info('Create (output) POWER Model Directory ...')
 
+    model_dir = ModelDir(Path(model_dir_path))
+    model_dir.create(overwrite=overwrite)
+
     #
     #
     #
@@ -120,6 +124,8 @@ def train_ruler(args):
     # Read rules
     #
 
+    logging.info('Read rules ...')
+
     anyburl_rules = rules_dir.cw_train_rules_tsv.load()
     rules = [Rule.from_anyburl(rule, ent_to_lbl, rel_to_lbl) for rule in anyburl_rules]
 
@@ -130,38 +136,18 @@ def train_ruler(args):
     log_rules('Rules', short_rules)
 
     #
+    # Process rules
     #
-    #
 
-    def query_facts_by_rel_tail(tx, rel: Rel, tail: Ent):
-        cypher = f'''
-            MATCH (head)-[rel:R_{rel.id}]->(tail)
-            WHERE tail.id = $tail_id
-            RETURN head, rel, tail
-        '''
-
-        records = tx.run(cypher, tail_id=tail.id)
-
-        return list(records)
-
-    def query_facts_by_head_rel(tx, head: Ent, rel: Rel):
-        cypher = f'''
-            MATCH (head)-[rel:R_{rel.id}]->(tail)
-            WHERE head.id = $head_id
-            RETURN head, rel, tail
-        '''
-
-        records = tx.run(cypher, head_id=head.id)
-
-        return list(records)
+    logging.info('Process rules ...')
 
     driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '1234567890'))
     unsupported_rules = 0
 
-    pred = defaultdict(lambda: defaultdict(list))
+    ruler = defaultdict(get_defaultdict)
 
     with driver.session() as session:
-        for rule in short_rules[:1000]:
+        for rule in short_rules:
 
             logging.info(f'Process rule {rule}')
 
@@ -207,15 +193,48 @@ def train_ruler(args):
 
             for fact in pred_facts:
                 if fact not in cw_train_facts:
-                    pred[fact.head][(fact.rel, fact.tail)].append(rule)
+                    ruler[fact.head][(fact.rel, fact.tail)].append(rule)
 
             if logging.getLogger().level == logging.DEBUG:
                 log_facts('Predictions', pred_facts, cw_train_facts, cw_valid_facts)
 
-    print()
-    pprint(pred)
-
     driver.close()
+
+    #
+    # Save ruler
+    #
+
+    logging.info('Save ruler ...')
+
+    model_dir.ruler_pkl.save(ruler)
+
+
+def get_defaultdict():
+    return defaultdict(list)
+
+
+def query_facts_by_rel_tail(tx, rel: Rel, tail: Ent):
+    cypher = f'''
+        MATCH (head)-[rel:R_{rel.id}]->(tail)
+        WHERE tail.id = $tail_id
+        RETURN head, rel, tail
+    '''
+
+    records = tx.run(cypher, tail_id=tail.id)
+
+    return list(records)
+
+
+def query_facts_by_head_rel(tx, head: Ent, rel: Rel):
+    cypher = f'''
+        MATCH (head)-[rel:R_{rel.id}]->(tail)
+        WHERE head.id = $head_id
+        RETURN head, rel, tail
+    '''
+
+    records = tx.run(cypher, head_id=head.id)
+
+    return list(records)
 
 
 def log_rules(msg: str, rules: List[Rule], display_max=10):
