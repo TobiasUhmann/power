@@ -30,6 +30,9 @@ class Fact:
     rel: int
     tail: Union[int, str]
 
+    def __iter__(self):
+        return iter((self.head, self.rel, self.tail))
+
 
 @dataclass
 class Rule:

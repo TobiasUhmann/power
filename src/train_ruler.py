@@ -4,15 +4,20 @@ import random
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-from pprint import pprint
+from pprint import pprint, pformat
 
 from neo4j import GraphDatabase
 
 from data.anyburl.rules.rules_dir import RulesDir
+from models.ent import Ent
+from models.fact import Fact
+from models.rel import Rel
+from models.rule import Rule
+from models.var import Var
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
+    logging.basicConfig(format='# %(asctime)s | %(levelname)-7s | %(message)s', level=logging.DEBUG)
 
     args = parse_args()
 
@@ -76,13 +81,21 @@ def train_ruler(args):
     logging.info('Create (output) POWER Model Directory ...')
 
     #
+    #
+    #
+
+    ent_to_lbl = rules_dir.ent_labels_txt.load()
+    rel_to_lbl = rules_dir.rel_labels_txt.load()
+
+    #
     # Read rules
     #
 
-    rules = rules_dir.cw_train_rules_tsv.load()
+    anyburl_rules = rules_dir.cw_train_rules_tsv.load()
+    rules = [Rule.from_anyburl(rule, ent_to_lbl, rel_to_lbl) for rule in anyburl_rules]
 
-    good_rules = [rule for rule in rules if rule.confidence > 0.8]
-    good_rules.sort(key=lambda rule: rule.confidence, reverse=True)
+    good_rules = [rule for rule in rules if rule.conf > 0.8]
+    good_rules.sort(key=lambda rule: rule.conf, reverse=True)
 
     short_rules = [rule for rule in good_rules if len(rule.body) == 1]
     pprint(short_rules)
@@ -91,27 +104,27 @@ def train_ruler(args):
     #
     #
 
-    def query_heads(tx, rel: int, tail: int):
+    def query_facts_by_rel_tail(tx, rel: Rel, tail: Ent):
         cypher = f'''
-            MATCH (head)-[:R_{rel}]->(tail)
-            WHERE tail.id = $tail
-            RETURN head
+            MATCH (head)-[rel:R_{rel.id}]->(tail)
+            WHERE tail.id = $tail_id
+            RETURN head, rel, tail
         '''
 
-        result = tx.run(cypher, tail=tail)
+        records = tx.run(cypher, tail_id=tail.id)
 
-        return [record for record in result]
+        return list(records)
 
-    def query_tails(tx, head: int, rel: int):
+    def query_facts_by_head_rel(tx, head: Ent, rel: Rel):
         cypher = f'''
-            MATCH (head)-[:R_{rel}]->(tail)
-            WHERE head.id = $head
-            RETURN tail
+            MATCH (head)-[rel:R_{rel.id}]->(tail)
+            WHERE head.id = $head_id
+            RETURN head, rel, tail
         '''
 
-        result = tx.run(cypher, head=head)
+        records = tx.run(cypher, head_id=head.id)
 
-        return [record for record in result]
+        return list(records)
 
     driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '1234567890'))
     unsupported_rules = 0
@@ -121,8 +134,8 @@ def train_ruler(args):
     with driver.session() as session:
         for rule in short_rules[:5]:
 
-            print()
-            pprint(rule)
+            logging.info(f'Process rule:\n'
+                         f'{rule}')
 
             #
             # Process rule body
@@ -130,18 +143,23 @@ def train_ruler(args):
 
             body_fact = rule.body[0]
 
-            if type(body_fact.head) == str and type(body_fact.tail) == int:
-                ents = session.write_transaction(query_heads, rel=body_fact.rel, tail=body_fact.tail)
-                pprint(ents)
+            if type(body_fact.head) == Var and type(body_fact.tail) == Ent:
+                records = session.write_transaction(query_facts_by_rel_tail, rel=body_fact.rel, tail=body_fact.tail)
+                ents = [Ent(head.id, ent_to_lbl[head.id]) for head, _, _ in records]
 
-            elif type(body_fact.head) == int and type(body_fact.tail) == str:
-                ents = session.write_transaction(query_tails, head=body_fact.head, rel=body_fact.rel)
-                pprint(ents)
+            elif type(body_fact.head) == Ent and type(body_fact.tail) == Var:
+                records = session.write_transaction(query_facts_by_head_rel, head=body_fact.head, rel=body_fact.rel)
+                ents = [Ent(tail.id, ent_to_lbl[tail.id]) for _, _, tail in records]
 
             else:
-                logging.warning(f'Unsupported rule body in rule {rule}')
+                logging.warning(f'Unsupported rule body in rule {rule}. Skipping.')
                 unsupported_rules += 1
                 continue
+
+            if logging.getLogger().level == logging.DEBUG:
+                groundings = [Fact.from_neo4j(rec) for rec in records]
+                logging.debug(f'Groundings:\n'
+                              f'{pformat(groundings)}')
 
             #
             # Process rule head
@@ -149,18 +167,22 @@ def train_ruler(args):
 
             head_fact = rule.head
 
-            if type(head_fact.head) == str and type(head_fact.tail) == int:
-                for ent in ents:
-                    pred[ent].append(((head_fact.rel, head_fact.tail), rule))
+            if type(head_fact.head) == Var and type(head_fact.tail) == Ent:
+                pred_facts = [Fact(ent, head_fact.rel, head_fact.tail, None) for ent in ents]
 
-            elif type(head_fact.head) == int and type(head_fact.tail) == int:
-                for ent in ents:
-                    pred[head_fact.head].append(((head_fact.rel, ent), rule))
+            elif type(head_fact.head) == Ent and type(head_fact.tail) == Var:
+                pred_facts = [Fact(head_fact.head, head_fact.rel, ent, None) for ent in ents]
 
             else:
-                logging.warning(f'Unsupported rule head in rule {rule}')
+                logging.warning(f'Unsupported rule head in rule {rule}. Skipping.')
                 unsupported_rules += 1
                 continue
+
+            for fact in pred_facts:
+                pred[fact.head].append((fact.rel, fact.tail))
+
+            logging.debug(f'Predictions:\n'
+                          f'{pformat(pred_facts)}')
 
     print()
     pprint(pred)
