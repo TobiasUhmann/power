@@ -4,6 +4,10 @@ import random
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
+from pprint import pprint
+
+from sklearn.metrics import precision_recall_fscore_support
+from tqdm import tqdm
 
 from data.power.model.model_dir import ModelDir
 from data.ryn.split.split_dir import SplitDir
@@ -96,7 +100,50 @@ def eval_ruler(args):
     ruler = model_dir.ruler_pkl.load()
 
     ents = [Ent(id, lbl) for id, lbl in ent_to_lbl.items()]
-    print(ents)
+
+    skt_gt = []
+    skt_pred = []
+
+    for ent in tqdm(ents):
+        # print()
+        # print('ENT')
+        # pprint(ent)
+
+        gt = [fact for fact in cw_valid_facts if fact.head == ent]
+        # print('GT')
+        # pprint(gt)
+
+        # pred = ruler[ent]
+        # print('PRED')
+        # pprint(pred)
+
+        pred = [Fact(ent, rel, tail) for (rel, tail) in ruler[ent]]
+        # print('PRED')
+        # pprint(pred)
+
+        union = list(set(gt) | set(pred))
+        # print('UNION')
+        # pprint(union)
+
+        sk_gt = [1 if fact in gt else 0 for fact in union]
+        sk_pred = [1 if fact in pred else 0 for fact in union]
+
+        skt_gt.extend(sk_gt)
+        skt_pred.extend(sk_pred)
+
+        prfs = precision_recall_fscore_support(sk_gt, sk_pred, labels=[1], zero_division=0)
+        # print('PRFS')
+        # print(sk_gt)
+        # print(sk_pred)
+        # print(prfs)
+
+        pass
+
+    prfs = precision_recall_fscore_support(skt_gt, skt_pred, labels=[1])
+    print('PRFS')
+    print(skt_gt)
+    print(skt_pred)
+    print(prfs)
 
     logging.info('Finished successfully')
 
