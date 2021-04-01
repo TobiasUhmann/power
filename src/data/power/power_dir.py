@@ -1,24 +1,24 @@
 """
-The `OWER Directory` contains the input files required for training the
-`OWER Classifier`. The `OWER Temp Directory` keeps intermediate files
+The `POWER Directory` contains the input files required for training the
+`POWER Classifier`. The `POWER Temp Directory` keeps intermediate files
 for debugging purposes.
 
 **Structure**
 
 ::
 
-    ower/                 # OWER Directory
+    power/                # POWER Directory
 
-        tmp/              # OWER Temp Directory
+        tmp/              # POWER Temp Directory
 
-        ent_labels.txt    # OWER Entity Labels TXT
-        rel_labels.txt    # OWER Relation Labels TXT
+        ent_labels.txt    # POWER Entity Labels TXT
+        rel_labels.txt    # POWER Relation Labels TXT
 
-        classes.tsv       # OWER Classes TSV
+        classes.tsv       # POWER Classes TSV
 
-        test.tsv          # OWER Test Samples TSV
-        train.tsv         # OWER Train Samples TSV
-        valid.tsv         # OWER Valid Samples TSV
+        test.tsv          # POWER Test Samples TSV
+        train.tsv         # POWER Train Samples TSV
+        valid.tsv         # POWER Valid Samples TSV
 
 |
 """
@@ -31,9 +31,9 @@ from torchtext.data import TabularDataset, Field
 from torchtext.vocab import Vocab
 
 from data.base_dir import BaseDir
-from data.ower.classes_tsv import ClassesTsv
-from data.ower.samples_tsv import SamplesTsv
-from data.ower.tmp.tmp_dir import TmpDir
+from data.power.classes_tsv import ClassesTsv
+from data.power.samples_tsv import SamplesTsv
+from data.power.tmp.tmp_dir import TmpDir
 from data.ryn.split.labels_txt import LabelsTxt
 
 
@@ -47,7 +47,7 @@ class Sample:
         return iter((self.ent, self.classes, self.sents))
 
 
-class OwerDir(BaseDir):
+class PowerDir(BaseDir):
     tmp_dir: TmpDir
 
     ent_labels_txt: LabelsTxt

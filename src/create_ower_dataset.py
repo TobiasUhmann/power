@@ -7,7 +7,7 @@ from random import sample
 from shutil import copyfile
 from typing import Dict, Set, List, Tuple
 
-from data.ower.ower_dir import OwerDir
+from data.power.power_dir import PowerDir
 from data.ryn.ryn_dir import RynDir
 
 
@@ -22,7 +22,7 @@ def main():
         random.seed(args.random_seed)
 
     ryn_dir_path = args.ryn_dir
-    ower_dir_path = args.ower_dir
+    power_dir_path = args.power_dir
 
     class_count = args.class_count
     sent_count = args.sent_count
@@ -34,12 +34,12 @@ def main():
     ryn_dir = RynDir(Path(ryn_dir_path))
     ryn_dir.check()
 
-    ## Create (output) OWER Directory
+    ## Create (output) POWER Directory
 
-    logging.info('Create (output) OWER Directory ...')
+    logging.info('Create (output) POWER Directory ...')
 
-    ower_dir = OwerDir(Path(ower_dir_path))
-    ower_dir.create()
+    power_dir = PowerDir(Path(power_dir_path))
+    power_dir.create()
 
     ## Load Ryn Triples TXTs
 
@@ -55,43 +55,43 @@ def main():
     valid_triples = ow_valid_triples
     test_triples = ow_test_triples
 
-    ## Save triples to OWER Triples DBs
+    ## Save triples to POWER Triples DBs
 
-    logging.info('Save triples to OWER Triples DBs ...')
+    logging.info('Save triples to POWER Triples DBs ...')
 
-    train_triples_db = ower_dir.tmp_dir.train_triples_db
+    train_triples_db = power_dir.tmp_dir.train_triples_db
     train_triples_db.create_triples_table()
     train_triples_db.insert_triples(train_triples)
 
-    valid_triples_db = ower_dir.tmp_dir.valid_triples_db
+    valid_triples_db = power_dir.tmp_dir.valid_triples_db
     valid_triples_db.create_triples_table()
     valid_triples_db.insert_triples(valid_triples)
 
-    test_triples_db = ower_dir.tmp_dir.test_triples_db
+    test_triples_db = power_dir.tmp_dir.test_triples_db
     test_triples_db.create_triples_table()
     test_triples_db.insert_triples(test_triples)
 
-    ## Copy Ryn Label TXTs to OWER Dir
+    ## Copy Ryn Label TXTs to POWER Dir
 
-    logging.info('Copy Ryn Label TXTs to OWER Dir ...')
+    logging.info('Copy Ryn Label TXTs to POWER Dir ...')
 
-    copyfile(ryn_dir.split_dir.ent_labels_txt.path, ower_dir.ent_labels_txt.path)
-    copyfile(ryn_dir.split_dir.rel_labels_txt.path, ower_dir.rel_labels_txt.path)
+    copyfile(ryn_dir.split_dir.ent_labels_txt.path, power_dir.ent_labels_txt.path)
+    copyfile(ryn_dir.split_dir.rel_labels_txt.path, power_dir.rel_labels_txt.path)
 
     ## Query most common classes and write them to Classes TSV
 
     logging.info('Create Classes TSV ...')
 
-    rel_tail_supps = ower_dir.tmp_dir.train_triples_db.select_top_rel_tails(class_count)
+    rel_tail_supps = power_dir.tmp_dir.train_triples_db.select_top_rel_tails(class_count)
 
-    ent_to_label = ower_dir.ent_labels_txt.load()
-    rel_to_label = ower_dir.rel_labels_txt.load()
+    ent_to_label = power_dir.ent_labels_txt.load()
+    rel_to_label = power_dir.rel_labels_txt.load()
 
     ent_count = len(ent_to_label)
     rel_tail_freq_labels = [(rel, tail, supp / ent_count, f'{rel_to_label[rel]} {ent_to_label[tail]}')
                             for rel, tail, supp in rel_tail_supps]
 
-    ower_dir.classes_tsv.save(rel_tail_freq_labels)
+    power_dir.classes_tsv.save(rel_tail_freq_labels)
 
     ## Query classes' entities
 
@@ -102,20 +102,20 @@ def main():
     test_class_ents = []
 
     for rel, tail, _ in rel_tail_supps:
-        class_ents = ower_dir.tmp_dir.train_triples_db.select_heads_with_rel_tail(rel, tail)
+        class_ents = power_dir.tmp_dir.train_triples_db.select_heads_with_rel_tail(rel, tail)
         train_class_ents.append(class_ents)
 
     for rel, tail, _ in rel_tail_supps:
-        class_ents = ower_dir.tmp_dir.valid_triples_db.select_heads_with_rel_tail(rel, tail)
+        class_ents = power_dir.tmp_dir.valid_triples_db.select_heads_with_rel_tail(rel, tail)
         valid_class_ents.append(class_ents)
 
     for rel, tail, _ in rel_tail_supps:
-        class_ents = ower_dir.tmp_dir.test_triples_db.select_heads_with_rel_tail(rel, tail)
+        class_ents = power_dir.tmp_dir.test_triples_db.select_heads_with_rel_tail(rel, tail)
         test_class_ents.append(class_ents)
 
-    ## Create OWER Sample TSVs
+    ## Create POWER Sample TSVs
 
-    logging.info('Create OWER Sample TSVs ...')
+    logging.info('Create POWER Sample TSVs ...')
 
     train_ent_to_sents: Dict[int, Set[str]] = ryn_dir.text_dir.cw_train_sents_txt.load()
     valid_ent_to_sents: Dict[int, Set[str]] = ryn_dir.text_dir.ow_valid_sents_txt.load()
@@ -150,9 +150,9 @@ def main():
     valid_samples = get_samples(valid_ent_to_sents, valid_class_ents)
     test_samples = get_samples(test_ent_to_sents, test_class_ents)
 
-    ower_dir.train_samples_tsv.save(train_samples)
-    ower_dir.valid_samples_tsv.save(valid_samples)
-    ower_dir.test_samples_tsv.save(test_samples)
+    power_dir.train_samples_tsv.save(train_samples)
+    power_dir.valid_samples_tsv.save(valid_samples)
+    power_dir.test_samples_tsv.save(test_samples)
 
     logging.info('Finished successfully')
 
@@ -163,8 +163,8 @@ def parse_args():
     parser.add_argument('ryn_dir', metavar='ryn-dir',
                         help='Path to (input) Ryn Directory')
 
-    parser.add_argument('ower_dir', metavar='ower-dir',
-                        help='Path to (output) OWER Directory')
+    parser.add_argument('power_dir', metavar='power-dir',
+                        help='Path to (output) POWER Directory')
 
     default_class_count = 100
     parser.add_argument('--class-count', dest='class_count', type=int, metavar='INT', default=default_class_count,
@@ -187,7 +187,7 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ryn-dir', args.ryn_dir))
-    logging.info('    {:24} {}'.format('ower-dir', args.ower_dir))
+    logging.info('    {:24} {}'.format('power-dir', args.power_dir))
     logging.info('    {:24} {}'.format('--class-count', args.class_count))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
     logging.info('    {:24} {}'.format('--sent-count', args.sent_count))

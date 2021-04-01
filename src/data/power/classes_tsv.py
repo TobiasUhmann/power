@@ -1,6 +1,6 @@
 """
-The `OWER Classes TSV` gives detailed information about the classes used in
-the `OWER Samples TSV`s.
+The `POWER Classes TSV` gives detailed information about the classes used in
+the `POWER Samples TSV`s.
 """
 
 import csv

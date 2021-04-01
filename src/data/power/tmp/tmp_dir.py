@@ -1,15 +1,15 @@
 """
-The `OWER Temp Directory` keeps intermediate files for debuggin purposes.
+The `POWER Temp Directory` keeps intermediate files for debuggin purposes.
 
 **Structure**
 
 ::
 
-    tmp/            # OWER Temp Directory
+    tmp/            # POWER Temp Directory
 
-        train.db    # OWER Train Triples DB
-        valid.db    # OWER Valid Triples DB
-        test.db     # OWER Test Triples DB
+        train.db    # POWER Train Triples DB
+        valid.db    # POWER Valid Triples DB
+        test.db     # POWER Test Triples DB
 
 |
 """
@@ -17,7 +17,7 @@ The `OWER Temp Directory` keeps intermediate files for debuggin purposes.
 from pathlib import Path
 
 from data.base_dir import BaseDir
-from data.ower.tmp.triples_db import TriplesDb
+from data.power.tmp.triples_db import TriplesDb
 
 
 class TmpDir(BaseDir):

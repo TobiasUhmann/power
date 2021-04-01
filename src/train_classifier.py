@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 import baseline.classifier
 import ower.classifier
-from data.ower.ower_dir import OwerDir, Sample
+from data.power.power_dir import PowerDir, Sample
 
 
 def main():
@@ -35,8 +35,8 @@ def main():
 def parse_args():
     parser = ArgumentParser()
 
-    parser.add_argument('ower_dir', metavar='ower-dir',
-                        help='Path to (input) OWER Directory')
+    parser.add_argument('power_dir', metavar='power-dir',
+                        help='Path to (input) POWER Directory')
 
     parser.add_argument('class_count', metavar='class-count', type=int,
                         help='Number of classes distinguished by the classifier')
@@ -66,8 +66,8 @@ def parse_args():
     parser.add_argument('--lr', dest='lr', type=float, metavar='FLOAT', default=default_learning_rate,
                         help='Learning rate (default: {})'.format(default_learning_rate))
 
-    model_choices = ['base', 'ower']
-    default_model = 'ower'
+    model_choices = ['base', 'power']
+    default_model = 'power'
     parser.add_argument('--model', dest='model', choices=model_choices, default=default_model)
 
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
@@ -83,7 +83,7 @@ def parse_args():
     ## Log applied config
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('ower-dir', args.ower_dir))
+    logging.info('    {:24} {}'.format('power-dir', args.power_dir))
     logging.info('    {:24} {}'.format('class-count', args.class_count))
     logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('    {:24} {}'.format('--batch-size', args.batch_size))
@@ -101,7 +101,7 @@ def parse_args():
 
 
 def train_classifier(args):
-    ower_dir_path = args.ower_dir
+    power_dir_path = args.power_dir
     class_count = args.class_count
     sent_count = args.sent_count
 
@@ -113,17 +113,17 @@ def train_classifier(args):
     model = args.model
     sent_len = args.sent_len
 
-    ## Check that (input) OWER Directory exists
+    ## Check that (input) POWER Directory exists
 
-    ower_dir = OwerDir(Path(ower_dir_path))
-    ower_dir.check()
+    power_dir = PowerDir(Path(power_dir_path))
+    power_dir.check()
 
     ## Load datasets
 
     train_set: List[Sample]
     valid_set: List[Sample]
 
-    train_set, valid_set, _, vocab = ower_dir.read_datasets(class_count, sent_count, vectors='glove.twitter.27B.200d')
+    train_set, valid_set, _, vocab = power_dir.read_datasets(class_count, sent_count, vectors='glove.twitter.27B.200d')
 
     ## Create dataloaders
 
@@ -157,7 +157,7 @@ def train_classifier(args):
 
     if model == 'base':
         classifier = baseline.classifier.Classifier.from_pre_trained(vocab, class_count).to(device)
-    elif model == 'ower':
+    elif model == 'power':
         classifier = ower.classifier.Classifier.from_pre_trained(vocab, class_count).to(device)
     else:
         raise

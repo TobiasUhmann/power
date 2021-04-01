@@ -1,12 +1,13 @@
+// Assert unique entity IDs
 CREATE CONSTRAINT UniqueEntityId ON (e:Entity) ASSERT e.id IS UNIQUE;
 
+// Load entities
 LOAD CSV WITH HEADERS FROM 'file:///entities.tsv' AS row FIELDTERMINATOR '\t'
-WITH toInteger(row.ent) AS ent, row.ent_lbl AS ent_lbl
-MERGE (e:Entity {id: ent, label: ent_lbl})
+MERGE (ent:Entity {id: toInteger(row.ent), label: row.ent_lbl})
 RETURN COUNT(*);
 
-MATCH (e:Entity)
-RETURN e
+MATCH (ent:Entity)
+RETURN ent
 LIMIT 5;
 
 MATCH (n) DETACH DELETE n;
