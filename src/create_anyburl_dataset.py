@@ -20,6 +20,8 @@ def main():
 
     create_anyburl_dataset(args)
 
+    logging.info('Finished successfully')
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -103,8 +105,6 @@ def create_anyburl_dataset(args):
              for head, rel, tail in cw_train_triples]
 
     facts_tsv.save(facts)
-
-    logging.info('Finished successfully')
 
 
 if __name__ == '__main__':

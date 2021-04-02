@@ -15,13 +15,62 @@ from data.power.power_dir import PowerDir
 def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO)
 
-    ## Parse args
-
     args = parse_args()
 
     if args.random_seed:
         random.seed(args.random_seed)
 
+    create_texter_dataset(args)
+
+    logging.info('Finished successfully')
+
+
+def parse_args():
+    parser = ArgumentParser()
+
+    parser.add_argument('split_dir', metavar='split-dir',
+                        help='Path to (input) IRT Split Directory')
+
+    parser.add_argument('text_dir', metavar='text-dir',
+                        help='Path to (input) IRT Text Directory')
+
+    parser.add_argument('power_dir', metavar='power-dir',
+                        help='Path to (output) POWER Directory')
+
+    default_class_count = 100
+    parser.add_argument('--class-count', dest='class_count', type=int, metavar='INT', default=default_class_count,
+                        help='Number of classes (default: {})'.format(default_class_count))
+
+    parser.add_argument('--overwrite', dest='overwrite', action='store_true',
+                        help='Overwrite output files if they already exist')
+
+    parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
+                        help='Use together with PYTHONHASHSEED for reproducibility')
+
+    default_sent_count = 5
+    parser.add_argument('--sent-count', dest='sent_count', type=int, metavar='INT', default=default_sent_count,
+                        help='Number of sentences per entity. Entities for which not enough sentences'
+                             ' are availabe are dropped. (default: {})'.format(default_sent_count))
+
+    args = parser.parse_args()
+
+    ## Log applied config
+
+    logging.info('Applied config:')
+    logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('text-dir', args.text_dir))
+    logging.info('    {:24} {}'.format('power-dir', args.power_dir))
+    logging.info('    {:24} {}'.format('--class-count', args.class_count))
+    logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
+    logging.info('    {:24} {}'.format('--sent-count', args.sent_count))
+
+    logging.info('Environment variables:')
+    logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
+
+    return args
+
+
+def create_texter_dataset(args):
     split_dir_path = args.split_dir
     text_dir_path = args.text_dir
     power_dir_path = args.power_dir
@@ -155,53 +204,6 @@ def main():
     power_dir.train_samples_tsv.save(train_samples)
     power_dir.valid_samples_tsv.save(valid_samples)
     power_dir.test_samples_tsv.save(test_samples)
-
-    logging.info('Finished successfully')
-
-
-def parse_args():
-    parser = ArgumentParser()
-
-    parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) IRT Split Directory')
-
-    parser.add_argument('text_dir', metavar='text-dir',
-                        help='Path to (input) IRT Text Directory')
-
-    parser.add_argument('power_dir', metavar='power-dir',
-                        help='Path to (output) POWER Directory')
-
-    default_class_count = 100
-    parser.add_argument('--class-count', dest='class_count', type=int, metavar='INT', default=default_class_count,
-                        help='Number of classes (default: {})'.format(default_class_count))
-
-    parser.add_argument('--overwrite', dest='overwrite', action='store_true',
-                        help='Overwrite output files if they already exist')
-
-    parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
-                        help='Use together with PYTHONHASHSEED for reproducibility')
-
-    default_sent_count = 5
-    parser.add_argument('--sent-count', dest='sent_count', type=int, metavar='INT', default=default_sent_count,
-                        help='Number of sentences per entity. Entities for which not enough sentences'
-                             ' are availabe are dropped. (default: {})'.format(default_sent_count))
-
-    args = parser.parse_args()
-
-    ## Log applied config
-
-    logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('split-dir', args.split_dir))
-    logging.info('    {:24} {}'.format('text-dir', args.text_dir))
-    logging.info('    {:24} {}'.format('power-dir', args.power_dir))
-    logging.info('    {:24} {}'.format('--class-count', args.class_count))
-    logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
-    logging.info('    {:24} {}'.format('--sent-count', args.sent_count))
-
-    logging.info('Environment variables:')
-    logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
-
-    return args
 
 
 if __name__ == '__main__':

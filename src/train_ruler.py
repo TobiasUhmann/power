@@ -30,6 +30,8 @@ def main():
 
     train_ruler(args)
 
+    logging.info('Finished successfully')
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -210,8 +212,6 @@ def train_ruler(args):
     ruler.pred = pred
 
     model_dir.ruler_pkl.save(ruler)
-
-    logging.info('Finished successfully')
 
 
 def get_defaultdict():

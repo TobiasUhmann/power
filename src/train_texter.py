@@ -29,6 +29,8 @@ def main():
 
     train(args)
 
+    logging.info('Finished successfully')
+
 
 def parse_args():
     parser = ArgumentParser()

@@ -19,7 +19,9 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    create_neo4j_dataset(args)
+    create_neo4j_graph(args)
+
+    logging.info('Finished successfully')
 
 
 def parse_args():
@@ -54,7 +56,7 @@ def parse_args():
     return args
 
 
-def create_neo4j_dataset(args):
+def create_neo4j_graph(args):
     split_dir_path = args.split_dir
     neo4j_dir_path = args.neo4j_dir
 
@@ -118,8 +120,6 @@ def create_neo4j_dataset(args):
     ow_test_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
                      for head, rel, tail in ow_test_triples]
     neo4j_dir.ow_test_facts_tsv.save(ow_test_facts)
-
-    logging.info('Finished')
 
 
 if __name__ == '__main__':

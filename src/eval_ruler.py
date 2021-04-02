@@ -24,6 +24,8 @@ def main():
 
     eval_ruler(args)
 
+    logging.info('Finished successfully')
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -143,8 +145,6 @@ def eval_ruler(args):
     print(skt_gt)
     print(skt_pred)
     print(prfs)
-
-    logging.info('Finished successfully')
 
 
 def get_defaultdict():

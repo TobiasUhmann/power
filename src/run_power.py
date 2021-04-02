@@ -21,6 +21,8 @@ def main():
 
     run_power(args)
 
+    logging.info('Finished successfully')
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -88,8 +90,6 @@ def run_power(args):
 
     preds = power.predict(Ent(entity, ent_to_lbl[entity]), sentences)
     pprint(preds)
-
-    logging.info('Finished successfully')
 
 
 def get_defaultdict():
