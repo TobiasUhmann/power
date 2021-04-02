@@ -3,12 +3,13 @@ import os
 import random
 from argparse import ArgumentParser
 from pathlib import Path
+from random import shuffle
 
+from data.irt.split.split_dir import SplitDir
 from data.neo4j.entities_tsv import Entity
 from data.neo4j.facts_tsv import Fact
-from data.neo4j.relations_tsv import Relation
 from data.neo4j.neo4j_dir import Neo4jDir
-from data.irt.split.split_dir import SplitDir
+from data.neo4j.relations_tsv import Relation
 
 
 def main():
@@ -19,7 +20,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    create_neo4j_graph(args)
+    create_neo4j_dataset(args)
 
     logging.info('Finished successfully')
 
@@ -56,34 +57,29 @@ def parse_args():
     return args
 
 
-def create_neo4j_graph(args):
+def create_neo4j_dataset(args):
     split_dir_path = args.split_dir
     neo4j_dir_path = args.neo4j_dir
 
-    #
-    # Check (input) IRT Split Directory
-    #
+    overwrite = args.overwrite
 
-    logging.info('Check (input) IRT Split Directory ...')
-
+    #
+    # Check that (input) IRT Split Directory exists
+    #
 
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
     #
-    # Create (output) Neo4j Directory
+    # Create that (output) Neo4j Directory does not exist
     #
 
-    logging.info('Create (output) Neo4j Directory ...')
-
     neo4j_dir = Neo4jDir(Path(neo4j_dir_path))
-    neo4j_dir.create()
+    neo4j_dir.create(overwrite=overwrite)
 
     #
     # Create dataset
     #
-
-    logging.info('Create dataset ...')
 
     # Load ent/rel labels
     ent_to_lbl = split_dir.ent_labels_txt.load()
@@ -97,29 +93,60 @@ def create_neo4j_graph(args):
     relations = [Relation(rel, lbl) for rel, lbl in rel_to_lbl.items()]
     neo4j_dir.relations_tsv.save(relations)
 
-    # Create Neo4j CW Train Facts TSV
+    #
+    # Create Neo4j Train Facts TSV
+    #
+
     cw_train_triples = split_dir.cw_train_triples_txt.load()
-    cw_train_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
-                      for head, rel, tail in cw_train_triples]
-    neo4j_dir.cw_train_facts_tsv.save(cw_train_facts)
-
-    # Create Neo4j CW Valid Facts TSV
     cw_valid_triples = split_dir.cw_valid_triples_txt.load()
-    cw_valid_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
-                      for head, rel, tail in cw_valid_triples]
-    neo4j_dir.cw_valid_facts_tsv.save(cw_valid_facts)
 
-    # Create Neo4j OW Valid Facts TSV
+    cw_triples = cw_train_triples + cw_valid_triples
+    shuffle(cw_triples)
+
+    train_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+                   for head, rel, tail in cw_triples]
+
+    neo4j_dir.train_facts_tsv.save(train_facts)
+
+    #
+    # Create Neo4j Valid Facts TSVs
+    #
+
     ow_valid_triples = split_dir.ow_valid_triples_txt.load()
-    ow_valid_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
-                      for head, rel, tail in ow_valid_triples]
-    neo4j_dir.ow_valid_facts_tsv.save(ow_valid_facts)
+    shuffle(ow_valid_triples)
 
-    # Create Neo4j OW Test Facts TSV
+    valid_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+                   for head, rel, tail in ow_valid_triples]
+
+    valid_facts_count = len(valid_facts)
+    v25 = valid_facts_count // 4
+    v50 = valid_facts_count // 2
+    v75 = valid_facts_count * 3 // 4
+    
+    neo4j_dir.valid_facts_25_1_tsv.save(valid_facts[:v25])
+    neo4j_dir.valid_facts_25_2_tsv.save(valid_facts[v25:v50])
+    neo4j_dir.valid_facts_25_3_tsv.save(valid_facts[v50:v75])
+    neo4j_dir.valid_facts_25_4_tsv.save(valid_facts[v75:])
+
+    #
+    # Create Neo4j Test Facts TSVs
+    #
+
     ow_test_triples = split_dir.ow_test_triples_txt.load()
-    ow_test_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
-                     for head, rel, tail in ow_test_triples]
-    neo4j_dir.ow_test_facts_tsv.save(ow_test_facts)
+    shuffle(ow_test_triples)
+
+    test_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
+                   for head, rel, tail in ow_test_triples]
+
+    test_facts_count = len(test_facts)
+    t25 = test_facts_count // 4
+    t50 = test_facts_count // 2
+    t75 = test_facts_count * 3 // 4
+    
+    neo4j_dir.test_facts_25_1_tsv.save(test_facts[:t25])
+    neo4j_dir.test_facts_25_2_tsv.save(test_facts[t25:t50])
+    neo4j_dir.test_facts_25_3_tsv.save(test_facts[t50:t75])
+    neo4j_dir.test_facts_25_4_tsv.save(test_facts[t75:])
 
 
 if __name__ == '__main__':
