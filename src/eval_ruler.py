@@ -30,11 +30,11 @@ def main():
 def parse_args():
     parser = ArgumentParser()
 
-    parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) IRT Split Directory')
-
     parser.add_argument('model_dir', metavar='model-dir',
                         help='Path to (input) POWER Model Directory')
+
+    parser.add_argument('split_dir', metavar='split-dir',
+                        help='Path to (input) IRT Split Directory')
 
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
@@ -46,8 +46,8 @@ def parse_args():
     #
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('split-dir', args.split_dir))
     logging.info('    {:24} {}'.format('model-dir', args.model_dir))
+    logging.info('    {:24} {}'.format('split-dir', args.split_dir))
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
@@ -56,17 +56,8 @@ def parse_args():
 
 
 def eval_ruler(args):
-    split_dir_path = args.split_dir
     model_dir_path = args.model_dir
-
-    #
-    # Check (input) IRT Split Directory
-    #
-
-    logging.info('Check (input) IRT Split Directory ...')
-
-    split_dir = SplitDir(Path(split_dir_path))
-    split_dir.check()
+    split_dir_path = args.split_dir
 
     #
     # Check (input) POWER Model Directory
@@ -78,7 +69,16 @@ def eval_ruler(args):
     model_dir.check()
 
     #
+    # Check (input) IRT Split Directory
     #
+
+    logging.info('Check (input) IRT Split Directory ...')
+
+    split_dir = SplitDir(Path(split_dir_path))
+    split_dir.check()
+
+    #
+    # Load train/valid facts
     #
 
     ent_to_lbl = split_dir.ent_labels_txt.load()
