@@ -1,9 +1,14 @@
-from typing import List
+from typing import List, Dict, Tuple
 
-from data.anyburl.rules.rules_tsv import Rule
+from models.ent import Ent
+from models.fact import Fact
+from models.rel import Rel
+from models.rule import Rule
 
 
 class Ruler:
+    pred: Dict[Ent, Dict[Tuple[Rel, Ent], List[Rule]]]
 
-    def train(self, rules: List[Rule]):
-        pass
+    def predict(self, ent: Ent) -> Dict[Fact, List[Rule]]:
+        return {Fact(ent, rel, tail): rules
+                for (rel, tail), rules in self.pred[ent].items()}

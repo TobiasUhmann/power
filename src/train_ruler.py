@@ -17,6 +17,7 @@ from models.rel import Rel
 from models.rule import Rule
 from models.split import Split
 from models.var import Var
+from power.ruler import Ruler
 
 
 def main():
@@ -143,7 +144,7 @@ def train_ruler(args):
     driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '1234567890'))
     unsupported_rules = 0
 
-    ruler = defaultdict(get_defaultdict)
+    pred = defaultdict(get_defaultdict)
 
     with driver.session() as session:
         for rule in short_rules:
@@ -192,7 +193,7 @@ def train_ruler(args):
 
             for fact in pred_facts:
                 if fact not in cw_train_facts:
-                    ruler[fact.head][(fact.rel, fact.tail)].append(rule)
+                    pred[fact.head][(fact.rel, fact.tail)].append(rule)
 
             if logging.getLogger().level == logging.DEBUG:
                 log_facts('Predictions', pred_facts, cw_train_facts, cw_valid_facts)
@@ -204,6 +205,9 @@ def train_ruler(args):
     #
 
     logging.info('Save ruler ...')
+
+    ruler = Ruler()
+    ruler.pred = pred
 
     model_dir.ruler_pkl.save(ruler)
 
