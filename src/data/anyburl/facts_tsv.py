@@ -17,7 +17,7 @@ rule mining. It has the structure required by AnyBURL
 
 |
 """
-
+import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -41,6 +41,8 @@ class FactsTsv(BaseFile):
         super().__init__(path)
 
     def save(self, facts: List[Fact]) -> None:
-        with open(self.path, 'w', encoding='utf-8') as f:
+        with open(self.path, 'w', encoding='utf-8', newline='') as f:
+            csv_writer = csv.writer(f, delimiter='\t')
+
             for head, rel, tail in facts:
-                f.write(f'{head}\t{rel}\t{tail}\n')
+                csv_writer.writerow((head, rel, tail))

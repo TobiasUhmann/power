@@ -4,10 +4,9 @@ import random
 import re
 from argparse import ArgumentParser
 from pathlib import Path
-from random import shuffle
 
 from data.anyburl.facts_tsv import Fact, FactsTsv
-from data.irt.split.split_dir import SplitDir
+from data.power.split.split_dir import SplitDir
 
 
 def main():
@@ -27,7 +26,7 @@ def parse_args():
     parser = ArgumentParser()
 
     parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) IRT Split Directory')
+                        help='Path to (input) POWER Split Directory')
 
     parser.add_argument('facts_tsv', metavar='facts-tsv',
                         help='Path to (output) AnyBURL Facts TSV')
@@ -83,28 +82,24 @@ def create_anyburl_dataset(args):
     # Create AnyBURL Facts TSV
     #
 
-    ent_to_lbl = split_dir.ent_labels_txt.load()
-    rel_to_lbl = split_dir.rel_labels_txt.load()
+    ent_to_lbl = split_dir.ent_labels_tsv.load()
+    rel_to_lbl = split_dir.rel_labels_tsv.load()
 
     def escape(text):
         return re.sub('[^0-9a-zA-Z]', '_', text)
 
     def stringify_ent(ent):
-        return f"{ent}_{escape(ent_to_lbl[ent])}"
+        return f'{ent}_{escape(ent_to_lbl[ent])}'
 
     def stringify_rel(rel):
-        return f"{rel}_{escape(rel_to_lbl[rel])}"
+        return f'{rel}_{escape(rel_to_lbl[rel])}'
 
-    cw_train_triples = split_dir.cw_train_triples_txt.load()
-    cw_valid_triples = split_dir.cw_valid_triples_txt.load()
+    train_facts = split_dir.train_facts_tsv.load()
 
-    cw_triples = cw_train_triples + cw_valid_triples
-    shuffle(cw_triples)
+    anyburl_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
+                     for head, _, rel, _, tail, _ in train_facts]
 
-    facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
-             for head, rel, tail in cw_train_triples]
-
-    facts_tsv.save(facts)
+    facts_tsv.save(anyburl_facts)
 
 
 if __name__ == '__main__':
