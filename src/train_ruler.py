@@ -8,7 +8,7 @@ from typing import Set, List
 
 from neo4j import GraphDatabase
 
-from data.anyburl.rules.rules_dir import RulesDir
+from data.power.rules.rules_dir import RulesDir
 from data.power.model.model_dir import ModelDir
 from data.irt.split.split_dir import SplitDir
 from models.ent import Ent
@@ -21,7 +21,7 @@ from power.ruler import Ruler
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
 
     args = parse_args()
 
@@ -38,6 +38,15 @@ def parse_args():
 
     parser.add_argument('rules_dir', metavar='rules-dir',
                         help='Path to (input) AnyBURL Rules Directory')
+
+    parser.add_argument('url', metavar='url',
+                        help='URL of running Neo4j instance')
+
+    parser.add_argument('username', metavar='username',
+                        help='Username for running Neo4j instance')
+
+    parser.add_argument('password', metavar='password',
+                        help='Password for running Neo4j instance')
 
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) IRT Split Directory')
@@ -59,6 +68,9 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('rules-dir', args.rules_dir))
+    logging.info('    {:24} {}'.format('url', args.url))
+    logging.info('    {:24} {}'.format('username', args.username))
+    logging.info('    {:24} {}'.format('password', args.password))
     logging.info('    {:24} {}'.format('split-dir', args.rules_dir))
     logging.info('    {:24} {}'.format('model-dir', args.model_dir))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
@@ -71,13 +83,16 @@ def parse_args():
 
 def train_ruler(args):
     rules_dir_path = args.rules_dir
+    url = args.url
+    username = args.username
+    password = args.password
     split_dir_path = args.split_dir
     model_dir_path = args.model_dir
 
     overwrite = args.overwrite
 
     #
-    # Check (input) AnyBURL Rules Directory
+    # Check that (input) POWER Rules Directory exists
     #
 
     logging.info('Check (input) AnyBURL Rules Directory ...')
@@ -86,16 +101,16 @@ def train_ruler(args):
     rules_dir.check()
 
     #
-    # Check (input) IRT Split Directory
+    # Check that (input) IRT Split Directory exists
     #
 
-    logging.info('Check (input) IRT Split Directory ...')
+    logging.info('Check that (input) IRT Split Directory exists ...')
 
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
     #
-    # Create (output) POWER Model Directory
+    # Check that (output) POWER Model Directory does not exist
     #
 
     logging.info('Create (output) POWER Model Directory ...')
@@ -104,31 +119,15 @@ def train_ruler(args):
     model_dir.create(overwrite=overwrite)
 
     #
-    #
-    #
-
-    ent_to_lbl = rules_dir.ent_labels_txt.load()
-    rel_to_lbl = rules_dir.rel_labels_txt.load()
-
-    #
-    #
-    #
-
-    cw_train_triples = split_dir.cw_train_triples_txt.load()
-    cw_train_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                      for head, rel, tail in cw_train_triples}
-
-    cw_valid_triples = split_dir.cw_valid_triples_txt.load()
-    cw_valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                      for head, rel, tail in cw_valid_triples}
-
-    #
     # Read rules
     #
 
     logging.info('Read rules ...')
 
-    anyburl_rules = rules_dir.cw_train_rules_tsv.load()
+    ent_to_lbl = rules_dir.ent_labels_txt.load()
+    rel_to_lbl = rules_dir.rel_labels_txt.load()
+
+    anyburl_rules = rules_dir.rules_tsv.load()
     rules = [Rule.from_anyburl(rule, ent_to_lbl, rel_to_lbl) for rule in anyburl_rules]
 
     good_rules = [rule for rule in rules if rule.conf > 0.5]
@@ -138,12 +137,28 @@ def train_ruler(args):
     log_rules('Rules', short_rules)
 
     #
+    # Read train/valid facts
+    #
+
+    cw_train_triples = split_dir.cw_train_triples_txt.load()
+    cw_valid_triples = split_dir.cw_valid_triples_txt.load()
+
+    train_triples = cw_train_triples + cw_valid_triples
+    train_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                   for head, rel, tail in train_triples}
+
+    ow_valid_triples = split_dir.ow_valid_triples_txt.load()
+
+    valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                   for head, rel, tail in ow_valid_triples}
+
+    #
     # Process rules
     #
 
     logging.info('Process rules ...')
 
-    driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '1234567890'))
+    driver = GraphDatabase.driver(url, auth=(username, password))
     unsupported_rules = 0
 
     pred = defaultdict(get_defaultdict)
@@ -161,20 +176,16 @@ def train_ruler(args):
 
             if type(body_fact.head) == Var and type(body_fact.tail) == Ent:
                 records = session.write_transaction(query_facts_by_rel_tail, rel=body_fact.rel, tail=body_fact.tail)
-                ents = [Ent(head.id, ent_to_lbl[head.id]) for head, _, _ in records]
+                ents = [Ent(head['id'], ent_to_lbl[head['id']]) for head, _, _ in records]
 
             elif type(body_fact.head) == Ent and type(body_fact.tail) == Var:
                 records = session.write_transaction(query_facts_by_head_rel, head=body_fact.head, rel=body_fact.rel)
-                ents = [Ent(tail.id, ent_to_lbl[tail.id]) for _, _, tail in records]
+                ents = [Ent(tail['id'], ent_to_lbl[tail['id']]) for _, _, tail in records]
 
             else:
                 logging.warning(f'Unsupported rule body in rule {rule}. Skipping.')
                 unsupported_rules += 1
                 continue
-
-            if logging.getLogger().level == logging.DEBUG:
-                groundings = [Fact.from_neo4j(rec) for rec in records]
-                log_facts('Groundings', groundings, cw_train_facts, cw_valid_facts)
 
             #
             # Process rule head
@@ -193,17 +204,21 @@ def train_ruler(args):
                 unsupported_rules += 1
                 continue
 
+            #
+            # Filter out train facts and save predicted valid facts
+            #
+
             for fact in pred_facts:
-                if fact not in cw_train_facts:
+                if fact not in train_facts:
                     pred[fact.head][(fact.rel, fact.tail)].append(rule)
 
             if logging.getLogger().level == logging.DEBUG:
-                log_facts('Predictions', pred_facts, cw_train_facts, cw_valid_facts)
+                log_facts('Predictions', pred_facts, train_facts, valid_facts)
 
     driver.close()
 
     #
-    # Save ruler
+    # Persist ruler
     #
 
     logging.info('Save ruler ...')
