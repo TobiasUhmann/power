@@ -42,8 +42,5 @@ class FactsTsv(BaseFile):
 
     def save(self, facts: List[Fact]) -> None:
         with open(self.path, 'w', encoding='utf-8') as f:
-            row = '\t'.join(['{}'] * 3) + '\n'
-
-            f.write(row.format('head', 'rel', 'tail'))
             for head, rel, tail in facts:
-                f.write(row.format(head, rel, tail))
+                f.write(f'{head}\t{rel}\t{tail}\n')

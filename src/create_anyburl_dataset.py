@@ -6,8 +6,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from random import shuffle
 
-from data.anyburl.facts.facts_dir import FactsDir
-from data.anyburl.facts.facts_tsv import Fact
+from data.anyburl.facts_tsv import Fact, FactsTsv
 from data.ryn.split.split_dir import SplitDir
 
 
@@ -28,8 +27,8 @@ def parse_args():
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) Ryn Split Directory')
 
-    parser.add_argument('facts_dir', metavar='facts-dir',
-                        help='Path to (output) AnyBURL Facts Directory')
+    parser.add_argument('facts_tsv', metavar='facts-tsv',
+                        help='Path to (output) AnyBURL Facts TSV')
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -45,8 +44,9 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
-    logging.info('    {:24} {}'.format('facts-dir', args.facts_dir))
+    logging.info('    {:24} {}'.format('facts-tsv', args.facts_tsv))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
+    logging.info('    {:24} {}'.format('--random-seed', args.random_seed))
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
@@ -56,35 +56,31 @@ def parse_args():
 
 def create_anyburl_dataset(args):
     split_dir_path = args.split_dir
-    facts_dir_path = args.facts_dir
+    facts_tsv_path = args.facts_tsv
 
     overwrite = args.overwrite
 
     #
-    # Check (input) Ryn Split Directory
+    # Check that (input) Ryn Split Directory exists
     #
-
-    logging.info('Check (input) Ryn Split Directory ...')
 
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
     #
-    # Create (output) AnyBURL Facts Directory
+    # Check that (output) AnyBURL Facts TSV does not exist
     #
 
-    logging.info('Create (output) AnyBURL Facts Directory ...')
+    facts_tsv = FactsTsv(Path(facts_tsv_path))
+    if not overwrite:
+        facts_tsv.check(should_exist=False)
 
-    facts_dir = FactsDir(Path(facts_dir_path))
-    facts_dir.create(overwrite=overwrite)
+    facts_tsv.path.parent.mkdir(parents=True, exist_ok=True)
 
     #
-    # Create dataset
+    # Create AnyBURL Facts TSV
     #
 
-    logging.info('Create dataset ...')
-
-    # Load ent/rel labels
     ent_to_lbl = split_dir.ent_labels_txt.load()
     rel_to_lbl = split_dir.rel_labels_txt.load()
 
@@ -97,33 +93,16 @@ def create_anyburl_dataset(args):
     def stringify_rel(rel):
         return f"{rel}_{escape(rel_to_lbl[rel])}"
 
-    # Create AnyBURL CW Train Facts TSV
     cw_train_triples = split_dir.cw_train_triples_txt.load()
-    shuffle(cw_train_triples)
-    cw_train_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
-                      for head, rel, tail in cw_train_triples]
-    facts_dir.cw_train_facts_tsv.save(cw_train_facts)
-
-    # Create AnyBURL CW Valid Facts TSV
     cw_valid_triples = split_dir.cw_valid_triples_txt.load()
-    shuffle(cw_valid_triples)
-    cw_valid_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
-                      for head, rel, tail in cw_valid_triples]
-    facts_dir.cw_valid_facts_tsv.save(cw_valid_facts)
 
-    # Create AnyBURL OW Valid Facts TSV
-    ow_valid_triples = split_dir.ow_valid_triples_txt.load()
-    shuffle(ow_valid_triples)
-    ow_valid_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
-                      for head, rel, tail in ow_valid_triples]
-    facts_dir.ow_valid_facts_tsv.save(ow_valid_facts)
+    cw_triples = cw_train_triples + cw_valid_triples
+    shuffle(cw_triples)
 
-    # Create AnyBURL OW Test Facts TSV
-    ow_test_triples = split_dir.ow_test_triples_txt.load()
-    shuffle(ow_test_triples)
-    ow_test_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
-                     for head, rel, tail in ow_test_triples]
-    facts_dir.ow_test_facts_tsv.save(ow_test_facts)
+    facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
+             for head, rel, tail in cw_train_triples]
+
+    facts_tsv.save(facts)
 
     logging.info('Finished successfully')
 
