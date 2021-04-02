@@ -19,7 +19,7 @@ from pathlib import Path
 
 from data.anyburl.rules.rules_tsv import RulesTsv
 from data.base_dir import BaseDir
-from data.ryn.split.labels_txt import LabelsTxt
+from data.irt.split.labels_txt import LabelsTxt
 
 
 class RulesDir(BaseDir):

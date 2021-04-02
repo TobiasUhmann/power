@@ -1,15 +1,15 @@
 """
-The `Ryn Text Directory` contains the entities' sentences.
+The `IRT Text Directory` contains the entities' sentences.
 
 **Structure**
 
 ::
 
-    text/                         # Ryn Text Directory
+    text/                         # IRT Text Directory
 
-        cw.train-sentences.txt    # Ryn CW Train Sentences TXT
-        ow.valid-sentences.txt    # Ryn OW Valid Sentences TXT
-        ow.test-sentences.txt     # Ryn OW Test Sentences TXT
+        cw.train-sentences.txt    # IRT CW Train Sentences TXT
+        ow.valid-sentences.txt    # IRT OW Valid Sentences TXT
+        ow.test-sentences.txt     # IRT OW Test Sentences TXT
 
 |
 """
@@ -17,7 +17,7 @@ The `Ryn Text Directory` contains the entities' sentences.
 from pathlib import Path
 
 from data.base_dir import BaseDir
-from data.ryn.text.sents_txt import SentsTxt
+from data.irt.text.sents_txt import SentsTxt
 
 
 class TextDir(BaseDir):

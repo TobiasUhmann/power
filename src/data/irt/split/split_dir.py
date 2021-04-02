@@ -1,20 +1,20 @@
 """
-The `Ryn Split Directory` contains the files that define the triples
+The `IRT Split Directory` contains the files that define the triples
 split into train/valid/test.
 
 **Structure**
 
 ::
 
-    split/                 # Ryn Split Directory
+    split/                 # IRT Split Directory
 
-        entity2id.txt      # Ryn Entity Labels TXT
-        relation2id.txt    # Ryn Relation Labels TXT
+        entity2id.txt      # IRT Entity Labels TXT
+        relation2id.txt    # IRT Relation Labels TXT
 
-        cw.train2id.txt    # Ryn CW Train Triples TXT
-        cw.valid2id.txt    # Ryn CW Valid Triples TXT
-        ow.valid2id.txt    # Ryn OW Valid Triples TXT
-        ow.test2id.txt     # Ryn OW Test Triples TXT
+        cw.train2id.txt    # IRT CW Train Triples TXT
+        cw.valid2id.txt    # IRT CW Valid Triples TXT
+        ow.valid2id.txt    # IRT OW Valid Triples TXT
+        ow.test2id.txt     # IRT OW Test Triples TXT
 
 |
 """
@@ -22,8 +22,8 @@ split into train/valid/test.
 from pathlib import Path
 
 from data.base_dir import BaseDir
-from data.ryn.split.labels_txt import LabelsTxt
-from data.ryn.split.triples_txt import TriplesTxt
+from data.irt.split.labels_txt import LabelsTxt
+from data.irt.split.triples_txt import TriplesTxt
 
 
 class SplitDir(BaseDir):

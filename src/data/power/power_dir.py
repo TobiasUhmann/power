@@ -29,7 +29,7 @@ from data.base_dir import BaseDir
 from data.power.classes_tsv import ClassesTsv
 from data.power.samples_tsv import SamplesTsv
 from data.power.tmp.tmp_dir import TmpDir
-from data.ryn.split.labels_txt import LabelsTxt
+from data.irt.split.labels_txt import LabelsTxt
 
 
 class PowerDir(BaseDir):

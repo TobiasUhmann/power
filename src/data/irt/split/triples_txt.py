@@ -1,5 +1,5 @@
 """
-The `Ryn Triples TXT` stores triples using RIDs.
+The `IRT Triples TXT` stores triples using RIDs.
 
 * Header row specifies number of triples
 * Space separated RIDs

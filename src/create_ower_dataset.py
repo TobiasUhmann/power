@@ -7,8 +7,9 @@ from random import sample
 from shutil import copyfile
 from typing import Dict, Set, List, Tuple
 
+from data.irt.split.split_dir import SplitDir
+from data.irt.text.text_dir import TextDir
 from data.power.power_dir import PowerDir
-from data.ryn.ryn_dir import RynDir
 
 
 def main():
@@ -21,31 +22,32 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    ryn_dir_path = args.ryn_dir
+    split_dir_path = args.split_dir
+    text_dir_path = args.text_dir
     power_dir_path = args.power_dir
 
     class_count = args.class_count
     sent_count = args.sent_count
 
-    ## Check (input) Ryn Directory
+    ## Check (input) IRT Split Directory
 
-    logging.info('Check (input) Ryn Directory ...')
+    split_dir = SplitDir(Path(split_dir_path))
+    split_dir.check()
 
-    ryn_dir = RynDir(Path(ryn_dir_path))
-    ryn_dir.check()
+    ## Check (input) IRT Split Directory
+
+    text_dir = TextDir(Path(text_dir_path))
+    text_dir.check()
 
     ## Create (output) POWER Directory
-
-    logging.info('Create (output) POWER Directory ...')
 
     power_dir = PowerDir(Path(power_dir_path))
     power_dir.create()
 
-    ## Load Ryn Triples TXTs
+    ## Load IRT Triples TXTs
 
-    logging.info('Load Ryn Triples TXTs ...')
+    logging.info('Load IRT Triples TXTs ...')
 
-    split_dir = ryn_dir.split_dir
     cw_train_triples: List[Tuple[int, int, int]] = split_dir.cw_train_triples_txt.load()
     cw_valid_triples: List[Tuple[int, int, int]] = split_dir.cw_valid_triples_txt.load()
     ow_valid_triples: List[Tuple[int, int, int]] = split_dir.ow_valid_triples_txt.load()
@@ -71,12 +73,12 @@ def main():
     test_triples_db.create_triples_table()
     test_triples_db.insert_triples(test_triples)
 
-    ## Copy Ryn Label TXTs to POWER Dir
+    ## Copy IRT Label TXTs to POWER Dir
 
-    logging.info('Copy Ryn Label TXTs to POWER Dir ...')
+    logging.info('Copy IRT Label TXTs to POWER Dir ...')
 
-    copyfile(ryn_dir.split_dir.ent_labels_txt.path, power_dir.ent_labels_txt.path)
-    copyfile(ryn_dir.split_dir.rel_labels_txt.path, power_dir.rel_labels_txt.path)
+    copyfile(split_dir.ent_labels_txt.path, power_dir.ent_labels_txt.path)
+    copyfile(split_dir.rel_labels_txt.path, power_dir.rel_labels_txt.path)
 
     ## Query most common classes and write them to Classes TSV
 
@@ -117,9 +119,9 @@ def main():
 
     logging.info('Create POWER Sample TSVs ...')
 
-    train_ent_to_sents: Dict[int, Set[str]] = ryn_dir.text_dir.cw_train_sents_txt.load()
-    valid_ent_to_sents: Dict[int, Set[str]] = ryn_dir.text_dir.ow_valid_sents_txt.load()
-    test_ent_to_sents: Dict[int, Set[str]] = ryn_dir.text_dir.ow_test_sents_txt.load()
+    train_ent_to_sents: Dict[int, Set[str]] = text_dir.cw_train_sents_txt.load()
+    valid_ent_to_sents: Dict[int, Set[str]] = text_dir.ow_valid_sents_txt.load()
+    test_ent_to_sents: Dict[int, Set[str]] = text_dir.ow_test_sents_txt.load()
 
     def get_samples(ent_to_sents, class_ents):
         """
@@ -160,8 +162,11 @@ def main():
 def parse_args():
     parser = ArgumentParser()
 
-    parser.add_argument('ryn_dir', metavar='ryn-dir',
-                        help='Path to (input) Ryn Directory')
+    parser.add_argument('split_dir', metavar='split-dir',
+                        help='Path to (input) IRT Split Directory')
+
+    parser.add_argument('text_dir', metavar='text-dir',
+                        help='Path to (input) IRT Text Directory')
 
     parser.add_argument('power_dir', metavar='power-dir',
                         help='Path to (output) POWER Directory')
@@ -186,7 +191,8 @@ def parse_args():
     ## Log applied config
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('ryn-dir', args.ryn_dir))
+    logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('text-dir', args.text_dir))
     logging.info('    {:24} {}'.format('power-dir', args.power_dir))
     logging.info('    {:24} {}'.format('--class-count', args.class_count))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))

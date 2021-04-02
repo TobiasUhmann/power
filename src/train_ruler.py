@@ -10,7 +10,7 @@ from neo4j import GraphDatabase
 
 from data.anyburl.rules.rules_dir import RulesDir
 from data.power.model.model_dir import ModelDir
-from data.ryn.split.split_dir import SplitDir
+from data.irt.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
 from models.rel import Rel
@@ -21,7 +21,7 @@ from power.ruler import Ruler
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.DEBUG)
 
     args = parse_args()
 
@@ -38,7 +38,7 @@ def parse_args():
                         help='Path to (input) AnyBURL Rules Directory')
 
     parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) Ryn Split Directory')
+                        help='Path to (input) IRT Split Directory')
 
     parser.add_argument('model_dir', metavar='model-dir',
                         help='Path to (output) POWER Model Directory')
@@ -84,10 +84,10 @@ def train_ruler(args):
     rules_dir.check()
 
     #
-    # Check (input) Ryn Split Directory
+    # Check (input) IRT Split Directory
     #
 
-    logging.info('Check (input) Ryn Split Directory ...')
+    logging.info('Check (input) IRT Split Directory ...')
 
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
@@ -129,7 +129,7 @@ def train_ruler(args):
     anyburl_rules = rules_dir.cw_train_rules_tsv.load()
     rules = [Rule.from_anyburl(rule, ent_to_lbl, rel_to_lbl) for rule in anyburl_rules]
 
-    good_rules = [rule for rule in rules if rule.conf > 0.8]
+    good_rules = [rule for rule in rules if rule.conf > 0.5]
     good_rules.sort(key=lambda rule: rule.conf, reverse=True)
 
     short_rules = [rule for rule in good_rules if len(rule.body) == 1]

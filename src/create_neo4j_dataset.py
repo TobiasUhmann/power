@@ -8,7 +8,7 @@ from data.neo4j.entities_tsv import Entity
 from data.neo4j.facts_tsv import Fact
 from data.neo4j.relations_tsv import Relation
 from data.neo4j.neo4j_dir import Neo4jDir
-from data.ryn.split.split_dir import SplitDir
+from data.irt.split.split_dir import SplitDir
 
 
 def main():
@@ -26,7 +26,7 @@ def parse_args():
     parser = ArgumentParser()
 
     parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) Ryn Split Directory')
+                        help='Path to (input) IRT Split Directory')
 
     parser.add_argument('neo4j_dir', metavar='neo4j-dir',
                         help='Path to (output) Neo4j Directory')
@@ -59,10 +59,10 @@ def create_neo4j_dataset(args):
     neo4j_dir_path = args.neo4j_dir
 
     #
-    # Check (input) Ryn Split Directory
+    # Check (input) IRT Split Directory
     #
 
-    logging.info('Check (input) Ryn Split Directory ...')
+    logging.info('Check (input) IRT Split Directory ...')
 
 
     split_dir = SplitDir(Path(split_dir_path))

@@ -7,7 +7,7 @@ from pathlib import Path
 from random import shuffle
 
 from data.anyburl.facts_tsv import Fact, FactsTsv
-from data.ryn.split.split_dir import SplitDir
+from data.irt.split.split_dir import SplitDir
 
 
 def main():
@@ -25,7 +25,7 @@ def parse_args():
     parser = ArgumentParser()
 
     parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) Ryn Split Directory')
+                        help='Path to (input) IRT Split Directory')
 
     parser.add_argument('facts_tsv', metavar='facts-tsv',
                         help='Path to (output) AnyBURL Facts TSV')
@@ -61,7 +61,7 @@ def create_anyburl_dataset(args):
     overwrite = args.overwrite
 
     #
-    # Check that (input) Ryn Split Directory exists
+    # Check that (input) IRT Split Directory exists
     #
 
     split_dir = SplitDir(Path(split_dir_path))

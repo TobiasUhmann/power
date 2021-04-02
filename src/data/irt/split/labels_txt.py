@@ -1,5 +1,5 @@
 """
-The `Ryn Labels TXT` contains the entities' or relations' labels.
+The `IRT Labels TXT` contains the entities' or relations' labels.
 
 * Header row specifies number of entities/relations
 * Space separated

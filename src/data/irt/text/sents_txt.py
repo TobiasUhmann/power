@@ -1,5 +1,5 @@
 """
-The `Ryn Sentences TXT` stores the entities' sentences.
+The `IRT Sentences TXT` stores the entities' sentences.
 
 * Header row
 * Entity RID | Entity label | Sentences

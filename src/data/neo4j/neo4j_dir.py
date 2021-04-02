@@ -1,6 +1,6 @@
 """
 The `Neo4j Directory` contains the `Neo4j Dataset`, which is the KG defined
-in the `Ryn Split Directory`, but in a form that can be imported to Neo4j.
+in the `IRT Split Directory`, but in a form that can be imported to Neo4j.
 
 **Structure**
 
