@@ -82,8 +82,8 @@ def create_anyburl_dataset(args):
     # Create AnyBURL Facts TSV
     #
 
-    ent_to_lbl = split_dir.ent_labels_tsv.load()
-    rel_to_lbl = split_dir.rel_labels_tsv.load()
+    ent_to_lbl = split_dir.entities_tsv.load()
+    rel_to_lbl = split_dir.relations_tsv.load()
 
     def escape(text):
         return re.sub('[^0-9a-zA-Z]', '_', text)
@@ -94,7 +94,7 @@ def create_anyburl_dataset(args):
     def stringify_rel(rel):
         return f'{rel}_{escape(rel_to_lbl[rel])}'
 
-    train_facts = split_dir.train_facts_tsv.load()
+    train_facts = split_dir.train_tsv.load()
 
     anyburl_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                      for head, _, rel, _, tail, _ in train_facts]

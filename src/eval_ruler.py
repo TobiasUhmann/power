@@ -64,7 +64,7 @@ def parse_args():
 def eval_ruler(args):
     ruler_pkl_path = args.ruler_pkl
 
-    train_facts_tsv_path = args.train_facts_tsv
+    train_facts_tsv_path = args.train_tsv
     test_facts_tsv_paths = args.test_facts_tsv_paths
 
     #
@@ -78,11 +78,11 @@ def eval_ruler(args):
     # Load train/valid facts
     #
 
-    ent_to_lbl = split_dir.ent_labels_tsv.load()
-    rel_to_lbl = split_dir.rel_labels_tsv.load()
+    ent_to_lbl = split_dir.entities_tsv.load()
+    rel_to_lbl = split_dir.relations_tsv.load()
 
-    valid_rows = split_dir.test_facts_25_1_tsv.load() + \
-                 split_dir.test_facts_25_2_tsv.load() + \
+    valid_rows = split_dir.test_known_tsv.load() + \
+                 split_dir.test_unknown_tsv.load() + \
                  split_dir.test_facts_25_3_tsv.load() + \
                  split_dir.test_facts_25_4_tsv.load()
 

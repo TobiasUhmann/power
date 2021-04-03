@@ -8,20 +8,16 @@ split into train/valid/test.
 
     split/
 
-        ent_labels.tsv
-        rel_labels.tsv
+        entities.tsv
+        relations.tsv
 
-        train_facts.tsv
+        train.tsv
         
-        valid_facts_25_1.tsv
-        valid_facts_25_2.tsv
-        valid_facts_25_3.tsv
-        valid_facts_25_4.tsv
-        
-        test_facts_25_1.tsv
-        test_facts_25_2.tsv
-        test_facts_25_3.tsv
-        test_facts_25_4.tsv
+        valid_known.tsv
+        valid_unknown.tsv
+
+        test_known.tsv
+        test_unknown.tsv
 
 |
 """
@@ -35,53 +31,41 @@ from data.power.split.labels_tsv import LabelsTsv
 
 class SplitDir(BaseDir):
 
-    ent_labels_tsv: LabelsTsv
-    rel_labels_tsv: LabelsTsv
+    entities_tsv: LabelsTsv
+    relations_tsv: LabelsTsv
     
-    train_facts_tsv: FactsTsv
+    train_tsv: FactsTsv
     
-    valid_facts_25_1_tsv: FactsTsv
-    valid_facts_25_2_tsv: FactsTsv
-    valid_facts_25_3_tsv: FactsTsv
-    valid_facts_25_4_tsv: FactsTsv
-    
-    test_facts_25_1_tsv: FactsTsv
-    test_facts_25_2_tsv: FactsTsv
-    test_facts_25_3_tsv: FactsTsv
-    test_facts_25_4_tsv: FactsTsv
+    valid_known_tsv: FactsTsv
+    valid_unknown_tsv: FactsTsv
+
+    test_known_tsv: FactsTsv
+    test_unknown_tsv: FactsTsv
 
     def __init__(self, path: Path):
         super().__init__(path)
 
-        self.ent_labels_tsv = LabelsTsv(path.joinpath('ent_labels.tsv'))
-        self.rel_labels_tsv = LabelsTsv(path.joinpath('rel_labels.tsv'))
+        self.entities_tsv = LabelsTsv(path.joinpath('entities.tsv'))
+        self.relations_tsv = LabelsTsv(path.joinpath('relations.tsv'))
 
-        self.train_facts_tsv = FactsTsv(path.joinpath('train_facts.tsv'))
+        self.train_tsv = FactsTsv(path.joinpath('train.tsv'))
 
-        self.valid_facts_25_1_tsv = FactsTsv(path.joinpath('valid_facts_25_1.tsv'))
-        self.valid_facts_25_2_tsv = FactsTsv(path.joinpath('valid_facts_25_2.tsv'))
-        self.valid_facts_25_3_tsv = FactsTsv(path.joinpath('valid_facts_25_3.tsv'))
-        self.valid_facts_25_4_tsv = FactsTsv(path.joinpath('valid_facts_25_4.tsv'))
+        self.valid_known_tsv = FactsTsv(path.joinpath('valid_known.tsv'))
+        self.valid_unknown_tsv = FactsTsv(path.joinpath('valid_unknown.tsv'))
 
-        self.test_facts_25_1_tsv = FactsTsv(path.joinpath('test_facts_25_1.tsv'))
-        self.test_facts_25_2_tsv = FactsTsv(path.joinpath('test_facts_25_2.tsv'))
-        self.test_facts_25_3_tsv = FactsTsv(path.joinpath('test_facts_25_3.tsv'))
-        self.test_facts_25_4_tsv = FactsTsv(path.joinpath('test_facts_25_4.tsv'))
+        self.test_known_tsv = FactsTsv(path.joinpath('test_known.tsv'))
+        self.test_unknown_tsv = FactsTsv(path.joinpath('test_unknown.tsv'))
 
     def check(self) -> None:
         super().check()
 
-        self.ent_labels_tsv.check()
-        self.rel_labels_tsv.check()
+        self.entities_tsv.check()
+        self.relations_tsv.check()
 
-        self.train_facts_tsv.check()
+        self.train_tsv.check()
 
-        self.valid_facts_25_1_tsv.check()
-        self.valid_facts_25_2_tsv.check()
-        self.valid_facts_25_3_tsv.check()
-        self.valid_facts_25_4_tsv.check()
+        self.valid_known_tsv.check()
+        self.valid_unknown_tsv.check()
 
-        self.test_facts_25_1_tsv.check()
-        self.test_facts_25_2_tsv.check()
-        self.test_facts_25_3_tsv.check()
-        self.test_facts_25_4_tsv.check()
+        self.test_known_tsv.check()
+        self.test_unknown_tsv.check()

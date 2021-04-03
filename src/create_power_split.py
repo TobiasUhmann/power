@@ -18,7 +18,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    create_split(args)
+    create_power_split(args)
 
     logging.info('Finished successfully')
 
@@ -31,6 +31,9 @@ def parse_args():
 
     parser.add_argument('power_split_dir', metavar='power-split-dir',
                         help='Path to (output) POWER Split Directory')
+
+    parser.add_argument('--known', dest='known', type=int, metavar='INT',
+                        help='Percentage of known facts for test entities')
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -47,6 +50,7 @@ def parse_args():
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('irt-split-dir', args.irt_split_dir))
     logging.info('    {:24} {}'.format('power-split-dir', args.power_split_dir))
+    logging.info('    {:24} {}'.format('--known', args.known))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
 
     logging.info('Environment variables:')
@@ -55,10 +59,11 @@ def parse_args():
     return args
 
 
-def create_split(args):
+def create_power_split(args):
     irt_split_dir_path = args.irt_split_dir
     power_split_dir_path = args.power_split_dir
 
+    known = args.known
     overwrite = args.overwrite
 
     #
@@ -76,17 +81,17 @@ def create_split(args):
     power_split_dir.create(overwrite=overwrite)
 
     #
-    # Create POWER Labels TSVs
+    # Create Entities/Relations TSV
     #
 
     ent_to_lbl = irt_split_dir.ent_labels_txt.load()
     rel_to_lbl = irt_split_dir.rel_labels_txt.load()
 
-    power_split_dir.ent_labels_tsv.save(ent_to_lbl)
-    power_split_dir.rel_labels_tsv.save(rel_to_lbl)
+    power_split_dir.entities_tsv.save(ent_to_lbl)
+    power_split_dir.relations_tsv.save(rel_to_lbl)
 
     #
-    # Create Train Facts TSV
+    # Create Train TSV
     #
 
     cw_train_triples = irt_split_dir.cw_train_triples_txt.load()
@@ -98,10 +103,10 @@ def create_split(args):
     train_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
                    for head, rel, tail in cw_triples]
 
-    power_split_dir.train_facts_tsv.save(train_facts)
+    power_split_dir.train_tsv.save(train_facts)
 
     #
-    # Create Valid Facts TSVs
+    # Create Valid Known/Unknown TSV
     #
 
     ow_valid_triples = irt_split_dir.ow_valid_triples_txt.load()
@@ -111,14 +116,10 @@ def create_split(args):
                    for head, rel, tail in ow_valid_triples]
 
     valid_facts_count = len(valid_facts)
-    v25 = valid_facts_count // 4
-    v50 = valid_facts_count // 2
-    v75 = valid_facts_count * 3 // 4
+    valid_known_count = int(valid_facts_count * known / 100)
 
-    power_split_dir.valid_facts_25_1_tsv.save(valid_facts[:v25])
-    power_split_dir.valid_facts_25_2_tsv.save(valid_facts[v25:v50])
-    power_split_dir.valid_facts_25_3_tsv.save(valid_facts[v50:v75])
-    power_split_dir.valid_facts_25_4_tsv.save(valid_facts[v75:])
+    power_split_dir.valid_known_tsv.save(valid_facts[:valid_known_count])
+    power_split_dir.valid_unknown_tsv.save(valid_facts[valid_known_count:])
 
     #
     # Create Neo4j Test Facts TSVs
@@ -131,14 +132,10 @@ def create_split(args):
                   for head, rel, tail in ow_test_triples]
 
     test_facts_count = len(test_facts)
-    t25 = test_facts_count // 4
-    t50 = test_facts_count // 2
-    t75 = test_facts_count * 3 // 4
+    test_known_count = int(test_facts_count * known / 100)
 
-    power_split_dir.test_facts_25_1_tsv.save(test_facts[:t25])
-    power_split_dir.test_facts_25_2_tsv.save(test_facts[t25:t50])
-    power_split_dir.test_facts_25_3_tsv.save(test_facts[t50:t75])
-    power_split_dir.test_facts_25_4_tsv.save(test_facts[t75:])
+    power_split_dir.test_known_tsv.save(test_facts[:test_known_count])
+    power_split_dir.test_unknown_tsv.save(test_facts[test_known_count:])
 
 
 if __name__ == '__main__':

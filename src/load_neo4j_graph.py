@@ -72,7 +72,7 @@ def load_neo4j_graph(args):
     username = args.username
     password = args.password
     entities_tsv = args.entities_tsv
-    train_facts_tsv = args.train_facts_tsv
+    train_facts_tsv = args.train_tsv
     test_facts_tsvs = args.test_facts_tsvs
 
     overwrite = args.overwrite
