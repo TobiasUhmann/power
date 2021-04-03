@@ -8,8 +8,9 @@ from pathlib import Path
 from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
 
-from data.irt.split.split_dir import SplitDir
-from data.power.model.model_dir import ModelDir
+from data.irt.text.text_dir import TextDir
+from data.power.model.ruler_pkl import RulerPkl
+from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
 
@@ -30,11 +31,14 @@ def main():
 def parse_args():
     parser = ArgumentParser()
 
-    parser.add_argument('model_dir', metavar='model-dir',
-                        help='Path to (input) POWER Model Directory')
+    parser.add_argument('ruler_pkl', metavar='ruler-pkl',
+                        help='Path to (input) POWER Ruler PKL')
 
-    parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) IRT Split Directory')
+    parser.add_argument('train_facts_tsv', metavar='train-facts-tsv',
+                        help='Path to (input) POWER Train Facts TSV')
+
+    parser.add_argument('test_facts_tsvs', metavar='test-facts-tsvs', nargs='*',
+                        help='Paths to (input) POWER Test Facts TSVs')
 
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
@@ -46,7 +50,9 @@ def parse_args():
     #
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('model-dir', args.model_dir))
+    logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
+    logging.info('    {:24} {}'.format('train-facts-tsv', args.train_facts_tsv))
+    logging.info('    {:24} {}'.format('test-facts-tsvs', args.test_facts_tsvs))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
 
     logging.info('Environment variables:')
@@ -56,41 +62,35 @@ def parse_args():
 
 
 def eval_ruler(args):
-    model_dir_path = args.model_dir
-    split_dir_path = args.split_dir
+    ruler_pkl_path = args.ruler_pkl
+
+    train_facts_tsv_path = args.train_facts_tsv
+    test_facts_tsv_paths = args.test_facts_tsv_paths
 
     #
-    # Check (input) POWER Model Directory
+    # Check that (input) POWER Ruler PKL exists
     #
 
-    logging.info('Check (input) POWER Model Directory ...')
-
-    model_dir = ModelDir(Path(model_dir_path))
-    model_dir.check()
-
-    #
-    # Check (input) IRT Split Directory
-    #
-
-    logging.info('Check (input) IRT Split Directory ...')
-
-    split_dir = SplitDir(Path(split_dir_path))
-    split_dir.check()
+    ruler_pkl = RulerPkl(Path(ruler_pkl_path))
+    ruler_pkl.check()
 
     #
     # Load train/valid facts
     #
 
-    ent_to_lbl = split_dir.ent_labels_txt.load()
-    rel_to_lbl = split_dir.rel_labels_txt.load()
+    ent_to_lbl = split_dir.ent_labels_tsv.load()
+    rel_to_lbl = split_dir.rel_labels_tsv.load()
 
-    cw_train_triples = split_dir.cw_train_triples_txt.load()
-    cw_train_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                      for head, rel, tail in cw_train_triples}
+    valid_rows = split_dir.test_facts_25_1_tsv.load() + \
+                 split_dir.test_facts_25_2_tsv.load() + \
+                 split_dir.test_facts_25_3_tsv.load() + \
+                 split_dir.test_facts_25_4_tsv.load()
 
-    cw_valid_triples = split_dir.cw_valid_triples_txt.load()
-    cw_valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                      for head, rel, tail in cw_valid_triples}
+    valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                   for head, _, rel, _, tail, _ in valid_rows}
+
+    text_dir = TextDir(Path('data/irt/cde/text/cde/bert-base-cased.1.768.clean'))
+    v_ents = text_dir.ow_test_sents_txt.load()
 
     #
     # Load ruler
@@ -98,19 +98,19 @@ def eval_ruler(args):
 
     logging.info('Load ruler ...')
 
-    ruler = model_dir.ruler_pkl.load()
+    ruler = ruler_pkl.load()
 
-    ents = [Ent(id, lbl) for id, lbl in ent_to_lbl.items()]
+    valid_ents = [Ent(id, ent_to_lbl[id]) for id in v_ents]
 
     skt_gt = []
     skt_pred = []
 
-    for ent in tqdm(ents):
+    for ent in tqdm(valid_ents):
         # print()
         # print('ENT')
         # pprint(ent)
 
-        gt = [fact for fact in cw_valid_facts if fact.head == ent]
+        gt = [fact for fact in valid_facts if fact.head == ent]
         # print('GT')
         # pprint(gt)
 
@@ -118,7 +118,7 @@ def eval_ruler(args):
         # print('PRED')
         # pprint(pred)
 
-        pred = [Fact(ent, rel, tail) for (rel, tail) in ruler[ent]]
+        pred = [Fact(ent, rel, tail) for (rel, tail) in ruler.pred[ent]]
         # print('PRED')
         # pprint(pred)
 

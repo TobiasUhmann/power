@@ -14,7 +14,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    load_neo4j_dataset(args)
+    load_neo4j_graph(args)
 
     logging.info('Finished successfully')
 
@@ -32,13 +32,13 @@ def parse_args():
                         help='Password for running Neo4j instance')
 
     parser.add_argument('entities_tsv', metavar='entities-tsv',
-                        help='Name of (input) Neo4j Entities TSV within Neo4j import directory')
+                        help='Name of (input) POWER Entities TSV within Neo4j import directory')
 
     parser.add_argument('train_facts_tsv', metavar='train-facts-tsv',
-                        help='Name of (input) Neo4j Train Facts TSV within Neo4j import directory')
+                        help='Name of (input) POWER Train Facts TSV within Neo4j import directory')
 
     parser.add_argument('test_facts_tsvs', metavar='test-facts-tsvs', nargs='*',
-                        help='Names of (input) Neo4j Test Facts TSVs within Neo4j import directory')
+                        help='Names of (input) POWER Test Facts TSVs within Neo4j import directory')
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -67,7 +67,7 @@ def parse_args():
     return args
 
 
-def load_neo4j_dataset(args):
+def load_neo4j_graph(args):
     url = args.url
     username = args.username
     password = args.password
@@ -97,7 +97,7 @@ def load_neo4j_dataset(args):
         session.write_transaction(create_entities_constraint)
 
         logging.info(f'Load {entities_tsv} ...')
-        entities_count = session.write_transaction(load_entities_tsv)
+        entities_count = session.write_transaction(load_entities_tsv, entities_tsv)
         logging.info(f'Loaded {entities_count} entities')
 
         logging.info(f'Load {train_facts_tsv} ...')
@@ -122,14 +122,14 @@ def create_entities_constraint(tx):
     tx.run('CREATE CONSTRAINT UniqueEntityId ON (e:Entity) ASSERT e.id IS UNIQUE')
 
 
-def load_entities_tsv(tx):
+def load_entities_tsv(tx, filename: str):
     cypher = '''
-        LOAD CSV WITH HEADERS FROM 'file:///entities.tsv' AS row FIELDTERMINATOR '\t'
-        MERGE (ent:Entity {id: toInteger(row.ent), label: row.ent_lbl})
+        LOAD CSV WITH HEADERS FROM 'file:///' + $filename AS row FIELDTERMINATOR '\t'
+        MERGE (ent:Entity {id: toInteger(row.id), label: row.lbl})
         RETURN COUNT(*)
     '''
 
-    record = tx.run(cypher).single()
+    record = tx.run(cypher, filename=filename).single()
 
     return record[0]
 

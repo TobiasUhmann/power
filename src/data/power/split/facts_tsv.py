@@ -44,7 +44,7 @@ class FactsTsv(BaseFile):
     def save(self, facts: List[Fact]) -> None:
         with open(self.path, 'w', encoding='utf-8', newline='') as f:
             csv_writer = csv.writer(f, delimiter='\t')
-            csv_writer.writerow(('head', 'head lbl', 'rel', 'rel lbl', 'tail', 'tail lbl',))
+            csv_writer.writerow(('head', 'head_lbl', 'rel', 'rel_lbl', 'tail', 'tail_lbl',))
 
             for head, head_lbl, rel, rel_lbl, tail, tail_lbl in facts:
                 csv_writer.writerow((head, head_lbl, rel, rel_lbl, tail, tail_lbl))
