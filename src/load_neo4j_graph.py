@@ -31,15 +31,6 @@ def parse_args():
     parser.add_argument('password', metavar='password',
                         help='Password for running Neo4j instance')
 
-    parser.add_argument('entities_tsv', metavar='entities-tsv',
-                        help='Name of (input) POWER Entities TSV within Neo4j import directory')
-
-    parser.add_argument('train_facts_tsv', metavar='train-facts-tsv',
-                        help='Name of (input) POWER Train Facts TSV within Neo4j import directory')
-
-    parser.add_argument('test_facts_tsvs', metavar='test-facts-tsvs', nargs='*',
-                        help='Names of (input) POWER Test Facts TSVs within Neo4j import directory')
-
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
 
@@ -56,9 +47,6 @@ def parse_args():
     logging.info('    {:24} {}'.format('url', args.url))
     logging.info('    {:24} {}'.format('username', args.username))
     logging.info('    {:24} {}'.format('password', args.password))
-    logging.info('    {:24} {}'.format('entities-tsv', args.entities_tsv))
-    logging.info('    {:24} {}'.format('train-facts-tsv', args.train_facts_tsv))
-    logging.info('    {:24} {}'.format('test-facts-tsvs', args.test_facts_tsvs))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
 
     logging.info('Environment variables:')
@@ -71,9 +59,6 @@ def load_neo4j_graph(args):
     url = args.url
     username = args.username
     password = args.password
-    entities_tsv = args.entities_tsv
-    train_facts_tsv = args.train_tsv
-    test_facts_tsvs = args.test_facts_tsvs
 
     overwrite = args.overwrite
 
@@ -96,18 +81,17 @@ def load_neo4j_graph(args):
 
         session.write_transaction(create_entities_constraint)
 
-        logging.info(f'Load {entities_tsv} ...')
-        entities_count = session.write_transaction(load_entities_tsv, entities_tsv)
+        logging.info(f'Load entities ...')
+        entities_count = session.write_transaction(load_entities_tsv, 'entities.tsv')
         logging.info(f'Loaded {entities_count} entities')
 
-        logging.info(f'Load {train_facts_tsv} ...')
-        train_facts_count = session.write_transaction(load_facts_tsv, train_facts_tsv, 'train')
+        logging.info(f'Load train facts ...')
+        train_facts_count = session.write_transaction(load_facts_tsv, 'train.tsv', 'train')
         logging.info(f'Loaded {train_facts_count} train facts')
 
-        for test_facts_tsv in test_facts_tsvs:
-            logging.info(f'Load {test_facts_tsv} ...')
-            test_facts_count = session.write_transaction(load_facts_tsv, test_facts_tsv, 'test')
-            logging.info(f'Loaded {test_facts_count} test facts')
+        logging.info(f'Load known valid facts ...')
+        valid_facts_count = session.write_transaction(load_facts_tsv, 'valid_known.tsv', 'valid')
+        logging.info(f'Loaded {valid_facts_count} known valid facts')
 
 
 def delete_entities(tx):
