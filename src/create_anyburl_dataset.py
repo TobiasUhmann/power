@@ -94,7 +94,7 @@ def create_anyburl_dataset(args):
     def stringify_rel(rel):
         return f'{rel}_{escape(rel_to_lbl[rel])}'
 
-    train_facts = split_dir.train_tsv.load()
+    train_facts = split_dir.train_facts_tsv.load()
 
     anyburl_facts = [Fact(stringify_ent(head), stringify_rel(rel), stringify_ent(tail))
                      for head, _, rel, _, tail, _ in train_facts]

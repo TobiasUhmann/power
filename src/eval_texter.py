@@ -9,7 +9,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
 
 from data.irt.text.text_dir import TextDir
-from data.power.model.ruler_pkl import RulerPkl
+from data.power.model.texter_pkl import TexterPkl
 from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
@@ -23,7 +23,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    eval_ruler(args)
+    eval_texter(args)
 
     logging.info('Finished successfully')
 
@@ -31,17 +31,20 @@ def main():
 def parse_args():
     parser = ArgumentParser()
 
-    parser.add_argument('ruler_pkl', metavar='ruler-pkl',
-                        help='Path to (input) POWER Ruler PKL')
+    parser.add_argument('texter_pkl', metavar='texter-pkl',
+                        help='Path to (input) POWER Texter PKL')
 
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) POWER Split Directory')
+
+    parser.add_argument('--filter-known', dest='filter_known', action='store_true',
+                        help='Filter out known valid triples')
 
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
 
     parser.add_argument('--test', dest='test', action='store_true',
-                        help='Load test data instead of valid data')
+                        help='Evaluate on test data')
 
     args = parser.parse_args()
 
@@ -50,8 +53,9 @@ def parse_args():
     #
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
+    logging.info('    {:24} {}'.format('texter-pkl', args.texter_pkl))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('--filter-known', args.eval_known))
     logging.info('    {:24} {}'.format('--test', args.test))
 
     logging.info('Environment variables:')
@@ -60,18 +64,19 @@ def parse_args():
     return args
 
 
-def eval_ruler(args):
-    ruler_pkl_path = args.ruler_pkl
+def eval_texter(args):
+    texter_pkl_path = args.texter_pkl
     split_dir_path = args.split_dir
 
+    filter_known = args.filter_known
     test = args.test
 
     #
-    # Check that (input) POWER Ruler PKL exists
+    # Check that (input) POWER Texter PKL exists
     #
 
-    ruler_pkl = RulerPkl(Path(ruler_pkl_path))
-    ruler_pkl.check()
+    texter_pkl = TexterPkl(Path(texter_pkl_path))
+    texter_pkl.check()
 
     #
     # Check that (input) POWER Split Directory exists
@@ -81,12 +86,12 @@ def eval_ruler(args):
     split_dir.check()
 
     #
-    # Load ruler
+    # Load texter
     #
 
-    logging.info('Load ruler ...')
+    logging.info('Load texter ...')
 
-    ruler = ruler_pkl.load()
+    texter = texter_pkl.load()
 
     #
     # Load facts
@@ -98,21 +103,22 @@ def eval_ruler(args):
     if test:
         known_test_facts = split_dir.test_facts_known_tsv.load()
         unknown_test_facts = split_dir.test_facts_unknown_tsv.load()
-        test_facts = known_test_facts + unknown_test_facts
 
-        kfacts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                  for head, _, rel, _, tail, _ in known_test_facts}
+        known_eval_facts = known_test_facts
+        all_eval_facts = known_test_facts + unknown_test_facts
 
     else:
         known_valid_facts = split_dir.valid_facts_known_tsv.load()
         unknown_valid_facts = split_dir.valid_facts_unknown_tsv.load()
-        test_facts = known_valid_facts + unknown_valid_facts
 
-        kfacts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                  for head, _, rel, _, tail, _ in known_valid_facts}
+        known_eval_facts = known_valid_facts
+        all_eval_facts = known_valid_facts + unknown_valid_facts
 
-    test_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                  for head, _, rel, _, tail, _ in test_facts}
+    known_eval_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                        for head, _, rel, _, tail, _ in known_eval_facts}
+
+    all_eval_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                      for head, _, rel, _, tail, _ in all_eval_facts}
 
     #
     #
@@ -130,7 +136,7 @@ def eval_ruler(args):
         # print('ENT')
         # pprint(ent)
 
-        gt = list(set(test_facts).difference(set(kfacts)))
+        gt = list(set(all_eval_facts).difference(set(kfacts)))
         gt = [fact for fact in gt if fact.head == ent]
         # print('GT')
         # pprint(gt)
@@ -139,7 +145,7 @@ def eval_ruler(args):
         # print('PRED')
         # pprint(pred)
 
-        pred = [Fact(ent, rel, tail) for (rel, tail) in ruler.pred[ent]]
+        pred = [Fact(ent, rel, tail) for (rel, tail) in texter.pred[ent]]
         pred = list(set(pred).difference(set(kfacts)))
         # print('PRED')
         # pprint(pred)

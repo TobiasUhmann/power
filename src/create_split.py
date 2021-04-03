@@ -7,6 +7,7 @@ from random import shuffle
 
 import data.irt.split.split_dir
 import data.power.split.split_dir
+from data.irt.text.text_dir import TextDir
 from data.power.split.facts_tsv import Fact
 
 
@@ -18,7 +19,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    create_power_split(args)
+    create_split(args)
 
     logging.info('Finished successfully')
 
@@ -28,6 +29,9 @@ def parse_args():
 
     parser.add_argument('irt_split_dir', metavar='irt-split-dir',
                         help='Path to (input) IRT Split Directory')
+
+    parser.add_argument('text_dir', metavar='text-dir',
+                        help='Path to (input) IRT Text Directory')
 
     parser.add_argument('power_split_dir', metavar='power-split-dir',
                         help='Path to (output) POWER Split Directory')
@@ -49,6 +53,7 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('irt-split-dir', args.irt_split_dir))
+    logging.info('    {:24} {}'.format('text-dir', args.text_dir))
     logging.info('    {:24} {}'.format('power-split-dir', args.power_split_dir))
     logging.info('    {:24} {}'.format('--known', args.known))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
@@ -59,8 +64,9 @@ def parse_args():
     return args
 
 
-def create_power_split(args):
+def create_split(args):
     irt_split_dir_path = args.irt_split_dir
+    text_dir_path = args.text_dir
     power_split_dir_path = args.power_split_dir
 
     known = args.known
@@ -74,6 +80,13 @@ def create_power_split(args):
     irt_split_dir.check()
 
     #
+    # Check that (input) IRT Text Directory exists
+    #
+
+    text_dir = TextDir(Path(text_dir_path))
+    text_dir.check()
+
+    #
     # Check that (output) POWER Split Directory does not exist
     #
 
@@ -81,17 +94,33 @@ def create_power_split(args):
     power_split_dir.create(overwrite=overwrite)
 
     #
-    # Create Entities/Relations TSV
+    # Create POWER Entities/Relations TSVs
     #
-
+    
     ent_to_lbl = irt_split_dir.ent_labels_txt.load()
     rel_to_lbl = irt_split_dir.rel_labels_txt.load()
 
     power_split_dir.entities_tsv.save(ent_to_lbl)
     power_split_dir.relations_tsv.save(rel_to_lbl)
+    
+    #
+    # Create POWER Train/Valid/Test Entities TSVs
+    #
+
+    train_texts = text_dir.cw_train_sents_txt.load()
+    valid_texts = text_dir.ow_valid_sents_txt.load()
+    test_texts = text_dir.ow_test_sents_txt.load()
+    
+    train_ent_to_lbl = {ent: lbl for ent, lbl in ent_to_lbl.items() if ent in train_texts}
+    valid_ent_to_lbl = {ent: lbl for ent, lbl in ent_to_lbl.items() if ent in valid_texts}
+    test_ent_to_lbl = {ent: lbl for ent, lbl in ent_to_lbl.items() if ent in test_texts}
+    
+    power_split_dir.train_entities_tsv.save(train_ent_to_lbl)
+    power_split_dir.valid_entities_tsv.save(valid_ent_to_lbl)
+    power_split_dir.test_entities_tsv.save(test_ent_to_lbl)
 
     #
-    # Create Train TSV
+    # Create POWER Train Facts TSV
     #
 
     cw_train_triples = irt_split_dir.cw_train_triples_txt.load()
@@ -103,7 +132,7 @@ def create_power_split(args):
     train_facts = [Fact(head, ent_to_lbl[head], rel, rel_to_lbl[rel], tail, ent_to_lbl[tail])
                    for head, rel, tail in cw_triples]
 
-    power_split_dir.train_tsv.save(train_facts)
+    power_split_dir.train_facts_tsv.save(train_facts)
 
     #
     # Create Valid Known/Unknown TSV
@@ -118,8 +147,8 @@ def create_power_split(args):
     valid_facts_count = len(valid_facts)
     valid_known_count = int(valid_facts_count * known / 100)
 
-    power_split_dir.valid_known_tsv.save(valid_facts[:valid_known_count])
-    power_split_dir.valid_unknown_tsv.save(valid_facts[valid_known_count:])
+    power_split_dir.valid_facts_known_tsv.save(valid_facts[:valid_known_count])
+    power_split_dir.valid_facts_unknown_tsv.save(valid_facts[valid_known_count:])
 
     #
     # Create Neo4j Test Facts TSVs
@@ -134,8 +163,8 @@ def create_power_split(args):
     test_facts_count = len(test_facts)
     test_known_count = int(test_facts_count * known / 100)
 
-    power_split_dir.test_known_tsv.save(test_facts[:test_known_count])
-    power_split_dir.test_unknown_tsv.save(test_facts[test_known_count:])
+    power_split_dir.test_facts_known_tsv.save(test_facts[:test_known_count])
+    power_split_dir.test_facts_unknown_tsv.save(test_facts[test_known_count:])
 
 
 if __name__ == '__main__':
