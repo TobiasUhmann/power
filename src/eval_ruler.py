@@ -34,14 +34,14 @@ def parse_args():
     parser.add_argument('ruler_pkl', metavar='ruler-pkl',
                         help='Path to (input) POWER Ruler PKL')
 
-    parser.add_argument('train_facts_tsv', metavar='train-facts-tsv',
-                        help='Path to (input) POWER Train Facts TSV')
-
-    parser.add_argument('test_facts_tsvs', metavar='test-facts-tsvs', nargs='*',
-                        help='Paths to (input) POWER Test Facts TSVs')
+    parser.add_argument('split_dir', metavar='split-dir',
+                        help='Path to (input) POWER Split Directory')
 
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
+
+    parser.add_argument('--test', dest='test', action='store_true',
+                        help='Load test data instead of valid data')
 
     args = parser.parse_args()
 
@@ -51,9 +51,8 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
-    logging.info('    {:24} {}'.format('train-facts-tsv', args.train_facts_tsv))
-    logging.info('    {:24} {}'.format('test-facts-tsvs', args.test_facts_tsvs))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('--test', args.test))
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
@@ -63,9 +62,9 @@ def parse_args():
 
 def eval_ruler(args):
     ruler_pkl_path = args.ruler_pkl
+    split_dir_path = args.split_dir
 
-    train_facts_tsv_path = args.train_tsv
-    test_facts_tsv_paths = args.test_facts_tsv_paths
+    test = args.test
 
     #
     # Check that (input) POWER Ruler PKL exists
@@ -75,22 +74,11 @@ def eval_ruler(args):
     ruler_pkl.check()
 
     #
-    # Load train/valid facts
+    # Check that (input) POWER Split Directory exists
     #
 
-    ent_to_lbl = split_dir.entities_tsv.load()
-    rel_to_lbl = split_dir.relations_tsv.load()
-
-    valid_rows = split_dir.test_known_tsv.load() + \
-                 split_dir.test_unknown_tsv.load() + \
-                 split_dir.test_facts_25_3_tsv.load() + \
-                 split_dir.test_facts_25_4_tsv.load()
-
-    valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                   for head, _, rel, _, tail, _ in valid_rows}
-
-    text_dir = TextDir(Path('data/irt/cde/text/cde/bert-base-cased.1.768.clean'))
-    v_ents = text_dir.ow_test_sents_txt.load()
+    split_dir = SplitDir(Path(split_dir_path))
+    split_dir.check()
 
     #
     # Load ruler
@@ -100,6 +88,38 @@ def eval_ruler(args):
 
     ruler = ruler_pkl.load()
 
+    #
+    # Load facts
+    #
+
+    ent_to_lbl = split_dir.entities_tsv.load()
+    rel_to_lbl = split_dir.relations_tsv.load()
+
+    if test:
+        known_test_facts = split_dir.test_known_tsv.load()
+        unknown_test_facts = split_dir.test_unknown_tsv.load()
+        test_facts = known_test_facts + unknown_test_facts
+
+        kfacts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                  for head, _, rel, _, tail, _ in known_test_facts}
+
+    else:
+        known_valid_facts = split_dir.valid_known_tsv.load()
+        unknown_valid_facts = split_dir.valid_unknown_tsv.load()
+        test_facts = known_valid_facts + unknown_valid_facts
+
+        kfacts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                  for head, _, rel, _, tail, _ in known_valid_facts}
+
+    test_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                  for head, _, rel, _, tail, _ in test_facts}
+
+    #
+    #
+    #
+
+    text_dir = TextDir(Path('data/irt/cde/text/cde/bert-base-cased.1.768.clean'))
+    v_ents = text_dir.ow_test_sents_txt.load()
     valid_ents = [Ent(id, ent_to_lbl[id]) for id in v_ents]
 
     skt_gt = []
@@ -110,7 +130,8 @@ def eval_ruler(args):
         # print('ENT')
         # pprint(ent)
 
-        gt = [fact for fact in valid_facts if fact.head == ent]
+        gt = list(set(test_facts).difference(set(kfacts)))
+        gt = [fact for fact in gt if fact.head == ent]
         # print('GT')
         # pprint(gt)
 
@@ -119,6 +140,7 @@ def eval_ruler(args):
         # pprint(pred)
 
         pred = [Fact(ent, rel, tail) for (rel, tail) in ruler.pred[ent]]
+        pred = list(set(pred).difference(set(kfacts)))
         # print('PRED')
         # pprint(pred)
 

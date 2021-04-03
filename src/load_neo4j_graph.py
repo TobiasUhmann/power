@@ -37,6 +37,9 @@ def parse_args():
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
 
+    parser.add_argument('--test', dest='test', action='store_true',
+                        help='Load test data instead of valid data')
+
     args = parser.parse_args()
 
     #
@@ -48,6 +51,7 @@ def parse_args():
     logging.info('    {:24} {}'.format('username', args.username))
     logging.info('    {:24} {}'.format('password', args.password))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
+    logging.info('    {:24} {}'.format('--test', args.test))
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
@@ -61,6 +65,7 @@ def load_neo4j_graph(args):
     password = args.password
 
     overwrite = args.overwrite
+    test = args.test
 
     driver = GraphDatabase.driver(url, auth=(username, password))
 
@@ -89,9 +94,14 @@ def load_neo4j_graph(args):
         train_facts_count = session.write_transaction(load_facts_tsv, 'train.tsv', 'train')
         logging.info(f'Loaded {train_facts_count} train facts')
 
-        logging.info(f'Load known valid facts ...')
-        valid_facts_count = session.write_transaction(load_facts_tsv, 'valid_known.tsv', 'valid')
-        logging.info(f'Loaded {valid_facts_count} known valid facts')
+        if test:
+            logging.info(f'Load known test facts ...')
+            test_facts_count = session.write_transaction(load_facts_tsv, 'test_known.tsv', 'test')
+            logging.info(f'Loaded {test_facts_count} known test facts')
+        else:
+            logging.info(f'Load known valid facts ...')
+            valid_facts_count = session.write_transaction(load_facts_tsv, 'valid_known.tsv', 'valid')
+            logging.info(f'Loaded {valid_facts_count} known valid facts')
 
 
 def delete_entities(tx):
