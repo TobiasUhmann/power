@@ -4,6 +4,7 @@ import random
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
+from pprint import pformat
 
 from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
@@ -34,8 +35,14 @@ def parse_args():
     parser.add_argument('texter_pkl', metavar='texter-pkl',
                         help='Path to (input) POWER Texter PKL')
 
+    parser.add_argument('sent_count', metavar='sent-count', type=int,
+                        help='Number of sentences per entity')
+
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) POWER Split Directory')
+
+    parser.add_argument('text_dir', metavar='text-dir',
+                        help='Path to (input) IRT Text Directory')
 
     parser.add_argument('--filter-known', dest='filter_known', action='store_true',
                         help='Filter out known valid triples')
@@ -54,7 +61,9 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('texter-pkl', args.texter_pkl))
+    logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('text-dir', args.text_dir))
     logging.info('    {:24} {}'.format('--filter-known', args.eval_known))
     logging.info('    {:24} {}'.format('--test', args.test))
 
@@ -66,7 +75,9 @@ def parse_args():
 
 def eval_texter(args):
     texter_pkl_path = args.texter_pkl
+    sent_count = args.sent_count
     split_dir_path = args.split_dir
+    text_dir_path = args.text_dir
 
     filter_known = args.filter_known
     test = args.test
@@ -86,12 +97,19 @@ def eval_texter(args):
     split_dir.check()
 
     #
+    # Check that (input) IRT Text Directory exists
+    #
+
+    text_dir = TextDir(Path(text_dir_path))
+    text_dir.check()
+
+    #
     # Load texter
     #
 
     logging.info('Load texter ...')
 
-    texter = texter_pkl.load()
+    texter = texter_pkl.load().cpu()
 
     #
     # Load facts
@@ -114,65 +132,80 @@ def eval_texter(args):
         known_eval_facts = known_valid_facts
         all_eval_facts = known_valid_facts + unknown_valid_facts
 
-    known_eval_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                        for head, _, rel, _, tail, _ in known_eval_facts}
+    known_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                   for head, _, rel, _, tail, _ in known_eval_facts}
 
     all_eval_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
                       for head, _, rel, _, tail, _ in all_eval_facts}
 
     #
+    # Load entities
     #
+
+    if test:
+        test_ent_to_lbl = split_dir.test_entities_tsv.load()
+        eval_ents = test_ent_to_lbl.keys()
+    else:
+        valid_ent_to_lbl = split_dir.valid_entities_tsv.load()
+        eval_ents = valid_ent_to_lbl.keys()
+
+    eval_ents = [Ent(ent, lbl) for ent, lbl in eval_ents]
+
+    #
+    # Load texts
     #
 
-    text_dir = TextDir(Path('data/irt/cde/text/cde/bert-base-cased.1.768.clean'))
-    v_ents = text_dir.ow_test_sents_txt.load()
-    valid_ents = [Ent(id, ent_to_lbl[id]) for id in v_ents]
+    if test:
+        eval_ent_to_sents = text_dir.ow_valid_sents_txt.load()
+    else:
+        eval_ent_to_sents = text_dir.ow_test_sents_txt.load()
 
-    skt_gt = []
-    skt_pred = []
+    #
+    # Evaluate
+    #
 
-    for ent in tqdm(valid_ents):
-        # print()
-        # print('ENT')
-        # pprint(ent)
+    total_gt = []
+    total_pred = []
 
-        gt = list(set(all_eval_facts).difference(set(kfacts)))
-        gt = [fact for fact in gt if fact.head == ent]
-        # print('GT')
-        # pprint(gt)
+    for ent in tqdm(eval_ents):
+        logging.info(f'Evaluate entity "{ent.lbl}" ({ent.id}) ...')
 
-        # pred = ruler[ent]
-        # print('PRED')
-        # pprint(pred)
+        gt = [fact for fact in all_eval_facts if fact.head == ent]
+        logging.info(f'Ground Truth:\n'
+                     f'{pformat(gt)}')
 
-        pred = [Fact(ent, rel, tail) for (rel, tail) in texter.pred[ent]]
-        pred = list(set(pred).difference(set(kfacts)))
-        # print('PRED')
-        # pprint(pred)
+        if filter_known:
+            gt = list(set(gt).difference(known_facts))
+            logging.info(f'Ground Truth (filtered):\n'
+                         f'{pformat(gt)}')
+
+        sents = list(eval_ent_to_sents[ent])[:sent_count]
+        if len(sents) < sent_count:
+            logging.warning(f'Only {len(sents)} sentences for entity "{ent.lbl}" ({ent.id}). Skipping.')
+            continue
+
+        pred = texter.predict(ent, sents)
+        logging.info(f'Predicted:\n'
+                     f'{pformat(pred)}')
+
+        if filter_known:
+            pred = list(set(pred).difference(known_facts))
+            logging.info(f'Predicted (filtered):\n'
+                         f'{pformat(pred)}')
 
         union = list(set(gt) | set(pred))
-        # print('UNION')
-        # pprint(union)
 
-        sk_gt = [1 if fact in gt else 0 for fact in union]
-        sk_pred = [1 if fact in pred else 0 for fact in union]
+        union_gt = [1 if fact in gt else 0 for fact in union]
+        union_pred = [1 if fact in pred else 0 for fact in union]
 
-        skt_gt.extend(sk_gt)
-        skt_pred.extend(sk_pred)
+        total_gt.extend(union_gt)
+        total_pred.extend(union_pred)
 
-        prfs = precision_recall_fscore_support(sk_gt, sk_pred, labels=[1], zero_division=0)
-        # print('PRFS')
-        # print(sk_gt)
-        # print(sk_pred)
-        # print(prfs)
+        ent_prfs = precision_recall_fscore_support(union_gt, union_pred, labels=[1], zero_division=0)
+        logging.info(f'PRFS: {ent_prfs}')
 
-        pass
-
-    prfs = precision_recall_fscore_support(skt_gt, skt_pred, labels=[1])
-    print('PRFS')
-    print(skt_gt)
-    print(skt_pred)
-    print(prfs)
+    total_prfs = precision_recall_fscore_support(total_gt, total_pred, labels=[1])
+    logging.info(f'PRFS: {total_prfs}')
 
 
 def get_defaultdict():
