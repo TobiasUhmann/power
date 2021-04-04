@@ -10,9 +10,10 @@
   - [3.1. Create split](#31-create-split)
   - [3.2. Build and evaluate ruler](#32-build-and-evaluate-ruler)
     - [3.2.1. Create AnyBURL Dataset](#321-create-anyburl-dataset)
-    - [3.2.2. Load graph into Neo4j](#322-load-graph-into-neo4j)
-    - [3.2.3. Build ruler](#323-build-ruler)
-    - [3.2.4. Evaluate ruler](#324-evaluate-ruler)
+    - [3.2.2. Mine rules](#322-mine-rules)
+    - [3.2.3. Load graph into Neo4j](#323-load-graph-into-neo4j)
+    - [3.2.4. Prepare ruler](#324-prepare-ruler)
+    - [3.2.5. Evaluate ruler](#325-evaluate-ruler)
   - [3.3. Build and evaluate texter](#33-build-and-evaluate-texter)
     - [3.3.1. Create texter dataset](#331-create-texter-dataset)
     - [3.3.2. Train texter](#332-train-texter)
@@ -168,15 +169,33 @@ java -cp ../../../../../AnyBURL/AnyBURL-RE.jar \
 AnyBURL will search the `facts.tsv` for rules and save the
 resulting rules in the `rules/` directory.
 
-### 3.2.2. Load graph into Neo4j
+### 3.2.3. Load graph into Neo4j
 
-<load_neo4j_graph.py>
+To be able to search for rule groundings, the graph has to
+be loaded into the Neo4j graph database.
 
-### 3.2.3. Build ruler
+Create and run a new Neo4j instance that it is
+available at `localhost:7687` by the default user `neo4j`
+with the password `1234567890`. For evaluation on the
+validation data copy `entities.tsv`, `train_facts.tsv` and
+`valid_facts_known` from the `POWER Split Directory` to
+the database's import directory and run the following command:
+
+```bash
+python src/load_neo4j_graph.py \
+  bolt://localhost:7687 \
+  neo4j \
+  1234567890
+```
+
+You can subsequently explore the graph using the Cypher query
+language in the Cypher shell or in the Neo4j GUI Browser.
+
+### 3.2.4. Prepare ruler
 
 <build_ruler.py>
 
-### 3.2.4. Evaluate ruler
+### 3.2.5. Evaluate ruler
 
 <eval_ruler.py>
 

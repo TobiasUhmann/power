@@ -91,16 +91,16 @@ def load_neo4j_graph(args):
         logging.info(f'Loaded {entities_count} entities')
 
         logging.info(f'Load train facts ...')
-        train_facts_count = session.write_transaction(load_facts_tsv, 'train.tsv', 'train')
+        train_facts_count = session.write_transaction(load_facts_tsv, 'train_facts.tsv', 'train')
         logging.info(f'Loaded {train_facts_count} train facts')
 
         if test:
             logging.info(f'Load known test facts ...')
-            test_facts_count = session.write_transaction(load_facts_tsv, 'test_known.tsv', 'test')
+            test_facts_count = session.write_transaction(load_facts_tsv, 'test_facts_known.tsv', 'test')
             logging.info(f'Loaded {test_facts_count} known test facts')
         else:
             logging.info(f'Load known valid facts ...')
-            valid_facts_count = session.write_transaction(load_facts_tsv, 'valid_known.tsv', 'valid')
+            valid_facts_count = session.write_transaction(load_facts_tsv, 'valid_facts_known.tsv', 'valid')
             logging.info(f'Loaded {valid_facts_count} known valid facts')
 
 
