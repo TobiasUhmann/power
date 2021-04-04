@@ -8,9 +8,9 @@ from typing import Set, List
 
 from neo4j import GraphDatabase
 
-from data.power.rules.rules_dir import RulesDir
-from data.power.model.model_dir import ModelDir
-from data.irt.split.split_dir import SplitDir
+from data.power.ruler.ruler_pkl import RulerPkl
+from data.power.ruler.rules_tsv import RulesTsv
+from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
 from models.rel import Rel
@@ -28,7 +28,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    train_ruler(args)
+    prepare_ruler(args)
 
     logging.info('Finished successfully')
 
@@ -36,8 +36,8 @@ def main():
 def parse_args():
     parser = ArgumentParser()
 
-    parser.add_argument('rules_dir', metavar='rules-dir',
-                        help='Path to (input) AnyBURL Rules Directory')
+    parser.add_argument('rules_tsv', metavar='rules-tsv',
+                        help='Path to (input) AnyBURL Rules TSV')
 
     parser.add_argument('url', metavar='url',
                         help='URL of running Neo4j instance')
@@ -49,10 +49,14 @@ def parse_args():
                         help='Password for running Neo4j instance')
 
     parser.add_argument('split_dir', metavar='split-dir',
-                        help='Path to (input) IRT Split Directory')
+                        help='Path to (input) POWER Split Directory')
 
-    parser.add_argument('model_dir', metavar='model-dir',
-                        help='Path to (output) POWER Model Directory')
+    parser.add_argument('ruler_pkl', metavar='ruler-pkl',
+                        help='Path to (output) POWER Ruler PKL')
+
+    default_min_conf = 0.5
+    parser.add_argument('--min-conf', dest='min_conf', type=int, metavar='INT', default=default_min_conf,
+                        help='Minimum confidence rules need to be considered (default:{})'.format(default_min_conf))
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -67,13 +71,15 @@ def parse_args():
     #
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('rules-dir', args.rules_dir))
+    logging.info('    {:24} {}'.format('rules-tsv', args.rules_tsv))
     logging.info('    {:24} {}'.format('url', args.url))
     logging.info('    {:24} {}'.format('username', args.username))
     logging.info('    {:24} {}'.format('password', args.password))
-    logging.info('    {:24} {}'.format('split-dir', args.rules_dir))
-    logging.info('    {:24} {}'.format('model-dir', args.model_dir))
+    logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
+    logging.info('    {:24} {}'.format('--min-conf', args.min_conf))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
+    logging.info('    {:24} {}'.format('--random-seed', args.random_seed))
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
@@ -81,42 +87,43 @@ def parse_args():
     return args
 
 
-def train_ruler(args):
-    rules_dir_path = args.rules_dir
+def prepare_ruler(args):
+    rules_tsv_path = args.rules_tsv
     url = args.url
     username = args.username
     password = args.password
     split_dir_path = args.split_dir
-    model_dir_path = args.model_dir
+    ruler_pkl_path = args.ruler_pkl
 
+    min_conf = args.min_conf
     overwrite = args.overwrite
 
     #
-    # Check that (input) POWER Rules Directory exists
+    # Check that (input) POWER Rules TSV exists
     #
 
-    logging.info('Check (input) AnyBURL Rules Directory ...')
+    logging.info('Check that (input) POWER Rules TSV exists ...')
 
-    rules_dir = RulesDir(Path(rules_dir_path))
-    rules_dir.check()
+    rules_tsv = RulesTsv(Path(rules_tsv_path))
+    rules_tsv.check()
 
     #
-    # Check that (input) IRT Split Directory exists
+    # Check that (input) POWER Split Directory exists
     #
 
-    logging.info('Check that (input) IRT Split Directory exists ...')
+    logging.info('Check that (input) POWERT Split Directory exists ...')
 
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
     #
-    # Check that (output) POWER Model Directory does not exist
+    # Check that (output) POWER Ruler PKL does not exist
     #
 
-    logging.info('Create (output) POWER Model Directory ...')
+    logging.info('Check that (output) POWER Ruler PKL does not exist ...')
 
-    model_dir = ModelDir(Path(model_dir_path))
-    model_dir.create(overwrite=overwrite)
+    ruler_pkl = RulerPkl(Path(ruler_pkl_path))
+    ruler_pkl.check(should_exist=overwrite)
 
     #
     # Read rules
@@ -124,13 +131,13 @@ def train_ruler(args):
 
     logging.info('Read rules ...')
 
-    ent_to_lbl = rules_dir.ent_labels_txt.load()
-    rel_to_lbl = rules_dir.rel_labels_txt.load()
+    ent_to_lbl = split_dir.entities_tsv.load()
+    rel_to_lbl = split_dir.relations_tsv.load()
 
-    anyburl_rules = rules_dir.rules_tsv.load()
+    anyburl_rules = rules_tsv.load()
     rules = [Rule.from_anyburl(rule, ent_to_lbl, rel_to_lbl) for rule in anyburl_rules]
 
-    good_rules = [rule for rule in rules if rule.conf > 0.5]
+    good_rules = [rule for rule in rules if rule.conf > min_conf]
     good_rules.sort(key=lambda rule: rule.conf, reverse=True)
 
     short_rules = [rule for rule in good_rules if len(rule.body) == 1]
@@ -140,17 +147,15 @@ def train_ruler(args):
     # Read train/valid facts
     #
 
-    cw_train_triples = split_dir.cw_train_triples_txt.load()
-    cw_valid_triples = split_dir.cw_valid_triples_txt.load()
+    logging.info('Read train/valid facts ...')
 
-    train_triples = cw_train_triples + cw_valid_triples
+    train_triples = split_dir.train_facts_tsv.load()
     train_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                   for head, rel, tail in train_triples}
+                   for head, _, rel, _, tail, _ in train_triples}
 
-    ow_valid_triples = split_dir.ow_valid_triples_txt.load()
-
+    valid_facts = split_dir.valid_facts_known_tsv.load()
     valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                   for head, rel, tail in ow_valid_triples}
+                   for head, _, rel, _, tail, _ in valid_facts}
 
     #
     # Process rules
@@ -221,12 +226,12 @@ def train_ruler(args):
     # Persist ruler
     #
 
-    logging.info('Save ruler ...')
+    logging.info('Persist ruler ...')
 
     ruler = Ruler()
     ruler.pred = pred
 
-    model_dir.ruler_pkl.save(ruler)
+    ruler_pkl.save(ruler)
 
 
 def get_defaultdict():

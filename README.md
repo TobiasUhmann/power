@@ -193,7 +193,30 @@ language in the Cypher shell or in the Neo4j GUI Browser.
 
 ### 3.2.4. Prepare ruler
 
-<build_ruler.py>
+It would be very costly to process all learned rules during
+every single entity prediction. Therefore, the rules are
+processed once for all entities.
+
+Copy the most comprehensive rules file created by AnyBURL
+from the `AnyBURL Rules Directory` to the `POWER Ruler
+Directory`:
+
+```bash
+cp data/anyburl/cde/rules/rules-100 data/power/ruler/cde-50/rules.tsv
+```
+
+Then, make sure that the previously created Neo4j instance is
+running and execute the following command:
+
+```bash
+python src/prepare_ruler.py \
+  data/power/ruler/cde-50/rules.tsv \
+  bolt://localhost:7687 \
+  neo4j \
+  1234567890 \
+  data/power/split/cde-50/ \
+  data/power/ruler/cde-50/ruler.pkl
+```
 
 ### 3.2.5. Evaluate ruler
 
