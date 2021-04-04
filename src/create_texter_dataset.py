@@ -4,12 +4,11 @@ import random
 from argparse import ArgumentParser
 from pathlib import Path
 from random import sample
-from shutil import copyfile
 from typing import Dict, Set, List, Tuple
 
 from data.irt.split.split_dir import SplitDir
 from data.irt.text.text_dir import TextDir
-from data.power.texter.samples.power_dir import PowerDir
+from data.power.samples.power_dir import PowerDir
 
 
 def main():
@@ -34,8 +33,8 @@ def parse_args():
     parser.add_argument('text_dir', metavar='text-dir',
                         help='Path to (input) IRT Text Directory')
 
-    parser.add_argument('power_dir', metavar='power-dir',
-                        help='Path to (output) POWER Directory')
+    parser.add_argument('samples_dir', metavar='samples-dir',
+                        help='Path to (output) POWER Samples Directory')
 
     default_class_count = 100
     parser.add_argument('--class-count', dest='class_count', type=int, metavar='INT', default=default_class_count,
@@ -54,12 +53,12 @@ def parse_args():
 
     args = parser.parse_args()
 
-    ## Log applied config
+    # Log applied config
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
     logging.info('    {:24} {}'.format('text-dir', args.text_dir))
-    logging.info('    {:24} {}'.format('power-dir', args.power_dir))
+    logging.info('    {:24} {}'.format('samples-dir', args.samples_dir))
     logging.info('    {:24} {}'.format('--class-count', args.class_count))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
     logging.info('    {:24} {}'.format('--sent-count', args.sent_count))
@@ -73,27 +72,42 @@ def parse_args():
 def create_texter_dataset(args):
     split_dir_path = args.split_dir
     text_dir_path = args.text_dir
-    power_dir_path = args.power_dir
+    samples_dir_path = args.samples_dir
 
     class_count = args.class_count
+    overwrite = args.overwrite
     sent_count = args.sent_count
 
-    ## Check (input) IRT Split Directory
+    #
+    # Check that (input) IRT Split Directory exists
+    #
+
+    logging.info('Check that (input) IRT Split Directory exists ...')
 
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
-    ## Check (input) IRT Split Directory
+    #
+    # Check that (input) IRT Split Directory exists
+    #
+
+    logging.info('Check that (input) IRT Split Directory exists ...')
 
     text_dir = TextDir(Path(text_dir_path))
     text_dir.check()
 
-    ## Create (output) POWER Directory
+    #
+    # Check that (output) POWER Samples Directory does not exist
+    #
 
-    power_dir = PowerDir(Path(power_dir_path))
-    power_dir.create()
+    logging.info('Check that (output) POWER Samples Directory does not exist ...')
 
-    ## Load IRT Triples TXTs
+    power_dir = PowerDir(Path(samples_dir_path))
+    power_dir.create(overwrite=overwrite)
+
+    #
+    # Load IRT Triples TXTs
+    #
 
     logging.info('Load IRT Triples TXTs ...')
 
@@ -106,7 +120,9 @@ def create_texter_dataset(args):
     valid_triples = ow_valid_triples
     test_triples = ow_test_triples
 
-    ## Save triples to POWER Triples DBs
+    #
+    # Save triples to POWER Triples DBs
+    #
 
     logging.info('Save triples to POWER Triples DBs ...')
 
@@ -122,21 +138,16 @@ def create_texter_dataset(args):
     test_triples_db.create_triples_table()
     test_triples_db.insert_triples(test_triples)
 
-    ## Copy IRT Label TXTs to POWER Dir
-
-    logging.info('Copy IRT Label TXTs to POWER Dir ...')
-
-    copyfile(split_dir.ent_labels_txt.path, power_dir.ent_labels_txt.path)
-    copyfile(split_dir.rel_labels_txt.path, power_dir.rel_labels_txt.path)
-
-    ## Query most common classes and write them to Classes TSV
+    #
+    # Create Classes TSV
+    #
 
     logging.info('Create Classes TSV ...')
 
     rel_tail_supps = power_dir.tmp_dir.train_triples_db.select_top_rel_tails(class_count)
 
-    ent_to_label = power_dir.ent_labels_txt.load()
-    rel_to_label = power_dir.rel_labels_txt.load()
+    ent_to_label = split_dir.ent_labels_txt.load()
+    rel_to_label = split_dir.rel_labels_txt.load()
 
     ent_count = len(ent_to_label)
     rel_tail_freq_labels = [(rel, tail, supp / ent_count, f'{rel_to_label[rel]} {ent_to_label[tail]}')
@@ -144,7 +155,9 @@ def create_texter_dataset(args):
 
     power_dir.classes_tsv.save(rel_tail_freq_labels)
 
-    ## Query classes' entities
+    #
+    # Query classes' entities
+    #
 
     logging.info("Query classes' entities ...")
 
@@ -164,7 +177,9 @@ def create_texter_dataset(args):
         class_ents = power_dir.tmp_dir.test_triples_db.select_heads_with_rel_tail(rel, tail)
         test_class_ents.append(class_ents)
 
-    ## Create POWER Sample TSVs
+    #
+    # Create POWER Sample TSVs
+    #
 
     logging.info('Create POWER Sample TSVs ...')
 

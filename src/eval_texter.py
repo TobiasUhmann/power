@@ -10,7 +10,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
 
 from data.irt.text.text_dir import TextDir
-from data.power.texter.texter_pkl import TexterPkl
+from data.power.texter_pkl import TexterPkl
 from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact

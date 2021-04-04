@@ -15,8 +15,8 @@ from tqdm import tqdm
 from transformers import AdamW
 
 from data.power.model.model_dir import ModelDir
-from data.power.texter.samples.power_dir import PowerDir
-from data.power.texter.samples.samples_tsv import Sample
+from data.power.samples.power_dir import PowerDir
+from data.power.samples.samples_tsv import Sample
 from models.ent import Ent
 from models.rel import Rel
 from power.texter import Texter

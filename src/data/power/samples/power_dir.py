@@ -1,5 +1,5 @@
 """
-The `POWER Directory` contains the input files required for training the
+The `POWER Samples Directory` contains the input files required for training the
 `POWER Classifier`. The `POWER Temp Directory` keeps intermediate files
 for debugging purposes.
 
@@ -7,18 +7,15 @@ for debugging purposes.
 
 ::
 
-    power/                # POWER Directory
+    power/                 # POWER Samples Directory
 
-        tmp/              # POWER Temp Directory
+        tmp/               # POWER Temp Directory
 
-        ent_labels.txt    # POWER Entity Labels TXT
-        rel_labels.txt    # POWER Relation Labels TXT
+        classes.tsv        # POWER Classes TSV
 
-        classes.tsv       # POWER Classes TSV
-
-        test.tsv          # POWER Test Samples TSV
-        train.tsv         # POWER Train Samples TSV
-        valid.tsv         # POWER Valid Samples TSV
+        test_samples.tsv   # POWER Test Samples TSV
+        train_samples.tsv  # POWER Train Samples TSV
+        valid_samples.tsv  # POWER Valid Samples TSV
 
 |
 """
@@ -26,17 +23,13 @@ for debugging purposes.
 from pathlib import Path
 
 from data.base_dir import BaseDir
-from data.power.texter.samples.classes_tsv import ClassesTsv
-from data.power.texter.samples.samples_tsv import SamplesTsv
-from data.power.texter.samples.tmp.tmp_dir import TmpDir
-from data.irt.split.labels_txt import LabelsTxt
+from data.power.samples.classes_tsv import ClassesTsv
+from data.power.samples.samples_tsv import SamplesTsv
+from data.power.samples.tmp.tmp_dir import TmpDir
 
 
 class PowerDir(BaseDir):
     tmp_dir: TmpDir
-
-    ent_labels_txt: LabelsTxt
-    rel_labels_txt: LabelsTxt
 
     classes_tsv: ClassesTsv
 
@@ -49,9 +42,6 @@ class PowerDir(BaseDir):
 
         self.tmp_dir = TmpDir(path.joinpath('tmp'))
 
-        self.ent_labels_txt = LabelsTxt(path.joinpath('ent_labels.txt'))
-        self.rel_labels_txt = LabelsTxt(path.joinpath('rel_labels.txt'))
-
         self.classes_tsv = ClassesTsv(path.joinpath('classes.tsv'))
 
         self.train_samples_tsv = SamplesTsv(path.joinpath('train.tsv'))
@@ -62,9 +52,6 @@ class PowerDir(BaseDir):
         super().check()
 
         self.tmp_dir.check()
-
-        self.ent_labels_txt.check()
-        self.rel_labels_txt.check()
 
         self.classes_tsv.check()
 

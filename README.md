@@ -14,7 +14,7 @@
     - [3.2.3. Load graph into Neo4j](#323-load-graph-into-neo4j)
     - [3.2.4. Prepare ruler](#324-prepare-ruler)
     - [3.2.5. Evaluate ruler](#325-evaluate-ruler)
-  - [3.3. Build and evaluate texter](#33-build-and-evaluate-texter)
+  - [3.3. Train and evaluate texter](#33-train-and-evaluate-texter)
     - [3.3.1. Create texter dataset](#331-create-texter-dataset)
     - [3.3.2. Train texter](#332-train-texter)
     - [3.3.3. Evaluate texter against predictable facts](#333-evaluate-texter-against-predictable-facts)
@@ -92,9 +92,10 @@ data/
             
     power/
         ruler/
-            cde-test-50/                POWER Ruler Dir (CoDEx graph, test data, 50% known test triples)
-                rules/                  POWER Rules Dir
-                ruler.pkl               POWER Ruler PKL
+            cde-test-50.pkl             POWER Ruler PKL (CoDEx graph, test data, 50% known test triples)
+            ...
+        samples/
+            cde-irt-5-marked/           POWER Samples Dir (CoDEx graph, IRT sentences, 5 per entity, marked)
             ...
         split/
             cde-50/                     POWER Split Dir (CoDEx graph, 50% known valid/test triples)
@@ -235,16 +236,26 @@ evaluation (`--filter-known`)!
 
 The results is the micro F1 score over the ground truth rules.
 
-## 3.3. Build and evaluate texter
+## 3.3. Train and evaluate `Texter`
 
-First, create dataset. Specifies some sentences and trueness of most common 
-facts for each entity. Then, train texter on it, best will be saved. Then,
-evaluate against test created dataset. Finally, also evaluate against all
-test facts. Of course, cannot predict 100%.
+The `Texter` is a classifier that is trained on the most common facts in the
+knowledge graph. The following sections show how to create the dataset, train
+the `Texter` and, finally, evaluate it. As the `Texter` is trained on the
+most common classes only, it cannot predict all facts, like the `Ruler`. It
+is therefore evaluated twice: Once against the facts it can predict 
+(comparable to the validation during training) and once against all facts
+(comparable to the evaluation of the `Ruler`).
 
 ### 3.3.1. Create texter dataset
 
-<create_texter_dataset.py>
+```bash
+python src/create_texter_dataset.py \
+  data/irt/split/cde/ \
+  data/irt/text/cde-irt-5-marked/ \
+  data/power/samples/cde-irt-5-marked/ \
+  --class-count 100 \
+  --sent-count 5
+```
 
 ### 3.3.2. Train texter
 
