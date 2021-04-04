@@ -6,9 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from sklearn.metrics import precision_recall_fscore_support
-from tqdm import tqdm
 
-from data.irt.text.text_dir import TextDir
 from data.power.ruler.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
 from models.ent import Ent
@@ -37,6 +35,9 @@ def parse_args():
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) POWER Split Directory')
 
+    parser.add_argument('--filter-known', dest='filter_known', action='store_true',
+                        help='Filter out known valid triples')
+
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
 
@@ -52,6 +53,7 @@ def parse_args():
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('--filter-known', args.filter_known))
     logging.info('    {:24} {}'.format('--test', args.test))
 
     logging.info('Environment variables:')
@@ -64,11 +66,14 @@ def eval_ruler(args):
     ruler_pkl_path = args.ruler_pkl
     split_dir_path = args.split_dir
 
+    filter_known = args.filter_known
     test = args.test
 
     #
     # Check that (input) POWER Ruler PKL exists
     #
+
+    logging.info('Check that (input) POWER Ruler PKL exists ...')
 
     ruler_pkl = RulerPkl(Path(ruler_pkl_path))
     ruler_pkl.check()
@@ -76,6 +81,8 @@ def eval_ruler(args):
     #
     # Check that (input) POWER Split Directory exists
     #
+
+    logging.info('Check that (input) POWER Split Directory exists ...')
 
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
@@ -92,81 +99,105 @@ def eval_ruler(args):
     # Load facts
     #
 
+    logging.info('Load facts ...')
+
     ent_to_lbl = split_dir.entities_tsv.load()
     rel_to_lbl = split_dir.relations_tsv.load()
 
     if test:
         known_test_facts = split_dir.test_facts_known_tsv.load()
         unknown_test_facts = split_dir.test_facts_unknown_tsv.load()
-        test_facts = known_test_facts + unknown_test_facts
 
-        kfacts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                  for head, _, rel, _, tail, _ in known_test_facts}
+        known_eval_facts = known_test_facts
+        all_eval_facts = known_test_facts + unknown_test_facts
 
     else:
         known_valid_facts = split_dir.valid_facts_known_tsv.load()
         unknown_valid_facts = split_dir.valid_facts_unknown_tsv.load()
-        test_facts = known_valid_facts + unknown_valid_facts
 
-        kfacts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                  for head, _, rel, _, tail, _ in known_valid_facts}
+        known_eval_facts = known_valid_facts
+        all_eval_facts = known_valid_facts + unknown_valid_facts
 
-    test_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                  for head, _, rel, _, tail, _ in test_facts}
+    known_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                   for head, _, rel, _, tail, _ in known_eval_facts}
+
+    all_eval_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
+                      for head, _, rel, _, tail, _ in all_eval_facts}
 
     #
+    # Load entities
     #
+
+    logging.info('Load entities ...')
+
+    if test:
+        eval_ents = split_dir.test_entities_tsv.load()
+    else:
+        eval_ents = split_dir.valid_entities_tsv.load()
+
+    eval_ents = [Ent(ent, lbl) for ent, lbl in eval_ents.items()]
+
+    #
+    # Evaluate
     #
 
-    text_dir = TextDir(Path('data/irt/cde/text/cde/bert-base-cased.1.768.clean'))
-    v_ents = text_dir.ow_test_sents_txt.load()
-    valid_ents = [Ent(id, ent_to_lbl[id]) for id in v_ents]
+    total_gt = []
+    total_pred = []
 
-    skt_gt = []
-    skt_pred = []
+    for ent in eval_ents:
+        logging.info(f'Evaluate entity "{ent.lbl}" ({ent.id}) ...')
 
-    for ent in tqdm(valid_ents):
-        # print()
-        # print('ENT')
-        # pprint(ent)
+        #
+        # Get entity's ground truth facts
+        #
 
-        gt = list(set(test_facts).difference(set(kfacts)))
-        gt = [fact for fact in gt if fact.head == ent]
-        # print('GT')
-        # pprint(gt)
+        gt = [fact for fact in all_eval_facts if fact.head == ent]
 
-        # pred = ruler[ent]
-        # print('PRED')
-        # pprint(pred)
+        if filter_known:
+            gt = list(set(gt).difference(known_facts))
+
+        if filter_known:
+            logging.debug('Ground truth (filtered):')
+        else:
+            logging.debug('Ground truth:')
+
+        for fact in gt:
+            logging.debug(str(fact))
+
+        #
+        # Get entity's ground truth facts
+        #
 
         pred = [Fact(ent, rel, tail) for (rel, tail) in ruler.pred[ent]]
-        pred = list(set(pred).difference(set(kfacts)))
-        # print('PRED')
-        # pprint(pred)
+
+        if filter_known:
+            pred = list(set(pred).difference(known_facts))
+
+        if filter_known:
+            logging.debug('Predicted (filtered):')
+        else:
+            logging.debug('Predicted:')
+
+        for fact in gt:
+            logging.debug(str(fact))
+
+        #
+        # Add ground truth and predicted facts to global sklearn lists
+        #
 
         union = list(set(gt) | set(pred))
-        # print('UNION')
-        # pprint(union)
 
-        sk_gt = [1 if fact in gt else 0 for fact in union]
-        sk_pred = [1 if fact in pred else 0 for fact in union]
+        union_gt = [1 if fact in gt else 0 for fact in union]
+        union_pred = [1 if fact in pred else 0 for fact in union]
 
-        skt_gt.extend(sk_gt)
-        skt_pred.extend(sk_pred)
+        total_gt.extend(union_gt)
+        total_pred.extend(union_pred)
 
-        prfs = precision_recall_fscore_support(sk_gt, sk_pred, labels=[1], zero_division=0)
-        # print('PRFS')
-        # print(sk_gt)
-        # print(sk_pred)
-        # print(prfs)
+        ent_prfs = precision_recall_fscore_support(union_gt, union_pred, labels=[1], zero_division=0)
+        logging.debug(f'PRFS: {ent_prfs}')
 
-        pass
-
-    prfs = precision_recall_fscore_support(skt_gt, skt_pred, labels=[1])
-    print('PRFS')
-    print(skt_gt)
-    print(skt_pred)
-    print(prfs)
+    total_prfs = precision_recall_fscore_support(total_gt, total_pred, labels=[1])
+    logging.info(f'PRFS: {total_prfs}')
 
 
 def get_defaultdict():

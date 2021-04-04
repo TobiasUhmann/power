@@ -220,7 +220,20 @@ python src/prepare_ruler.py \
 
 ### 3.2.5. Evaluate ruler
 
-<eval_ruler.py>
+Evaluate the ruler:
+
+```bash
+python src/eval_ruler.py \
+  data/power/ruler/cde-50/ruler.pkl \
+  data/power/split/cde-50/
+```
+
+By default, the ruler is evaluated against both, the known and
+the unknown evaluation facts. If the known evaluation facts were
+included during rule mining, they must not be included in the
+evaluation (`--filter-known`)!
+
+The results is the micro F1 score over the ground truth rules.
 
 ## 3.3. Build and evaluate texter
 

@@ -86,6 +86,8 @@ def eval_texter(args):
     # Check that (input) POWER Texter PKL exists
     #
 
+    logging.info('Check that (input) POWER Texter PKL exists ...')
+
     texter_pkl = TexterPkl(Path(texter_pkl_path))
     texter_pkl.check()
 
@@ -93,12 +95,16 @@ def eval_texter(args):
     # Check that (input) POWER Split Directory exists
     #
 
+    logging.info('Check that (input) POWER Split Directory exists ...')
+
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
     #
     # Check that (input) IRT Text Directory exists
     #
+
+    logging.info('Check that (input) IRT Text Directory exists ...')
 
     text_dir = TextDir(Path(text_dir_path))
     text_dir.check()
@@ -114,6 +120,8 @@ def eval_texter(args):
     #
     # Load facts
     #
+
+    logging.info('Load facts ...')
 
     ent_to_lbl = split_dir.entities_tsv.load()
     rel_to_lbl = split_dir.relations_tsv.load()
@@ -142,6 +150,8 @@ def eval_texter(args):
     # Load entities
     #
 
+    logging.info('Load entities ...')
+
     if test:
         eval_ents = split_dir.test_entities_tsv.load()
     else:
@@ -152,6 +162,8 @@ def eval_texter(args):
     #
     # Load texts
     #
+
+    logging.info('Load texts ...')
 
     if test:
         eval_ent_to_sents = text_dir.ow_test_sents_txt.load()
