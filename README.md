@@ -3,8 +3,8 @@
 - [1. Setup](#1-setup)
   - [1.1. Clone repo](#11-clone-repo)
   - [1.2. Install Python packages](#12-install-python-packages)
-  - [1.3. Install Neo4j graph database](#13-install-neo4j-graph-database)      
-- [2. Provide Data](#2-provide-data)
+  - [1.3. Install Neo4j](#13-install-neo4j)      
+- [2. Obtain Data](#2-obtain-data)
 - [3. Build and evaluate POWER](#3-train-and-evaluate-power)
   - [3.1. Create split](#31-create-split)
   - [3.2. Build and evaluate ruler](#32-build-and-evaluate-ruler)
@@ -25,18 +25,48 @@
 
 ## 1.1. Clone repo
 
+Clone the repo from GitHub:
+
+```
+git clone https://github.com/TobiasUhmann/power.git
+```
+
+Change into the directory. All the following commands are exptected to be
+run from within the project directory:
+
+```
+cd power/
+```
+
 ## 1.2. Install Python packages
 
-## 1.3. Install Neo4j graph database
+Make sure that you run Python 3.9.  Also, it is recommended to create a 
+separate Python environment. For example, create a local Anaconda environment:
+  
+```
+conda create -p conda39/ python=3.9
+conda activate conda39/
+```
 
-# 2. Provide data
+Install the Python packages, e.g. using pip:
 
-IRT dataset: <download link>
+```
+pip install -r requirements.txt
+```
 
-additionally: intermediate and final data produced when building POWER:
-<download link>
+To leverage CUDA support, install PyTorch as described on the official 
+website (https://pytorch.org/).
 
-it follows the following directory structure that is assumed in examples:
+## 1.3. Install Neo4j
+
+Install the Neo4j graph database (https://neo4j.com/download-center/) that
+is used to find groundings for the AnyBURL rules.
+
+# 2. Obtain data
+
+Download the IRT dataset (< link >). You can also download the intermediate
+and final data (< link >) produced by various experiments. The latter follow
+the directory structure that is assumed in the following sections:
 
 ```
 data/
@@ -70,16 +100,25 @@ data/
 
 # 3. Train and evaluate POWER
 
-Following sections show how to train POWER on the CoDEx graph with 5
+The following sections show how to train POWER on the CoDEx graph with 5
 marked sentences per entitiy. CoDEx is chosen over Freebase because
-the available relation labels are better readable. Note, that performance
-is much better when choosing Freebase or when increasing the number of
-sentences per entity.
+the available relation labels are better readable. Choosing Freebase or
+increasing the number of sentences improves performance.
 
 ## 3.1. Create Split
 
 Create a POWER Split from an IRT Split:
-<create_split.py>
+
+```
+python src/create_split.py \
+  data/irt/split/cde/ \
+  data/irt/text/cde-irt-5-marked/ \
+  data/power/split/cde-50/ \
+  --known 50
+```
+
+During evaluation, 50% of the validation and test facts will be known,
+respectively.
 
 ## 3.2. Build and evaluate ruler
 

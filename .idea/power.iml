@@ -20,7 +20,7 @@
       <excludeFolder url="file://$MODULE_DIR$/runs" />
       <excludeFolder url="file://$MODULE_DIR$/thesis_tools.egg-info" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.9 (thesis-tools)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.9 (power)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
