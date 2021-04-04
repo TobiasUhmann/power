@@ -1,4 +1,5 @@
 import logging
+import random
 from argparse import ArgumentParser
 from pathlib import Path
 from random import shuffle
@@ -14,9 +15,10 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import AdamW
 
-from data.power.model.model_dir import ModelDir
-from data.power.samples.power_dir import PowerDir
+from data.power.samples.samples_dir import SamplesDir
 from data.power.samples.samples_tsv import Sample
+from data.power.split.split_dir import SplitDir
+from data.power.texter_pkl import TexterPkl
 from models.ent import Ent
 from models.rel import Rel
 from power.texter import Texter
@@ -27,6 +29,9 @@ def main():
 
     args = parse_args()
 
+    if args.random_seed:
+        random.seed(args.random_seed)
+
     train(args)
 
     logging.info('Finished successfully')
@@ -35,8 +40,8 @@ def main():
 def parse_args():
     parser = ArgumentParser()
 
-    parser.add_argument('power_dir', metavar='power-dir',
-                        help='Path to (input) POWER Directory')
+    parser.add_argument('samples_dir', metavar='samples-dir',
+                        help='Path to (input) POWER Samples Directory')
 
     parser.add_argument('class_count', metavar='class-count', type=int,
                         help='Number of classes distinguished by the classifier')
@@ -44,8 +49,11 @@ def parse_args():
     parser.add_argument('sent_count', metavar='sent-count', type=int,
                         help='Number of sentences per entity')
 
-    parser.add_argument('model_dir', metavar='model-dir',
-                        help='Path to (output) POWER Model Directory')
+    parser.add_argument('split_dir', metavar='split-dir',
+                        help='Path to (input) POWER Split Directory')
+
+    parser.add_argument('texter_pkl', metavar='texter-pkl',
+                        help='Path to (output) POWER Texter PKL')
 
     device_choices = ['cpu', 'cuda']
     default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -75,6 +83,9 @@ def parse_args():
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
 
+    parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
+                        help='Use together with PYTHONHASHSEED for reproducibility')
+
     default_sent_len = 64
     parser.add_argument('--sent-len', dest='sent_len', type=int, metavar='INT', default=default_sent_len,
                         help='Sentence length short sentences are padded and long sentences cropped to'
@@ -90,10 +101,11 @@ def parse_args():
     #
 
     logging.info('Applied config:')
-    logging.info('    {:24} {}'.format('power-dir', args.power_dir))
+    logging.info('    {:24} {}'.format('samples-dir', args.samples_dir))
     logging.info('    {:24} {}'.format('class-count', args.class_count))
     logging.info('    {:24} {}'.format('sent-count', args.sent_count))
-    logging.info('    {:24} {}'.format('model-dir', args.model_dir))
+    logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('texter-pkl', args.texter_pkl))
     logging.info('    {:24} {}'.format('--batch-size', args.batch_size))
     logging.info('    {:24} {}'.format('--device', args.device))
     logging.info('    {:24} {}'.format('--epoch-count', args.epoch_count))
@@ -101,6 +113,7 @@ def parse_args():
     logging.info('    {:24} {}'.format('--log-steps', args.log_steps))
     logging.info('    {:24} {}'.format('--lr', args.lr))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
+    logging.info('    {:24} {}'.format('--random-seed', args.random_seed))
     logging.info('    {:24} {}'.format('--sent-len', args.sent_len))
     logging.info('    {:24} {}'.format('--try-batch-size', args.try_batch_size))
 
@@ -108,10 +121,11 @@ def parse_args():
 
 
 def train(args):
-    power_dir_path = args.power_dir
+    samples_dir_path = args.samples_dir
     class_count = args.class_count
     sent_count = args.sent_count
-    model_dir_path = args.model_dir
+    split_dir_path = args.split_dir
+    texter_pkl_path = args.texter_pkl
 
     batch_size = args.batch_size
     device = args.device
@@ -124,26 +138,48 @@ def train(args):
     try_batch_size = args.try_batch_size
 
     #
-    # Check that (input) POWER Directory exists
+    # Check that (input) POWER Samples Directory exists
     #
 
-    power_dir = PowerDir(Path(power_dir_path))
-    power_dir.check()
+    logging.info('Check that (input) POWER Samples Directory exists ...')
+
+    samples_dir = SamplesDir(Path(samples_dir_path))
+    samples_dir.check()
 
     #
-    # Create (output) POWER Model Directory
+    # Check that (input) POWER Split Directory exists
     #
 
-    model_dir = ModelDir(Path(model_dir_path))
-    model_dir.create(overwrite=overwrite)
+    logging.info('Check that (input) POWER Split Directory exists ...')
+
+    split_dir = SplitDir(Path(split_dir_path))
+    split_dir.check()
+
+    #
+    # Check that (output) POWER Texter PKL does not exist
+    #
+
+    logging.info('Check that (output) POWER Texter PKL does not exist ...')
+
+    texter_pkl = TexterPkl(Path(texter_pkl_path))
+
+    if not overwrite:
+        texter_pkl.check(should_exist=False)
+
+    #
+    # Load entity/relation labels
+    #
+
+    logging.info('Load entity/relation labels ...')
+
+    ent_to_lbl = split_dir.entities_tsv.load()
+    rel_to_lbl = split_dir.relations_tsv.load()
 
     #
     # Create Texter
     #
 
-    rel_tail_freq_lbl_tuples = power_dir.classes_tsv.load()
-    ent_to_lbl = power_dir.ent_labels_txt.load()
-    rel_to_lbl = power_dir.rel_labels_txt.load()
+    rel_tail_freq_lbl_tuples = samples_dir.classes_tsv.load()
 
     classes = [(Rel(rel, rel_to_lbl[rel]), Ent(tail, ent_to_lbl[tail]))
                for rel, tail, _, _ in rel_tail_freq_lbl_tuples]
@@ -155,8 +191,10 @@ def train(args):
     # Load datasets and create dataloaders
     #
 
-    train_set = power_dir.train_samples_tsv.load(class_count, sent_count)
-    valid_set = power_dir.valid_samples_tsv.load(class_count, sent_count)
+    logging.info('Load datasets and create dataloaders ...')
+
+    train_set = samples_dir.train_samples_tsv.load(class_count, sent_count)
+    valid_set = samples_dir.valid_samples_tsv.load(class_count, sent_count)
 
     def generate_batch(batch: List[Sample]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
@@ -191,6 +229,8 @@ def train(args):
     # Calc class weights
     #
 
+    logging.info('Calc class weights ...')
+
     _, _, train_classes_stack, _ = zip(*train_set)
     train_freqs = np.array(train_classes_stack).mean(axis=0)
 
@@ -199,6 +239,8 @@ def train(args):
     #
     # Prepare training
     #
+
+    logging.info('Prepare training ...')
 
     texter = texter.to(device)
 
@@ -217,14 +259,16 @@ def train(args):
     writer = SummaryWriter(log_dir=log_dir)
 
     #
-    # Training
+    # Train
     #
+
+    logging.info('Train ...')
 
     best_valid_f1 = 0
 
     # Global progress for Tensorboard
-    train_progress = 0
-    valid_progress = 0
+    train_steps = 0
+    valid_steps = 0
 
     for epoch in range(epoch_count):
 
@@ -240,7 +284,7 @@ def train(args):
         texter.train()
 
         for _, sents_batch, masks_batch, gt_batch in tqdm(train_loader, desc=f'Epoch {epoch}'):
-            train_progress += len(sents_batch)
+            train_steps += len(sents_batch)
 
             sents_batch = sents_batch.to(device)
             masks_batch = masks_batch.to(device)
@@ -268,15 +312,15 @@ def train(args):
             epoch_metrics['train']['gt_classes_stack'] += step_gt_batch
 
             if log_steps:
-                writer.add_scalars('loss', {'train': step_loss}, train_progress)
+                writer.add_scalars('loss', {'train': step_loss}, train_steps)
 
                 step_metrics = {'train': {
                     'pred_classes_stack': step_pred_batch,
                     'gt_classes_stack': step_gt_batch
                 }}
 
-                log_class_metrics(step_metrics, writer, train_progress, class_count)
-                log_macro_metrics(step_metrics, writer, train_progress)
+                log_class_metrics(step_metrics, writer, train_steps, class_count)
+                log_macro_metrics(step_metrics, writer, train_steps)
 
             if try_batch_size:
                 break
@@ -288,7 +332,7 @@ def train(args):
         texter.eval()
 
         for _, sents_batch, masks_batch, gt_batch in tqdm(valid_loader, desc=f'Epoch {epoch}'):
-            valid_progress += len(sents_batch)
+            valid_steps += len(sents_batch)
 
             sents_batch = sents_batch.to(device)
             masks_batch = masks_batch.to(device)
@@ -312,15 +356,15 @@ def train(args):
             epoch_metrics['valid']['gt_classes_stack'] += step_gt_batch
 
             if log_steps:
-                writer.add_scalars('loss', {'valid': step_loss}, valid_progress)
+                writer.add_scalars('loss', {'valid': step_loss}, valid_steps)
 
                 step_metrics = {'valid': {
                     'pred_classes_stack': step_pred_batch,
                     'gt_classes_stack': step_gt_batch
                 }}
 
-                log_class_metrics(step_metrics, writer, valid_progress, class_count)
-                log_macro_metrics(step_metrics, writer, valid_progress)
+                log_class_metrics(step_metrics, writer, valid_steps, class_count)
+                log_macro_metrics(step_metrics, writer, valid_steps)
 
             if try_batch_size:
                 break
@@ -342,12 +386,12 @@ def train(args):
         valid_f1 = log_macro_metrics(epoch_metrics, writer, epoch)
 
         #
-        # Store model
+        # Persist Texter
         #
 
-        if (model_dir_path is not None) and (valid_f1 > best_valid_f1):
+        if valid_f1 > best_valid_f1:
             best_valid_f1 = valid_f1
-            model_dir.texter_pkl.save(texter)
+            texter_pkl.save(texter)
 
         if try_batch_size:
             break

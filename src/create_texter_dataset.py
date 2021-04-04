@@ -8,7 +8,7 @@ from typing import Dict, Set, List, Tuple
 
 from data.irt.split.split_dir import SplitDir
 from data.irt.text.text_dir import TextDir
-from data.power.samples.power_dir import PowerDir
+from data.power.samples.samples_dir import SamplesDir
 
 
 def main():
@@ -61,6 +61,7 @@ def parse_args():
     logging.info('    {:24} {}'.format('samples-dir', args.samples_dir))
     logging.info('    {:24} {}'.format('--class-count', args.class_count))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
+    logging.info('    {:24} {}'.format('--random-seed', args.random_seed))
     logging.info('    {:24} {}'.format('--sent-count', args.sent_count))
 
     logging.info('Environment variables:')
@@ -102,8 +103,8 @@ def create_texter_dataset(args):
 
     logging.info('Check that (output) POWER Samples Directory does not exist ...')
 
-    power_dir = PowerDir(Path(samples_dir_path))
-    power_dir.create(overwrite=overwrite)
+    samples_dir = SamplesDir(Path(samples_dir_path))
+    samples_dir.create(overwrite=overwrite)
 
     #
     # Load IRT Triples TXTs
@@ -126,15 +127,15 @@ def create_texter_dataset(args):
 
     logging.info('Save triples to POWER Triples DBs ...')
 
-    train_triples_db = power_dir.tmp_dir.train_triples_db
+    train_triples_db = samples_dir.tmp_dir.train_triples_db
     train_triples_db.create_triples_table()
     train_triples_db.insert_triples(train_triples)
 
-    valid_triples_db = power_dir.tmp_dir.valid_triples_db
+    valid_triples_db = samples_dir.tmp_dir.valid_triples_db
     valid_triples_db.create_triples_table()
     valid_triples_db.insert_triples(valid_triples)
 
-    test_triples_db = power_dir.tmp_dir.test_triples_db
+    test_triples_db = samples_dir.tmp_dir.test_triples_db
     test_triples_db.create_triples_table()
     test_triples_db.insert_triples(test_triples)
 
@@ -144,7 +145,7 @@ def create_texter_dataset(args):
 
     logging.info('Create Classes TSV ...')
 
-    rel_tail_supps = power_dir.tmp_dir.train_triples_db.select_top_rel_tails(class_count)
+    rel_tail_supps = samples_dir.tmp_dir.train_triples_db.select_top_rel_tails(class_count)
 
     ent_to_label = split_dir.ent_labels_txt.load()
     rel_to_label = split_dir.rel_labels_txt.load()
@@ -153,7 +154,7 @@ def create_texter_dataset(args):
     rel_tail_freq_labels = [(rel, tail, supp / ent_count, f'{rel_to_label[rel]} {ent_to_label[tail]}')
                             for rel, tail, supp in rel_tail_supps]
 
-    power_dir.classes_tsv.save(rel_tail_freq_labels)
+    samples_dir.classes_tsv.save(rel_tail_freq_labels)
 
     #
     # Query classes' entities
@@ -166,15 +167,15 @@ def create_texter_dataset(args):
     test_class_ents = []
 
     for rel, tail, _ in rel_tail_supps:
-        class_ents = power_dir.tmp_dir.train_triples_db.select_heads_with_rel_tail(rel, tail)
+        class_ents = samples_dir.tmp_dir.train_triples_db.select_heads_with_rel_tail(rel, tail)
         train_class_ents.append(class_ents)
 
     for rel, tail, _ in rel_tail_supps:
-        class_ents = power_dir.tmp_dir.valid_triples_db.select_heads_with_rel_tail(rel, tail)
+        class_ents = samples_dir.tmp_dir.valid_triples_db.select_heads_with_rel_tail(rel, tail)
         valid_class_ents.append(class_ents)
 
     for rel, tail, _ in rel_tail_supps:
-        class_ents = power_dir.tmp_dir.test_triples_db.select_heads_with_rel_tail(rel, tail)
+        class_ents = samples_dir.tmp_dir.test_triples_db.select_heads_with_rel_tail(rel, tail)
         test_class_ents.append(class_ents)
 
     #
@@ -216,9 +217,9 @@ def create_texter_dataset(args):
     valid_samples = get_samples(valid_ent_to_sents, valid_class_ents)
     test_samples = get_samples(test_ent_to_sents, test_class_ents)
 
-    power_dir.train_samples_tsv.save(train_samples)
-    power_dir.valid_samples_tsv.save(valid_samples)
-    power_dir.test_samples_tsv.save(test_samples)
+    samples_dir.train_samples_tsv.save(train_samples)
+    samples_dir.valid_samples_tsv.save(valid_samples)
+    samples_dir.test_samples_tsv.save(test_samples)
 
 
 if __name__ == '__main__':

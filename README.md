@@ -259,9 +259,21 @@ python src/create_texter_dataset.py \
 
 ### 3.3.2. Train texter
 
-<train_texter.py>
+Train the texter, e.g. on the 100 most common facts of the CoDEx graph 
+with 5 marked sentences per entity.
 
-Hint: during training, validated against predictable facts
+```bash
+python src/train_texter.py \
+  data/power/samples/cde-irt-5-marked/ \
+  100 \
+  5 \
+  data/power/split/cde-100/ \
+  data/power/texter/cde-irt-5-marked.pkl \
+  --epoch-count 2
+```
+
+Note: During training, the predicted facts are validated against
+the predictable facts.
 
 ### 3.3.3. Evaluate texter against predictable facts
 

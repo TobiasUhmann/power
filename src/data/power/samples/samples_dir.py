@@ -28,7 +28,7 @@ from data.power.samples.samples_tsv import SamplesTsv
 from data.power.samples.tmp.tmp_dir import TmpDir
 
 
-class PowerDir(BaseDir):
+class SamplesDir(BaseDir):
     tmp_dir: TmpDir
 
     classes_tsv: ClassesTsv
