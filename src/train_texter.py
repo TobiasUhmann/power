@@ -32,7 +32,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    train(args)
+    train_texter(args)
 
     logging.info('Finished successfully')
 
@@ -120,7 +120,7 @@ def parse_args():
     return args
 
 
-def train(args):
+def train_texter(args):
     samples_dir_path = args.samples_dir
     class_count = args.class_count
     sent_count = args.sent_count
