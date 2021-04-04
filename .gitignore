@@ -259,7 +259,10 @@ pip-selfcheck.json
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm,venv
 
 /.vector_cache/
+/conda39/
 /data/
+/logs/
 /runs/
+/venv/
 
 !/scripts/
