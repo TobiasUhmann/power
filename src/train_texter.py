@@ -15,8 +15,8 @@ from tqdm import tqdm
 from transformers import AdamW
 
 from data.power.model.model_dir import ModelDir
-from data.power.power_dir import PowerDir
-from data.power.samples_tsv import Sample
+from data.power.texter.samples.power_dir import PowerDir
+from data.power.texter.samples.samples_tsv import Sample
 from models.ent import Ent
 from models.rel import Rel
 from power.texter import Texter
@@ -178,7 +178,7 @@ def train(args):
         encoded = texter.tokenizer(flat_sents_batch, padding=True, truncation=True, max_length=sent_len,
                                    return_tensors='pt')
 
-        b_size = len(ent_batch)  # usually b_size == batch_size, except for last batch in dataset
+        b_size = len(ent_batch)  # usually b_size == batch_size, except for last batch in samples
         tok_lists_batch = encoded.input_ids.reshape(b_size, sent_count, -1)
         masks_batch = encoded.attention_mask.reshape(b_size, sent_count, -1)
 

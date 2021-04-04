@@ -43,8 +43,8 @@ class Texter(Module):
         logits_batch, softs_batch, = self.forward(encoded.input_ids.unsqueeze(0), encoded.attention_mask.unsqueeze(0))
         logits, softs = logits_batch[0], softs_batch[0]
 
-        pred = {Fact(ent, rel, tail): [(sents[i], softs[c][i].item()) for i in range(len(sents)) if softs[c][i].item() > 0.5]
-                for c, (rel, tail) in enumerate(self.classes)}
+        pred = {Fact(ent, rel, tail): [(sents[i], softs[c][i].item()) for i in range(len(sents))]
+                for c, (rel, tail) in enumerate(self.classes) if logits[c] > 0.5}
 
         return pred
 

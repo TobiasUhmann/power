@@ -9,7 +9,7 @@ from typing import Dict, Set, List, Tuple
 
 from data.irt.split.split_dir import SplitDir
 from data.irt.text.text_dir import TextDir
-from data.power.power_dir import PowerDir
+from data.power.texter.samples.power_dir import PowerDir
 
 
 def main():

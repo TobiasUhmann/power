@@ -10,7 +10,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
 
 from data.irt.text.text_dir import TextDir
-from data.power.model.texter_pkl import TexterPkl
+from data.power.texter.texter_pkl import TexterPkl
 from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
@@ -64,7 +64,7 @@ def parse_args():
     logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
     logging.info('    {:24} {}'.format('text-dir', args.text_dir))
-    logging.info('    {:24} {}'.format('--filter-known', args.eval_known))
+    logging.info('    {:24} {}'.format('--filter-known', args.filter_known))
     logging.info('    {:24} {}'.format('--test', args.test))
 
     logging.info('Environment variables:')
@@ -143,22 +143,20 @@ def eval_texter(args):
     #
 
     if test:
-        test_ent_to_lbl = split_dir.test_entities_tsv.load()
-        eval_ents = test_ent_to_lbl.keys()
+        eval_ents = split_dir.test_entities_tsv.load()
     else:
-        valid_ent_to_lbl = split_dir.valid_entities_tsv.load()
-        eval_ents = valid_ent_to_lbl.keys()
+        eval_ents = split_dir.valid_entities_tsv.load()
 
-    eval_ents = [Ent(ent, lbl) for ent, lbl in eval_ents]
+    eval_ents = [Ent(ent, lbl) for ent, lbl in eval_ents.items()]
 
     #
     # Load texts
     #
 
     if test:
-        eval_ent_to_sents = text_dir.ow_valid_sents_txt.load()
-    else:
         eval_ent_to_sents = text_dir.ow_test_sents_txt.load()
+    else:
+        eval_ent_to_sents = text_dir.ow_valid_sents_txt.load()
 
     #
     # Evaluate
@@ -179,14 +177,15 @@ def eval_texter(args):
             logging.info(f'Ground Truth (filtered):\n'
                          f'{pformat(gt)}')
 
-        sents = list(eval_ent_to_sents[ent])[:sent_count]
+        sents = list(eval_ent_to_sents[ent.id])[:sent_count]
         if len(sents) < sent_count:
             logging.warning(f'Only {len(sents)} sentences for entity "{ent.lbl}" ({ent.id}). Skipping.')
             continue
 
         pred = texter.predict(ent, sents)
-        logging.info(f'Predicted:\n'
-                     f'{pformat(pred)}')
+        logging.info('Predicted:')
+        for p in pred:
+            logging.info(str(p))
 
         if filter_known:
             pred = list(set(pred).difference(known_facts))

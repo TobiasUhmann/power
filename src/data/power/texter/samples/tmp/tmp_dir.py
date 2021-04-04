@@ -17,7 +17,7 @@ The `POWER Temp Directory` keeps intermediate files for debuggin purposes.
 from pathlib import Path
 
 from data.base_dir import BaseDir
-from data.power.tmp.triples_db import TriplesDb
+from data.power.texter.samples.tmp.triples_db import TriplesDb
 
 
 class TmpDir(BaseDir):

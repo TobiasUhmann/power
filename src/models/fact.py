@@ -3,7 +3,7 @@ from typing import Union, Dict
 
 from neo4j import Record
 
-import data.power.rules.rules_tsv
+import data.power.ruler.rules_tsv
 from models.ent import Ent
 from models.rel import Rel
 from models.var import Var
@@ -22,7 +22,7 @@ class Fact:
                     Ent(tail, ent_to_lbl[tail]))
 
     @staticmethod
-    def from_anyburl(fact: data.power.rules.rules_tsv.Fact,
+    def from_anyburl(fact: data.power.ruler.rules_tsv.Fact,
                      ent_to_lbl: Dict[int, str],
                      rel_to_lbl: Dict[int, str]):
         head, rel, tail = fact
