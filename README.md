@@ -114,7 +114,7 @@ increasing the number of sentences improves performance.
 
 Create a POWER Split from an IRT Split:
 
-```
+```bash
 python src/create_split.py \
   data/irt/split/cde/ \
   data/irt/text/cde-irt-5-marked/ \
@@ -131,16 +131,42 @@ First, create dataset for AnyBURL, run it. Resulting rules are then matched
 on train and valid facts. For that, those need to be loaded to Neo4j graph
 database that can be queried for rule groundings.
 
-### 3.2.1 Create AnyBURL dataset
+### 3.2.1. Create AnyBURL dataset
 
 Create the `AnyBURL Facts TSV` that contains the `POWER Split`'s train fact
 in the format expected by AnyBURL.
 
-```
+```bash
 python src/create_anyburl_dataset.py \
   data/power/split/cde-50/ \
-  data/anyburl/cde/train-facts.tsv \
+  data/anyburl/cde/facts.tsv
 ```
+
+### 3.2.2. Mine rules
+
+Create a `rules/` directory next to the generated `facts.tsv`
+and put a `config-learn.properties` with the following 
+content into it:
+
+```
+PATH_TRAINING  = ../facts.tsv
+PATH_OUTPUT    = rules
+SNAPSHOTS_AT   = 10,50,100
+WORKER_THREADS = 7
+```
+
+Run AnyBURL. If you have put the downloaded AnyBURL directory
+next to the `power` project directory, the invocation from within
+the `rules` directory looks like this:
+
+```bash
+java -cp ../../../../../AnyBURL/AnyBURL-RE.jar \
+  de.unima.ki.anyburl.LearnReinforced \
+  config-learn.properties
+```
+
+AnyBURL will search the `facts.tsv` for rules and save the
+resulting rules in the `rules/` directory.
 
 ### 3.2.2. Load graph into Neo4j
 
