@@ -8,8 +8,8 @@ from typing import Set, List
 
 from neo4j import GraphDatabase
 
-from data.power.ruler.ruler_pkl import RulerPkl
-from data.power.ruler.rules_tsv import RulesTsv
+from data.power.ruler_pkl import RulerPkl
+from data.anyburl.rules_tsv import RulesTsv
 from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact

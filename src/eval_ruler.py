@@ -7,7 +7,7 @@ from pathlib import Path
 
 from sklearn.metrics import precision_recall_fscore_support
 
-from data.power.ruler.ruler_pkl import RulerPkl
+from data.power.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact

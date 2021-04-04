@@ -210,12 +210,12 @@ running and execute the following command:
 
 ```bash
 python src/prepare_ruler.py \
-  data/power/ruler/cde-50/rules.tsv \
+  data/anyburl/cde/rules/rules-100 \
   bolt://localhost:7687 \
   neo4j \
   1234567890 \
   data/power/split/cde-50/ \
-  data/power/ruler/cde-50/ruler.pkl
+  data/power/ruler/cde-50.pkl
 ```
 
 ### 3.2.5. Evaluate ruler
@@ -224,7 +224,7 @@ Evaluate the ruler:
 
 ```bash
 python src/eval_ruler.py \
-  data/power/ruler/cde-50/ruler.pkl \
+  data/power/ruler/cde-50.pkl \
   data/power/split/cde-50/
 ```
 
