@@ -3,7 +3,8 @@
 - [1. Setup](#1-setup)
   - [1.1. Clone repo](#11-clone-repo)
   - [1.2. Install Python packages](#12-install-python-packages)
-  - [1.3. Install Neo4j](#13-install-neo4j)      
+  - [1.3. Download AnyBURL](#13-download-anyburl)      
+  - [1.4. Install Neo4j](#14-install-neo4j)      
 - [2. Obtain Data](#2-obtain-data)
 - [3. Build and evaluate POWER](#3-train-and-evaluate-power)
   - [3.1. Create split](#31-create-split)
@@ -57,7 +58,11 @@ pip install -r requirements.txt
 To leverage CUDA support, install PyTorch as described on the official 
 website (https://pytorch.org/).
 
-## 1.3. Install Neo4j
+## 1.3. Download AnyBURL
+
+Download AnyBURL (http://web.informatik.uni-mannheim.de/AnyBURL/).
+
+## 1.4. Install Neo4j
 
 Install the Neo4j graph database (https://neo4j.com/download-center/) that
 is used to find groundings for the AnyBURL rules.
@@ -128,7 +133,14 @@ database that can be queried for rule groundings.
 
 ### 3.2.1 Create AnyBURL dataset
 
-<create_anyburl_dataset.py>
+Create the `AnyBURL Facts TSV` that contains the `POWER Split`'s train fact
+in the format expected by AnyBURL.
+
+```
+python src/create_anyburl_dataset.py \
+  data/power/split/cde-50/ \
+  data/anyburl/cde/train-facts.tsv \
+```
 
 ### 3.2.2. Load graph into Neo4j
 

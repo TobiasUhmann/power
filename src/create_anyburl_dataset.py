@@ -65,12 +65,16 @@ def create_anyburl_dataset(args):
     # Check that (input) IRT Split Directory exists
     #
 
+    logging.info('Check that (input) IRT Split Directory exists ...')
+
     split_dir = SplitDir(Path(split_dir_path))
     split_dir.check()
 
     #
     # Check that (output) AnyBURL Facts TSV does not exist
     #
+
+    logging.info('Check that (output) AnyBURL Facts TSV does not exist ...')
 
     facts_tsv = FactsTsv(Path(facts_tsv_path))
     if not overwrite:
@@ -81,6 +85,8 @@ def create_anyburl_dataset(args):
     #
     # Create AnyBURL Facts TSV
     #
+
+    logging.info('Create AnyBURL Facts TSV ...')
 
     ent_to_lbl = split_dir.entities_tsv.load()
     rel_to_lbl = split_dir.relations_tsv.load()

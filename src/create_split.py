@@ -76,12 +76,16 @@ def create_split(args):
     # Check that (input) IRT Split Directory exists
     #
 
+    logging.info('Check that (input) IRT Split Directory exists ...')
+
     irt_split_dir = data.irt.split.split_dir.SplitDir(Path(irt_split_dir_path))
     irt_split_dir.check()
 
     #
     # Check that (input) IRT Text Directory exists
     #
+
+    logging.info('Check that (input) IRT Text Directory exists ...')
 
     text_dir = TextDir(Path(text_dir_path))
     text_dir.check()
@@ -90,12 +94,16 @@ def create_split(args):
     # Check that (output) POWER Split Directory does not exist
     #
 
+    logging.info('Check that (output) POWER Split Directory does not exist ...')
+
     power_split_dir = data.power.split.split_dir.SplitDir(Path(power_split_dir_path))
     power_split_dir.create(overwrite=overwrite)
 
     #
     # Create POWER Entities/Relations TSVs
     #
+
+    logging.info('Create POWER Entities/Relations TSVs ...')
     
     ent_to_lbl = irt_split_dir.ent_labels_txt.load()
     rel_to_lbl = irt_split_dir.rel_labels_txt.load()
@@ -106,6 +114,8 @@ def create_split(args):
     #
     # Create POWER Train/Valid/Test Entities TSVs
     #
+
+    logging.info('Create POWER Train/Valid/Test Entities TSVs ...')
 
     train_texts = text_dir.cw_train_sents_txt.load()
     valid_texts = text_dir.ow_valid_sents_txt.load()
@@ -123,6 +133,8 @@ def create_split(args):
     # Create POWER Train Facts TSV
     #
 
+    logging.info('Create POWER Train Facts TSV ...')
+
     cw_train_triples = irt_split_dir.cw_train_triples_txt.load()
     cw_valid_triples = irt_split_dir.cw_valid_triples_txt.load()
 
@@ -137,6 +149,8 @@ def create_split(args):
     #
     # Create Valid Known/Unknown TSV
     #
+
+    logging.info('Create Valid Known/Unknown TSV ...')
 
     ow_valid_triples = irt_split_dir.ow_valid_triples_txt.load()
     shuffle(ow_valid_triples)
@@ -153,6 +167,8 @@ def create_split(args):
     #
     # Create Neo4j Test Facts TSVs
     #
+
+    logging.info('Create Neo4j Test Facts TSVs ...')
 
     ow_test_triples = irt_split_dir.ow_test_triples_txt.load()
     shuffle(ow_test_triples)
