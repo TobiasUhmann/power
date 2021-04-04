@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/thesis-tools.iml" filepath="$PROJECT_DIR$/.idea/thesis-tools.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/power.iml" filepath="$PROJECT_DIR$/.idea/power.iml" />
     </modules>
   </component>
 </project>
