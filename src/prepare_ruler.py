@@ -4,18 +4,17 @@ import random
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-from typing import Set, List
+from typing import List
 
 from neo4j import GraphDatabase
 
-from data.power.ruler_pkl import RulerPkl
 from data.anyburl.rules_tsv import RulesTsv
+from data.power.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
 from models.ent import Ent
 from models.fact import Fact
 from models.rel import Rel
 from models.rule import Rule
-from models.split import Split
 from models.var import Var
 from power.ruler import Ruler
 
@@ -144,18 +143,14 @@ def prepare_ruler(args):
     log_rules('Rules', short_rules)
 
     #
-    # Read train/valid facts
+    # Load train facts
     #
 
-    logging.info('Read train/valid facts ...')
+    logging.info('Load train facts ...')
 
     train_triples = split_dir.train_facts_tsv.load()
     train_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
                    for head, _, rel, _, tail, _ in train_triples}
-
-    valid_facts = split_dir.valid_facts_known_tsv.load()
-    valid_facts = {Fact.from_ints(head, rel, tail, ent_to_lbl, rel_to_lbl)
-                   for head, _, rel, _, tail, _ in valid_facts}
 
     #
     # Process rules
@@ -217,9 +212,6 @@ def prepare_ruler(args):
                 if fact not in train_facts:
                     pred[fact.head][(fact.rel, fact.tail)].append(rule)
 
-            if logging.getLogger().level == logging.DEBUG:
-                log_facts('Predictions', pred_facts, train_facts, valid_facts)
-
     driver.close()
 
     #
@@ -268,22 +260,6 @@ def log_rules(msg: str, rules: List[Rule], display_max=10):
         logging.debug(f'{msg} ({display_max}/{len(rules)}):')
         for rule in rules[:display_max]:
             logging.debug(str(rule))
-
-
-def log_facts(msg: str, facts: List[Fact], cw_train_facts: Set[Fact], cw_valid_facts: Set[Fact], display_max=10):
-    if logging.getLogger().level == logging.DEBUG:
-
-        logging.debug(f'{msg} ({display_max}/{len(facts)}):')
-        for fact in facts[:display_max]:
-
-            if fact in cw_train_facts:
-                split_str = Split.cw_train.name + ':'
-            elif fact in cw_valid_facts:
-                split_str = Split.cw_valid.name + ':'
-            else:
-                split_str = str(None) + ':'
-
-            logging.debug(f'{split_str:10} {fact}')
 
 
 if __name__ == '__main__':
