@@ -76,7 +76,8 @@ def main():
     # Try batches sizes. Decrease if graphics RAM is not sufficient until it fits.
     #
 
-    for samples_dir, sent_count, split_dir, _, batch_size, _ in combos:
+    for combo in combos:
+        samples_dir, sent_count, split_dir, _, batch_size, _ = combo
 
         args.samples_dir = samples_dir
         args.sent_count = sent_count
@@ -95,7 +96,7 @@ def main():
 
                 # Halve once more, just to be safe
                 batch_size //= 2
-                combos[-2] = batch_size
+                combo[-2] = batch_size
 
                 logging.info(f'Works. Use batch size {batch_size} for samples {samples_dir}')
                 break
@@ -105,7 +106,7 @@ def main():
                                 f' Halve batch size to {batch_size // 2}.')
 
                 batch_size //= 2
-                combos[-2] = batch_size
+                combo[-2] = batch_size
                 args.batch_size = batch_size
 
     #
