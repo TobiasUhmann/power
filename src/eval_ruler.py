@@ -191,7 +191,7 @@ def eval_ruler(args):
         gt_bools = [1 if fact in gt_facts else 0 for fact in pred_and_gt_facts]
         pred_bools = [1 if fact in pred_facts else 0 for fact in pred_and_gt_facts]
 
-        prfs = precision_recall_fscore_support(gt_bools, pred_bools, labels=[1], zero_division=0)
+        prfs = precision_recall_fscore_support(gt_bools, pred_bools, labels=[1], zero_division=1)
         all_prfs.append(prfs)
 
         #
@@ -218,19 +218,19 @@ def eval_ruler(args):
                      f'F1 = {prfs[2][0]:.2f}, Supp = {prfs[3][0]}')
 
     m_ap = sum(all_ap) / len(all_ap)
-    logging.info(f'mAP = {m_ap:.2f}')
-
-    micro_prfs = precision_recall_fscore_support(all_gt_bools, all_pred_bools, labels=[1], zero_division=0)
-    logging.info(f'Micro Prec = {micro_prfs[0][0]:.2f}')
-    logging.info(f'Micro Rec = {micro_prfs[1][0]:.2f}')
-    logging.info(f'Micro F1 = {micro_prfs[2][0]:.2f}')
-    logging.info(f'Micro Supp = {micro_prfs[3][0]}')
+    logging.info(f'mAP = {m_ap:.4f}')
 
     macro_prfs = np.array(all_prfs).mean(axis=0)
-    logging.info(f'Macro Prec = {macro_prfs[0][0]:.2f}')
-    logging.info(f'Macro Rec = {macro_prfs[1][0]:.2f}')
-    logging.info(f'Macro F1 = {macro_prfs[2][0]:.2f}')
-    logging.info(f'Macro Supp = {macro_prfs[3][0]}')
+    logging.info(f'Macro Prec = {macro_prfs[0][0]:.4f}')
+    logging.info(f'Macro Rec = {macro_prfs[1][0]:.4f}')
+    logging.info(f'Macro F1 = {macro_prfs[2][0]:.4f}')
+    logging.info(f'Macro Supp = {macro_prfs[3][0]:.2f}')
+
+    micro_prfs = precision_recall_fscore_support(all_gt_bools, all_pred_bools, labels=[1], zero_division=1)
+    logging.info(f'Micro Prec = {micro_prfs[0][0]:.4f}')
+    logging.info(f'Micro Rec = {micro_prfs[1][0]:.4f}')
+    logging.info(f'Micro F1 = {micro_prfs[2][0]:.4f}')
+    logging.info(f'Micro Supp = {micro_prfs[3][0]}')
 
 
 def get_defaultdict():
