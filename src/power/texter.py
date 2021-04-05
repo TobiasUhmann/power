@@ -1,12 +1,13 @@
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 
 import torch
 from torch import Tensor
-from torch.nn import Parameter, Softmax, Module
+from torch.nn import Parameter, Softmax, Module, Sigmoid
 from transformers import DistilBertModel, DistilBertTokenizer
 
 from models.ent import Ent
 from models.fact import Fact
+from models.pred import Pred
 from models.rel import Rel
 
 
@@ -37,16 +38,24 @@ class Texter(Module):
 
         self.classes = classes
 
-    def predict(self, ent: Ent, sents: List[str]) -> Dict[Fact, List[Tuple[str, float]]]:
+    def predict(self, ent: Ent, sents: List[str]) -> List[Pred]:
         encoded = self.tokenizer(sents, padding=True, truncation=True, max_length=64, return_tensors='pt')
 
+        self.train()
+
         logits_batch, softs_batch, = self.forward(encoded.input_ids.unsqueeze(0), encoded.attention_mask.unsqueeze(0))
-        logits, softs = logits_batch[0], softs_batch[0]
+        logits = logits_batch[0]
+        probs = Sigmoid()(logits).detach().numpy()
+        softs = softs_batch[0].detach().numpy()
 
-        pred = {Fact(ent, rel, tail): [(sents[i], softs[c][i].item()) for i in range(len(sents))]
-                for c, (rel, tail) in enumerate(self.classes) if logits[c] > 0.5}
+        pred = {Fact(ent, rel, tail): (probs[c].item(), [(sents[i], softs[c][i].item()) for i in range(len(sents))])
+                for c, (rel, tail) in enumerate(self.classes) if probs[c] > 0.5}
 
-        return pred
+        preds = [Pred(fact, conf, sents, []) for fact, (conf, sents) in pred.items()]
+
+        preds.sort(key=lambda pred: pred.conf, reverse=True)
+
+        return preds
 
     def forward(self, toks_batch: Tensor, masks_batch: Tensor) -> Tuple[Tensor, Tensor]:
         """

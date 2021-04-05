@@ -1,9 +1,7 @@
-from typing import List, Tuple, Dict
+from typing import List
 
 from models.ent import Ent
-from models.fact import Fact
 from models.pred import Pred
-from models.rule import Rule
 from power.ruler import Ruler
 from power.texter import Texter
 
@@ -21,15 +19,20 @@ class Aggregator:
     def predict(self, ent: Ent, sents: List[str]) -> List[Pred]:
         preds = []
 
-        text_preds: Dict[Fact, List[Tuple[str, float]]] = self.texter.predict(ent, sents)
-        rule_preds: Dict[Fact, List[Rule]] = self.ruler.predict(ent)
+        texter_preds = self.texter.predict(ent, sents)
+        ruler_preds = self.ruler.predict(ent)
 
-        for fact in text_preds.keys() | rule_preds.keys():
-            sents = text_preds[fact] if fact in text_preds else []
-            rules = rule_preds[fact] if fact in rule_preds else []
+        texter_fact_to_pred = {pred.fact: pred for pred in texter_preds}
+        ruler_fact_to_pred = {pred.fact: pred for pred in ruler_preds}
 
-            max_sent_conf = sents[0][1] if len(sents) > 0 else 0
-            max_rule_conf = rules[0].conf if len(rules) > 0 else 0
+        pred_facts = texter_fact_to_pred.keys() | ruler_fact_to_pred.keys()
+
+        for fact in pred_facts:
+            sents = texter_fact_to_pred[fact].sents if fact in texter_fact_to_pred else []
+            rules = ruler_fact_to_pred[fact].rules if fact in ruler_fact_to_pred else []
+
+            max_sent_conf = texter_fact_to_pred[fact].conf if fact in texter_fact_to_pred else 0
+            max_rule_conf = ruler_fact_to_pred[fact].conf if fact in ruler_fact_to_pred else 0
 
             conf = max(max_sent_conf, max_rule_conf)
 

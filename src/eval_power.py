@@ -4,7 +4,9 @@ import random
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
+from typing import List
 
+import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 
 from data.irt.text.text_dir import TextDir
@@ -13,7 +15,9 @@ from data.power.split.split_dir import SplitDir
 from data.power.texter_pkl import TexterPkl
 from models.ent import Ent
 from models.fact import Fact
+from models.pred import Pred
 from power.aggregator import Aggregator
+from util import calc_ap
 
 
 def main():
@@ -202,27 +206,18 @@ def eval_power(args):
     # Evaluate
     #
 
-    total_gt = []
-    total_pred = []
+    all_gt_bools = []
+    all_pred_bools = []
+
+    all_prfs = []
+
+    all_ap = []
 
     for ent in eval_ents:
-        logging.info(f'Evaluate entity "{ent.lbl}" ({ent.id}) ...')
+        logging.debug(f'Evaluate entity {ent} ...')
 
         #
-        # Get entity's ground truth facts
-        #
-
-        gt = [fact for fact in all_eval_facts if fact.head == ent]
-
-        if filter_known:
-            gt = list(set(gt).difference(known_facts))
-
-        logging.debug('Ground truth:')
-        for fact in gt:
-            logging.debug(str(fact))
-
-        #
-        # Get POWER predictions
+        # Predict entity facts
         #
 
         sents = list(eval_ent_to_sents[ent.id])[:sent_count]
@@ -230,32 +225,79 @@ def eval_power(args):
             logging.warning(f'Only {len(sents)} sentences for entity "{ent.lbl}" ({ent.id}). Skipping.')
             continue
 
-        pred = [p.fact for p in power.predict(ent, sents)]
+        preds: List[Pred] = power.predict(ent, sents)
 
         if filter_known:
-            pred = list(set(pred).difference(known_facts))
+            preds = [pred for pred in preds if pred.fact not in known_facts]
 
-        logging.debug('Predicted:')
-        for fact in pred:
+        logging.debug('Predictions:')
+        for pred in preds:
+            logging.debug(str(pred))
+
+        #
+        # Get entity ground truth facts
+        #
+
+        gt_facts = [fact for fact in all_eval_facts if fact.head == ent]
+
+        if filter_known:
+            gt_facts = list(set(gt_facts).difference(known_facts))
+
+        logging.debug('Ground truth:')
+        for fact in gt_facts:
             logging.debug(str(fact))
 
         #
-        # Add ground truth and predicted facts to global sklearn lists
+        # Calc entity PRFS
         #
 
-        union = list(set(gt) | set(pred))
+        pred_facts = {pred.fact for pred in preds}
+        pred_and_gt_facts = list(pred_facts | set(gt_facts))
 
-        union_gt = [1 if fact in gt else 0 for fact in union]
-        union_pred = [1 if fact in pred else 0 for fact in union]
+        gt_bools = [1 if fact in gt_facts else 0 for fact in pred_and_gt_facts]
+        pred_bools = [1 if fact in pred_facts else 0 for fact in pred_and_gt_facts]
 
-        total_gt.extend(union_gt)
-        total_pred.extend(union_pred)
+        prfs = precision_recall_fscore_support(gt_bools, pred_bools, labels=[1], zero_division=0)
+        all_prfs.append(prfs)
 
-        ent_prfs = precision_recall_fscore_support(union_gt, union_pred, labels=[1], zero_division=0)
-        logging.debug(f'PRFS: {ent_prfs}')
+        #
+        # Add ent results to global results for micro metrics
+        #
 
-    total_prfs = precision_recall_fscore_support(total_gt, total_pred, labels=[1])
-    logging.info(f'PRFS: {total_prfs}')
+        all_gt_bools.extend(gt_bools)
+        all_pred_bools.extend(pred_bools)
+
+        #
+        # Calc entity AP
+        #
+
+        pred_fact_conf_tuples = [(pred.fact, pred.conf) for pred in preds]
+
+        ap = calc_ap(pred_fact_conf_tuples, gt_facts)
+        all_ap.append(ap)
+
+        #
+        # Log entity metrics
+        #
+
+        logging.info(
+            f'{str(ent.id):5} {ent.lbl:40}: AP = {ap:.2f}, Prec = {prfs[0][0]:.2f}, Rec = {prfs[1][0]:.2f}, '
+            f'F1 = {prfs[2][0]:.2f}, Supp = {prfs[3][0]}')
+
+    m_ap = sum(all_ap) / len(all_ap)
+    logging.info(f'mAP = {m_ap:.2f}')
+
+    micro_prfs = precision_recall_fscore_support(all_gt_bools, all_pred_bools, labels=[1], zero_division=0)
+    logging.info(f'Micro Prec = {micro_prfs[0][0]:.2f}')
+    logging.info(f'Micro Rec = {micro_prfs[1][0]:.2f}')
+    logging.info(f'Micro F1 = {micro_prfs[2][0]:.2f}')
+    logging.info(f'Micro Supp = {micro_prfs[3][0]}')
+
+    macro_prfs = np.array(all_prfs).mean(axis=0)
+    logging.info(f'Macro Prec = {macro_prfs[0][0]:.2f}')
+    logging.info(f'Macro Rec = {macro_prfs[1][0]:.2f}')
+    logging.info(f'Macro F1 = {macro_prfs[2][0]:.2f}')
+    logging.info(f'Macro Supp = {macro_prfs[3][0]}')
 
 
 def get_defaultdict():
