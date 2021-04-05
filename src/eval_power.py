@@ -8,10 +8,12 @@ from pathlib import Path
 from sklearn.metrics import precision_recall_fscore_support
 
 from data.irt.text.text_dir import TextDir
+from data.power.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
 from data.power.texter_pkl import TexterPkl
 from models.ent import Ent
 from models.fact import Fact
+from power.aggregator import Aggregator
 
 
 def main():
@@ -22,13 +24,16 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    eval_texter(args)
+    eval_power(args)
 
     logging.info('Finished successfully')
 
 
 def parse_args():
     parser = ArgumentParser()
+
+    parser.add_argument('ruler_pkl', metavar='ruler-pkl',
+                        help='Path to (input) POWER Ruler PKL')
 
     parser.add_argument('texter_pkl', metavar='texter-pkl',
                         help='Path to (input) POWER Texter PKL')
@@ -58,6 +63,7 @@ def parse_args():
     #
 
     logging.info('Applied config:')
+    logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
     logging.info('    {:24} {}'.format('texter-pkl', args.texter_pkl))
     logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
@@ -71,7 +77,8 @@ def parse_args():
     return args
 
 
-def eval_texter(args):
+def eval_power(args):
+    ruler_pkl_path = args.ruler_pkl
     texter_pkl_path = args.texter_pkl
     sent_count = args.sent_count
     split_dir_path = args.split_dir
@@ -79,6 +86,15 @@ def eval_texter(args):
 
     filter_known = args.filter_known
     test = args.test
+
+    #
+    # Check that (input) POWER Ruler PKL exists
+    #
+
+    logging.info('Check that (input) POWER Ruler PKL exists ...')
+
+    ruler_pkl = RulerPkl(Path(ruler_pkl_path))
+    ruler_pkl.check()
 
     #
     # Check that (input) POWER Texter PKL exists
@@ -108,12 +124,26 @@ def eval_texter(args):
     text_dir.check()
 
     #
+    # Load ruler
+    #
+
+    logging.info('Load ruler ...')
+
+    ruler = ruler_pkl.load()
+
+    #
     # Load texter
     #
 
     logging.info('Load texter ...')
 
     texter = texter_pkl.load().cpu()
+
+    #
+    # Build POWER
+    #
+
+    power = Aggregator(texter, ruler)
 
     #
     # Load facts
@@ -192,7 +222,7 @@ def eval_texter(args):
             logging.debug(str(fact))
 
         #
-        # Get text predictions
+        # Get POWER predictions
         #
 
         sents = list(eval_ent_to_sents[ent.id])[:sent_count]
@@ -200,7 +230,7 @@ def eval_texter(args):
             logging.warning(f'Only {len(sents)} sentences for entity "{ent.lbl}" ({ent.id}). Skipping.')
             continue
 
-        pred = texter.predict(ent, sents)
+        pred = [p.fact for p in power.predict(ent, sents)]
 
         if filter_known:
             pred = list(set(pred).difference(known_facts))

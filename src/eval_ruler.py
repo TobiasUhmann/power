@@ -156,16 +156,12 @@ def eval_ruler(args):
         if filter_known:
             gt = list(set(gt).difference(known_facts))
 
-        if filter_known:
-            logging.debug('Ground truth (filtered):')
-        else:
-            logging.debug('Ground truth:')
-
+        logging.debug('Ground truth:')
         for fact in gt:
             logging.debug(str(fact))
 
         #
-        # Get entity's ground truth facts
+        # Get entity's predicted facts
         #
 
         pred = [Fact(ent, rel, tail) for (rel, tail) in ruler.pred[ent]]
@@ -173,11 +169,7 @@ def eval_ruler(args):
         if filter_known:
             pred = list(set(pred).difference(known_facts))
 
-        if filter_known:
-            logging.debug('Predicted (filtered):')
-        else:
-            logging.debug('Predicted:')
-
+        logging.debug('Predicted:')
         for fact in gt:
             logging.debug(str(fact))
 

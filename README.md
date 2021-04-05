@@ -281,11 +281,24 @@ the predictable facts.
 
 ### 3.3.4. Evaluate texter against all facts
 
-<eval_texter_all.py>
+```bash
+python src/eval_ruler.py \
+  data/power/texter/cde-irt-5-marked.pkl \
+  5 \
+  data/power/split/cde-0/ \
+  data/irt/text/cde-irt-5-marked/
+```
 
 ## 3.4. Evaluate POWER
 
-<eval_power.py>
+```bash
+python src/eval_ruler.py \
+  data/power/ruler/cde-50.pkl \
+  data/power/texter/cde-irt-5-marked.pkl \
+  5 \
+  data/power/split/cde-50/ \
+  data/irt/text/cde-irt-5-marked/
+```
 
 # 4. Run the app
 
