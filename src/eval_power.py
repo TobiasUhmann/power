@@ -6,15 +6,18 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List
 
+import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 
+from data.irt.text.text_dir import TextDir
 from data.power.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
+from data.power.texter_pkl import TexterPkl
 from models.ent import Ent
 from models.fact import Fact
 from models.pred import Pred
+from power.aggregator import Aggregator
 from util import calc_ap
-import numpy as np
 
 
 def main():
@@ -25,7 +28,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    eval_ruler(args)
+    eval_power(args)
 
     logging.info('Finished successfully')
 
@@ -36,8 +39,17 @@ def parse_args():
     parser.add_argument('ruler_pkl', metavar='ruler-pkl',
                         help='Path to (input) POWER Ruler PKL')
 
+    parser.add_argument('texter_pkl', metavar='texter-pkl',
+                        help='Path to (input) POWER Texter PKL')
+
+    parser.add_argument('sent_count', metavar='sent-count', type=int,
+                        help='Number of sentences per entity')
+
     parser.add_argument('split_dir', metavar='split-dir',
                         help='Path to (input) POWER Split Directory')
+
+    parser.add_argument('text_dir', metavar='text-dir',
+                        help='Path to (input) IRT Text Directory')
 
     parser.add_argument('--filter-known', dest='filter_known', action='store_true',
                         help='Filter out known valid triples')
@@ -46,7 +58,7 @@ def parse_args():
                         help='Use together with PYTHONHASHSEED for reproducibility')
 
     parser.add_argument('--test', dest='test', action='store_true',
-                        help='Load test data instead of valid data')
+                        help='Evaluate on test data')
 
     args = parser.parse_args()
 
@@ -56,7 +68,10 @@ def parse_args():
 
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
+    logging.info('    {:24} {}'.format('texter-pkl', args.texter_pkl))
+    logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
+    logging.info('    {:24} {}'.format('text-dir', args.text_dir))
     logging.info('    {:24} {}'.format('--filter-known', args.filter_known))
     logging.info('    {:24} {}'.format('--test', args.test))
 
@@ -66,9 +81,12 @@ def parse_args():
     return args
 
 
-def eval_ruler(args):
+def eval_power(args):
     ruler_pkl_path = args.ruler_pkl
+    texter_pkl_path = args.texter_pkl
+    sent_count = args.sent_count
     split_dir_path = args.split_dir
+    text_dir_path = args.text_dir
 
     filter_known = args.filter_known
     test = args.test
@@ -83,6 +101,15 @@ def eval_ruler(args):
     ruler_pkl.check()
 
     #
+    # Check that (input) POWER Texter PKL exists
+    #
+
+    logging.info('Check that (input) POWER Texter PKL exists ...')
+
+    texter_pkl = TexterPkl(Path(texter_pkl_path))
+    texter_pkl.check()
+
+    #
     # Check that (input) POWER Split Directory exists
     #
 
@@ -92,12 +119,35 @@ def eval_ruler(args):
     split_dir.check()
 
     #
+    # Check that (input) IRT Text Directory exists
+    #
+
+    logging.info('Check that (input) IRT Text Directory exists ...')
+
+    text_dir = TextDir(Path(text_dir_path))
+    text_dir.check()
+
+    #
     # Load ruler
     #
 
     logging.info('Load ruler ...')
 
     ruler = ruler_pkl.load()
+
+    #
+    # Load texter
+    #
+
+    logging.info('Load texter ...')
+
+    texter = texter_pkl.load().cpu()
+
+    #
+    # Build POWER
+    #
+
+    power = Aggregator(texter, ruler)
 
     #
     # Load facts
@@ -142,6 +192,17 @@ def eval_ruler(args):
     eval_ents = [Ent(ent, lbl) for ent, lbl in eval_ents.items()]
 
     #
+    # Load texts
+    #
+
+    logging.info('Load texts ...')
+
+    if test:
+        eval_ent_to_sents = text_dir.ow_test_sents_txt.load()
+    else:
+        eval_ent_to_sents = text_dir.ow_valid_sents_txt.load()
+
+    #
     # Evaluate
     #
 
@@ -159,7 +220,12 @@ def eval_ruler(args):
         # Predict entity facts
         #
 
-        preds: List[Pred] = ruler.predict(ent)
+        sents = list(eval_ent_to_sents[ent.id])[:sent_count]
+        if len(sents) < sent_count:
+            logging.warning(f'Only {len(sents)} sentences for entity "{ent.lbl}" ({ent.id}). Skipping.')
+            continue
+
+        preds: List[Pred] = power.predict(ent, sents)
 
         if filter_known:
             preds = [pred for pred in preds if pred.fact not in known_facts]
@@ -214,8 +280,9 @@ def eval_ruler(args):
         # Log entity metrics
         #
 
-        logging.info(f'{str(ent.id):5} {ent.lbl:40}: AP = {ap:.2f}, Prec = {prfs[0][0]:.2f}, Rec = {prfs[1][0]:.2f}, '
-                     f'F1 = {prfs[2][0]:.2f}, Supp = {prfs[3][0]}')
+        logging.info(
+            f'{str(ent.id):5} {ent.lbl:40}: AP = {ap:.2f}, Prec = {prfs[0][0]:.2f}, Rec = {prfs[1][0]:.2f}, '
+            f'F1 = {prfs[2][0]:.2f}, Supp = {prfs[3][0]}')
 
     m_ap = sum(all_ap) / len(all_ap)
     logging.info(f'mAP = {m_ap:.4f}')

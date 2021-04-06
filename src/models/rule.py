@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Dict
 
-import data.anyburl.rules.rules_tsv
+import data.anyburl.rules_tsv
 
 from models.fact import Fact
 
@@ -16,7 +16,7 @@ class Rule:
 
     @classmethod
     def from_anyburl(cls,
-                     rule: data.anyburl.rules.rules_tsv.Rule,
+                     rule: data.anyburl.rules_tsv.Rule,
                      ent_to_lbl: Dict[int, str],
                      rel_to_lbl: Dict[int, str]):
         fires, holds, confidence, head, body = rule
