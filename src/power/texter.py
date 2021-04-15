@@ -25,7 +25,7 @@ class Texter(Module):
         super().__init__()
 
         self.tokenizer = DistilBertTokenizer.from_pretrained(pre_trained)
-        self.tokenizer.add_tokens(['[MENTION_START]', '[MENTION_END]'], special_tokens=True)
+        self.tokenizer.add_tokens(['[MENTION_START]', '[MENTION_END]', '[MASK]'], special_tokens=True)
 
         self.bert = DistilBertModel.from_pretrained(pre_trained)
 
