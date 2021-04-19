@@ -28,7 +28,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    eval_power(args)
+    eval_aggregator(args)
 
     logging.info('Finished successfully')
 
@@ -81,7 +81,7 @@ def parse_args():
     return args
 
 
-def eval_power(args):
+def eval_aggregator(args):
     ruler_pkl_path = args.ruler_pkl
     texter_pkl_path = args.texter_pkl
     sent_count = args.sent_count
@@ -213,7 +213,7 @@ def eval_power(args):
 
     all_ap = []
 
-    for ent in eval_ents:
+    for ent in eval_ents[:100]:
         logging.debug(f'Evaluate entity {ent} ...')
 
         #

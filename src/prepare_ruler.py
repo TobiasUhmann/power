@@ -209,8 +209,8 @@ def prepare_ruler(args):
             #
 
             for fact in pred_facts:
-                if fact not in train_facts:
-                    pred[fact.head][(fact.rel, fact.tail)].append(rule)
+                # if fact not in train_facts:
+                pred[fact.head][(fact.rel, fact.tail)].append(rule)
 
     driver.close()
 
