@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 from sklearn.metrics import precision_recall_fscore_support
+from tqdm import tqdm
 
 from data.power.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
@@ -145,6 +146,8 @@ def eval_ruler(args):
     # Evaluate
     #
 
+    logging.info('Evaluate ...')
+
     all_gt_bools = []
     all_pred_bools = []
 
@@ -152,7 +155,12 @@ def eval_ruler(args):
 
     all_ap = []
 
-    for ent in eval_ents:
+    if logging.getLogger().level == logging.DEBUG:
+        iter_eval_ents = eval_ents
+    else:
+        iter_eval_ents = tqdm(eval_ents)
+
+    for ent in iter_eval_ents:
         logging.debug(f'Evaluate entity {ent} ...')
 
         #
@@ -214,7 +222,7 @@ def eval_ruler(args):
         # Log entity metrics
         #
 
-        logging.info(f'{str(ent.id):5} {ent.lbl:40}: AP = {ap:.2f}, Prec = {prfs[0][0]:.2f}, Rec = {prfs[1][0]:.2f}, '
+        logging.debug(f'{str(ent.id):5} {ent.lbl:40}: AP = {ap:.2f}, Prec = {prfs[0][0]:.2f}, Rec = {prfs[1][0]:.2f}, '
                      f'F1 = {prfs[2][0]:.2f}, Supp = {prfs[3][0]}')
 
     m_ap = sum(all_ap) / len(all_ap)
