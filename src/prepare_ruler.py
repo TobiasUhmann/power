@@ -54,8 +54,12 @@ def parse_args():
                         help='Path to (output) POWER Ruler PKL')
 
     default_min_conf = 0.5
-    parser.add_argument('--min-conf', dest='min_conf', type=int, metavar='INT', default=default_min_conf,
+    parser.add_argument('--min-conf', dest='min_conf', type=float, metavar='FLOAT', default=default_min_conf,
                         help='Minimum confidence rules need to be considered (default:{})'.format(default_min_conf))
+
+    default_min_supp = 1
+    parser.add_argument('--min-supp', dest='min_supp', type=int, metavar='INT', default=default_min_supp,
+                        help='Minimum support rules need to be considered (default:{})'.format(default_min_supp))
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -63,12 +67,10 @@ def parse_args():
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    #
-    # Log applied config
-    #
 
+def log_config(args) -> None:
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('rules-tsv', args.rules_tsv))
     logging.info('    {:24} {}'.format('url', args.url))
@@ -77,13 +79,12 @@ def parse_args():
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
     logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
     logging.info('    {:24} {}'.format('--min-conf', args.min_conf))
+    logging.info('    {:24} {}'.format('--min-supp', args.min_supp))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
     logging.info('    {:24} {}'.format('--random-seed', args.random_seed))
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
-
-    return args
 
 
 def prepare_ruler(args):
@@ -95,6 +96,7 @@ def prepare_ruler(args):
     ruler_pkl_path = args.ruler_pkl
 
     min_conf = args.min_conf
+    min_supp = args.min_supp
     overwrite = args.overwrite
 
     #
@@ -136,7 +138,7 @@ def prepare_ruler(args):
     anyburl_rules = rules_tsv.load()
     rules = [Rule.from_anyburl(rule, ent_to_lbl, rel_to_lbl) for rule in anyburl_rules]
 
-    good_rules = [rule for rule in rules if rule.conf > min_conf]
+    good_rules = [rule for rule in rules if rule.conf > min_conf and rule.fires > min_supp]
     good_rules.sort(key=lambda rule: rule.conf, reverse=True)
 
     short_rules = [rule for rule in good_rules if len(rule.body) == 1]

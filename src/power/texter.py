@@ -43,7 +43,7 @@ class Texter(Module):
 
         self.train()
 
-        logits_batch, softs_batch, = self.forward(encoded.input_ids.unsqueeze(0), encoded.attention_mask.unsqueeze(0))
+        logits_batch, softs_batch = self.forward(encoded.input_ids.unsqueeze(0), encoded.attention_mask.unsqueeze(0))
         logits = logits_batch[0]
         probs = Sigmoid()(logits).detach().numpy()
         softs = softs_batch[0].detach().numpy()
