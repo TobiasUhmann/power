@@ -22,6 +22,7 @@ def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
 
     args = parse_args()
+    log_config(args)
 
     if args.random_seed:
         random.seed(args.random_seed)
@@ -49,12 +50,10 @@ def parse_args():
     parser.add_argument('--test', dest='test', action='store_true',
                         help='Load test data instead of valid data')
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    #
-    # Log applied config
-    #
 
+def log_config(args):
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
@@ -63,8 +62,6 @@ def parse_args():
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
-
-    return args
 
 
 def eval_ruler(args):
