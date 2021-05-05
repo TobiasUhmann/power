@@ -29,7 +29,7 @@ def main():
     # Grid Search
     #
 
-    for time in [1, 3, 10, 30, 100]:
+    for time in [1, 3, 10, 30, 100, 300, 1000]:
         #
         # Variable args
         #
@@ -39,7 +39,7 @@ def main():
         # args.username
         # args.password
         # args.split_dir
-        args.ruler_pkl = f'data/power/ruler-v1/time/cde-50-test_{time}.pkl'
+        args.ruler_pkl = f'data/power/ruler-v2/time/cde-50-test_{time}.pkl'
 
         # args.min_conf
         # args.min_supp

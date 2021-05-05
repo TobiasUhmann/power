@@ -28,7 +28,7 @@ def main():
         # Variable args
         #
 
-        args.ruler_pkl = f'data/power/ruler-v1/conf/cde-50-test_{min_conf}.pkl'
+        args.ruler_pkl = f'data/power/ruler-v2/conf/cde-50-test_{min_conf}.pkl'
         # args.split_dir
 
         # args.filter_known

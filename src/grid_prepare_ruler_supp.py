@@ -13,7 +13,7 @@ def main():
     # Fixed args
     #
 
-    args.rules_tsv = f'data/anyburl/cde/rules/rules-10'
+    args.rules_tsv = f'data/anyburl/cde/rules/rules-100'
     args.url = 'bolt://localhost:7687'
     args.username = 'neo4j'
     args.password = '1234567890'
@@ -39,7 +39,7 @@ def main():
         # args.username
         # args.password
         # args.split_dir
-        args.ruler_pkl = f'data/power/ruler-v1/supp/cde-50-test_{min_supp}.pkl'
+        args.ruler_pkl = f'data/power/ruler-v2/supp/cde-50-test_{min_supp}.pkl'
 
         # args.min_conf
         args.min_supp = min_supp
