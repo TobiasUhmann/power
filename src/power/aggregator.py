@@ -17,14 +17,14 @@ class Aggregator:
     texter_weight: Tensor
     ruler_weight: Tensor
 
-    def __init__(self, texter: Texter, ruler: Ruler):
+    def __init__(self, texter: Texter, ruler: Ruler, alpha=0.5):
         super().__init__()
 
         self.texter = texter
         self.ruler = ruler
 
-        self.texter_weight = torch.tensor([1.], requires_grad=True)
-        self.ruler_weight = torch.tensor([100000.], requires_grad=True)
+        self.texter_weight = torch.tensor([alpha], requires_grad=True)
+        self.ruler_weight = torch.tensor([1 - alpha], requires_grad=True)
 
     def predict(self, ent: Ent, sents: List[str]) -> List[Pred]:
         preds = []
@@ -41,13 +41,11 @@ class Aggregator:
             sents = texter_fact_to_pred[fact].sents if fact in texter_fact_to_pred else []
             rules = ruler_fact_to_pred[fact].rules if fact in ruler_fact_to_pred else []
 
-            max_sent_conf = texter_fact_to_pred[fact].conf * self.texter_weight.item() \
-                if fact in texter_fact_to_pred else 0
+            max_sent_conf = texter_fact_to_pred[fact].conf if fact in texter_fact_to_pred else 0
 
-            max_rule_conf = ruler_fact_to_pred[fact].conf * self.ruler_weight.item() \
-                if fact in ruler_fact_to_pred else 0
+            max_rule_conf = ruler_fact_to_pred[fact].conf if fact in ruler_fact_to_pred else 0
 
-            conf = max_sent_conf + max_rule_conf
+            conf = self.texter_weight.item() * max_sent_conf + self.ruler_weight.item() * max_rule_conf
 
             preds.append(Pred(fact, conf, sents, rules))
 
