@@ -213,7 +213,7 @@ def eval_aggregator(args):
 
     all_ap = []
 
-    for ent in eval_ents[:100]:
+    for ent in eval_ents:
         logging.debug(f'Evaluate entity {ent} ...')
 
         #
