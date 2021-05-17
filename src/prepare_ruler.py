@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 from neo4j import GraphDatabase
+from tqdm import tqdm
 
 from data.anyburl.rules_tsv import RulesTsv
 from data.power.ruler_pkl import RulerPkl
@@ -23,6 +24,7 @@ def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
 
     args = parse_args()
+    log_config(args)
 
     if args.random_seed:
         random.seed(args.random_seed)
@@ -54,8 +56,12 @@ def parse_args():
                         help='Path to (output) POWER Ruler PKL')
 
     default_min_conf = 0.5
-    parser.add_argument('--min-conf', dest='min_conf', type=int, metavar='INT', default=default_min_conf,
+    parser.add_argument('--min-conf', dest='min_conf', type=float, metavar='FLOAT', default=default_min_conf,
                         help='Minimum confidence rules need to be considered (default:{})'.format(default_min_conf))
+
+    default_min_supp = 1
+    parser.add_argument('--min-supp', dest='min_supp', type=int, metavar='INT', default=default_min_supp,
+                        help='Minimum support rules need to be considered (default:{})'.format(default_min_supp))
 
     parser.add_argument('--overwrite', dest='overwrite', action='store_true',
                         help='Overwrite output files if they already exist')
@@ -63,12 +69,10 @@ def parse_args():
     parser.add_argument('--random-seed', dest='random_seed', metavar='STR',
                         help='Use together with PYTHONHASHSEED for reproducibility')
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    #
-    # Log applied config
-    #
 
+def log_config(args):
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('rules-tsv', args.rules_tsv))
     logging.info('    {:24} {}'.format('url', args.url))
@@ -77,13 +81,12 @@ def parse_args():
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
     logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
     logging.info('    {:24} {}'.format('--min-conf', args.min_conf))
+    logging.info('    {:24} {}'.format('--min-supp', args.min_supp))
     logging.info('    {:24} {}'.format('--overwrite', args.overwrite))
     logging.info('    {:24} {}'.format('--random-seed', args.random_seed))
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
-
-    return args
 
 
 def prepare_ruler(args):
@@ -95,6 +98,7 @@ def prepare_ruler(args):
     ruler_pkl_path = args.ruler_pkl
 
     min_conf = args.min_conf
+    min_supp = args.min_supp
     overwrite = args.overwrite
 
     #
@@ -136,7 +140,7 @@ def prepare_ruler(args):
     anyburl_rules = rules_tsv.load()
     rules = [Rule.from_anyburl(rule, ent_to_lbl, rel_to_lbl) for rule in anyburl_rules]
 
-    good_rules = [rule for rule in rules if rule.conf > min_conf]
+    good_rules = [rule for rule in rules if rule.conf >= min_conf and rule.fires >= min_supp]
     good_rules.sort(key=lambda rule: rule.conf, reverse=True)
 
     short_rules = [rule for rule in good_rules if len(rule.body) == 1]
@@ -164,9 +168,13 @@ def prepare_ruler(args):
     pred = defaultdict(get_defaultdict)
 
     with driver.session() as session:
-        for rule in short_rules:
+        if logging.getLogger().level == logging.DEBUG:
+            iter_short_rules = short_rules
+        else:
+            iter_short_rules = tqdm(short_rules)
 
-            logging.info(f'Process rule {rule}')
+        for rule in iter_short_rules:
+            logging.debug(f'Process rule {rule}')
 
             #
             # Process rule body
@@ -183,7 +191,7 @@ def prepare_ruler(args):
                 ents = [Ent(tail['id'], ent_to_lbl[tail['id']]) for _, _, tail in records]
 
             else:
-                logging.warning(f'Unsupported rule body in rule {rule}. Skipping.')
+                logging.debug(f'Unsupported rule body in rule {rule}. Skipping.')
                 unsupported_rules += 1
                 continue
 
@@ -200,7 +208,7 @@ def prepare_ruler(args):
                 pred_facts = [Fact(head_fact.head, head_fact.rel, ent) for ent in ents]
 
             else:
-                logging.warning(f'Unsupported rule head in rule {rule}. Skipping.')
+                logging.debug(f'Unsupported rule head in rule {rule}. Skipping.')
                 unsupported_rules += 1
                 continue
 
@@ -209,8 +217,8 @@ def prepare_ruler(args):
             #
 
             for fact in pred_facts:
-                if fact not in train_facts:
-                    pred[fact.head][(fact.rel, fact.tail)].append(rule)
+                # if fact not in train_facts:
+                pred[fact.head][(fact.rel, fact.tail)].append(rule)
 
     driver.close()
 

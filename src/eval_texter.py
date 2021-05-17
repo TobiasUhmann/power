@@ -180,7 +180,6 @@ def eval_texter(args):
     all_pred_bools = []
 
     all_prfs = []
-
     all_ap = []
 
     for ent in eval_ents:

@@ -25,7 +25,7 @@ class Texter(Module):
         super().__init__()
 
         self.tokenizer = DistilBertTokenizer.from_pretrained(pre_trained)
-        self.tokenizer.add_tokens(['[MENTION_START]', '[MENTION_END]'], special_tokens=True)
+        self.tokenizer.add_tokens(['[MENTION_START]', '[MENTION_END]', '[MASK]'], special_tokens=True)
 
         self.bert = DistilBertModel.from_pretrained(pre_trained)
 
@@ -43,7 +43,7 @@ class Texter(Module):
 
         self.train()
 
-        logits_batch, softs_batch, = self.forward(encoded.input_ids.unsqueeze(0), encoded.attention_mask.unsqueeze(0))
+        logits_batch, softs_batch = self.forward(encoded.input_ids.unsqueeze(0), encoded.attention_mask.unsqueeze(0))
         logits = logits_batch[0]
         probs = Sigmoid()(logits).detach().numpy()
         softs = softs_batch[0].detach().numpy()

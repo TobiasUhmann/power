@@ -28,7 +28,7 @@ def main():
     if args.random_seed:
         random.seed(args.random_seed)
 
-    eval_power(args)
+    eval_aggregator(args)
 
     logging.info('Finished successfully')
 
@@ -51,6 +51,11 @@ def parse_args():
     parser.add_argument('text_dir', metavar='text-dir',
                         help='Path to (input) IRT Text Directory')
 
+    default_alpha = 0.5
+    parser.add_argument('--alpha', dest='alpha', type=float, metavar='FLOAT', default=default_alpha,
+                        help='Texer weighting (implies 1-alpha for Ruler)'
+                             ' (default: {})'.format(default_alpha))
+
     parser.add_argument('--filter-known', dest='filter_known', action='store_true',
                         help='Filter out known valid triples')
 
@@ -72,6 +77,7 @@ def parse_args():
     logging.info('    {:24} {}'.format('sent-count', args.sent_count))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
     logging.info('    {:24} {}'.format('text-dir', args.text_dir))
+    logging.info('    {:24} {}'.format('--alpha', args.alpha))
     logging.info('    {:24} {}'.format('--filter-known', args.filter_known))
     logging.info('    {:24} {}'.format('--test', args.test))
 
@@ -81,13 +87,14 @@ def parse_args():
     return args
 
 
-def eval_power(args):
+def eval_aggregator(args):
     ruler_pkl_path = args.ruler_pkl
     texter_pkl_path = args.texter_pkl
     sent_count = args.sent_count
     split_dir_path = args.split_dir
     text_dir_path = args.text_dir
 
+    alpha = args.alpha
     filter_known = args.filter_known
     test = args.test
 
@@ -147,7 +154,7 @@ def eval_power(args):
     # Build POWER
     #
 
-    power = Aggregator(texter, ruler)
+    power = Aggregator(texter, ruler, alpha=alpha)
 
     #
     # Load facts

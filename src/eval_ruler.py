@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 from sklearn.metrics import precision_recall_fscore_support
+from tqdm import tqdm
 
 from data.power.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
@@ -21,6 +22,7 @@ def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)-7s | %(message)s', level=logging.INFO)
 
     args = parse_args()
+    log_config(args)
 
     if args.random_seed:
         random.seed(args.random_seed)
@@ -48,12 +50,10 @@ def parse_args():
     parser.add_argument('--test', dest='test', action='store_true',
                         help='Load test data instead of valid data')
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    #
-    # Log applied config
-    #
 
+def log_config(args):
     logging.info('Applied config:')
     logging.info('    {:24} {}'.format('ruler-pkl', args.ruler_pkl))
     logging.info('    {:24} {}'.format('split-dir', args.split_dir))
@@ -62,8 +62,6 @@ def parse_args():
 
     logging.info('Environment variables:')
     logging.info('    {:24} {}'.format('PYTHONHASHSEED', os.getenv('PYTHONHASHSEED')))
-
-    return args
 
 
 def eval_ruler(args):
@@ -145,6 +143,8 @@ def eval_ruler(args):
     # Evaluate
     #
 
+    logging.info('Evaluate ...')
+
     all_gt_bools = []
     all_pred_bools = []
 
@@ -152,7 +152,12 @@ def eval_ruler(args):
 
     all_ap = []
 
-    for ent in eval_ents:
+    if logging.getLogger().level == logging.DEBUG:
+        iter_eval_ents = eval_ents
+    else:
+        iter_eval_ents = tqdm(eval_ents)
+
+    for ent in iter_eval_ents:
         logging.debug(f'Evaluate entity {ent} ...')
 
         #
@@ -214,7 +219,7 @@ def eval_ruler(args):
         # Log entity metrics
         #
 
-        logging.info(f'{str(ent.id):5} {ent.lbl:40}: AP = {ap:.2f}, Prec = {prfs[0][0]:.2f}, Rec = {prfs[1][0]:.2f}, '
+        logging.debug(f'{str(ent.id):5} {ent.lbl:40}: AP = {ap:.2f}, Prec = {prfs[0][0]:.2f}, Rec = {prfs[1][0]:.2f}, '
                      f'F1 = {prfs[2][0]:.2f}, Supp = {prfs[3][0]}')
 
     m_ap = sum(all_ap) / len(all_ap)
