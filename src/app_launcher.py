@@ -1,7 +1,9 @@
+from collections import defaultdict
+
 import streamlit as st
 
-from app.browse_dataset import run_browse_dataset_page
-from app.predict import render_predict_page
+from app.browse_dataset import add_browse_dataset_page
+from app.predict import add_predict_page
 
 
 def main():
@@ -15,9 +17,13 @@ def main():
     ])
 
     if navigate_to == 'Browse Dataset':
-        run_browse_dataset_page()
+        add_browse_dataset_page()
     elif navigate_to == 'Predict':
-        render_predict_page()
+        add_predict_page()
+
+
+def get_defaultdict():
+    return defaultdict(list)
 
 
 if __name__ == '__main__':

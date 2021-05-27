@@ -1,9 +1,11 @@
 from collections import defaultdict
-from pathlib import Path
+from pprint import pformat
 from typing import List
 
 import streamlit as st
 
+from app.common import add_sidebar_param_split_dir, add_sidebar_param_text_dir, add_sidebar_param_ruler_pkl, \
+    add_sidebar_param_texter_pkl
 from data.irt.text.text_dir import TextDir
 from data.power.ruler_pkl import RulerPkl
 from data.power.split.split_dir import SplitDir
@@ -12,14 +14,26 @@ from models.fact import Fact
 from power.aggregator import Aggregator
 
 
-def render_predict_page():
-    st.title('Power')
+def add_predict_page():
+    st.sidebar.header('Config')
+    split_dir, text_dir, ruler_pkl, texter_pkl = _add_sidebar()
 
-    split_dir_path = st.text_input('Path to Power Split', value='data/power/split/cde-50/')
-    text_dir_path = st.text_input('Path to IRT Text Dir', value='data/irt/text/cde-irt-5-marked/')
+    st.title('Predict')
+    _add_main_page(split_dir, text_dir, ruler_pkl, texter_pkl)
 
-    split_dir = SplitDir(Path(split_dir_path))
-    split_dir.check()
+
+def _add_sidebar():
+    """ Create sidebar and return all its contained parameters """
+
+    split_dir = add_sidebar_param_split_dir()
+    text_dir = add_sidebar_param_text_dir()
+    ruler_pkl = add_sidebar_param_ruler_pkl()
+    texter_pkl = add_sidebar_param_texter_pkl()
+
+    return split_dir, text_dir, ruler_pkl, texter_pkl
+
+
+def _add_main_page(split_dir: SplitDir, text_dir: TextDir, ruler_pkl: RulerPkl, texter_pkl: TexterPkl) -> None:
     ent_to_lbl = split_dir.test_entities_tsv.load()
 
     st.write(ent_to_lbl)
@@ -45,9 +59,6 @@ def render_predict_page():
 
     st.title('Texts')
 
-    text_dir = TextDir(Path(text_dir_path))
-    text_dir.check()
-
     ent_to_texts = text_dir.ow_test_sents_txt.load()
     ent_texts = ent_to_texts[ent]
 
@@ -58,23 +69,11 @@ def render_predict_page():
     # Predict
     #
 
-    ruler_pkl_path = st.text_input('Path to Ruler PKL', value='data/power/ruler-v2/final/cde-50-test.pkl')
-    texter_pkl_path = st.text_input('Path to Texter PKL', value='data/power/texter-v2/cde-irt-5-marked_base.pkl')
-
-    ruler_pkl = RulerPkl(ruler_pkl_path)
-    texter_pkl = TexterPkl(texter_pkl_path)
-
-    ruler_pkl.check()
-    texter_pkl.check()
-
     ruler = ruler_pkl.load()
-    texter = texter_pkl.load()
+    texter = texter_pkl.load().cpu()
 
     power = Aggregator(texter, ruler, alpha=1.0)
 
     preds = power.predict(ent, list(ent_texts))
-    st.write(preds)
-
-
-def get_defaultdict():
-    return defaultdict(list)
+    for pred in preds:
+        st.write(pred.fact.head, pred.fact.rel, pred.fact.tail, pred.conf)
