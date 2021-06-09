@@ -1,5 +1,5 @@
 import re
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Union
 
 import streamlit as st
 
@@ -12,6 +12,8 @@ from data.power.texter_pkl import TexterPkl
 from models.ent import Ent
 from models.fact import Fact
 from models.rel import Rel
+from models.rule import Rule
+from models.var import Var
 from power.aggregator import Aggregator
 
 
@@ -57,9 +59,12 @@ def _create_main_page(split_dir: SplitDir, text_dir: TextDir, ruler_pkl: RulerPk
     else:
         raise ValueError(f'Invalid subset "{subset}"')
 
-    train_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in train_facts]
-    known_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in known_facts]
-    unknown_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in unknown_facts]
+    train_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in
+                   train_facts]
+    known_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in
+                   known_facts]
+    unknown_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row
+                     in unknown_facts]
 
     _show_entity_facts(ent, known_facts, unknown_facts)
 
@@ -104,7 +109,6 @@ def _select_entity(split_dir: SplitDir) -> Tuple[Ent, str]:
 
 
 def _show_entity_facts(ent: Ent, known_facts: List[Fact], unknown_facts: List[Fact]) -> None:
-
     known_ent_facts = [fact for fact in known_facts if fact.head.id == ent.id]
     unknown_ent_facts = [fact for fact in unknown_facts if fact.head.id == ent.id]
 
@@ -182,7 +186,7 @@ def _show_predictions(
             st.subheader('Rules')
             if pred.rules:
                 for rule in pred.rules:
-                    st.write(rule)
+                    st.write(_format_rule(rule))
             else:
                 st.write('None')
 
@@ -196,3 +200,25 @@ def _show_predictions(
 
 def _strip_wikidata_label(label: str) -> str:
     return re.sub(r'[QP]\d*:', '', label)
+
+
+def _format_ent_var(ent_var: Union[Ent, Var]) -> str:
+    if type(ent_var) == Ent:
+        return ent_var.lbl
+    elif type(ent_var) == Var:
+        return ent_var.name
+    else:
+        raise ValueError(f'Invalid type "{type(ent_var)}"')
+
+
+def _format_fact(fact: Fact) -> str:
+    strip = _strip_wikidata_label
+
+    return f'({strip(_format_ent_var(fact.head))}, {strip(fact.rel.lbl)}, {strip(_format_ent_var(fact.tail))})'
+
+
+def _format_rule(rule: Rule) -> str:
+    rule_head = _format_fact(rule.head)
+    rule_body = [_format_fact(fact) for fact in rule.body]
+
+    return f"{rule.conf:.2f} ({rule.holds}/{rule.fires}) - {rule_head} <= {', '.join(rule_body)}"
