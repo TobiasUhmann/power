@@ -193,8 +193,9 @@ def _show_predictions(
 
             st.subheader('Texts')
             if pred.sents:
-                for sent in pred.sents:
-                    st.write(sent)
+                formatted_sents = [(f'{c:.2f}', s) for s, c in sorted(pred.sents, key=lambda x: x[1], reverse=True)]
+                formatted_rows = [f'<tr><td>{c}</td><td>{s}</td></tr>' for c, s in formatted_sents]
+                st.markdown(f"<table>{''.join(formatted_rows)}</table> ", unsafe_allow_html=True)
             else:
                 st.write('None')
 
