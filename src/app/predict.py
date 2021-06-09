@@ -185,8 +185,9 @@ def _show_predictions(
         with st.beta_expander(expander_title, expanded=False):
             st.subheader('Rules')
             if pred.rules:
-                for rule in pred.rules:
-                    st.write(_format_rule(rule))
+                formatted_rules = [_format_rule(rule) for rule in pred.rules]
+                formatted_rows = [f'<tr><td>{c}</td><td>{c2}</td><td>{r}</td></tr>' for c, c2, r in formatted_rules]
+                st.markdown(f"<table>{''.join(formatted_rows)}</table> ", unsafe_allow_html=True)
             else:
                 st.write('None')
 
@@ -217,8 +218,8 @@ def _format_fact(fact: Fact) -> str:
     return f'({strip(_format_ent_var(fact.head))}, {strip(fact.rel.lbl)}, {strip(_format_ent_var(fact.tail))})'
 
 
-def _format_rule(rule: Rule) -> str:
+def _format_rule(rule: Rule) -> Tuple[str, str, str]:
     rule_head = _format_fact(rule.head)
     rule_body = [_format_fact(fact) for fact in rule.body]
 
-    return f"{rule.conf:.2f} ({rule.holds}/{rule.fires}) - {rule_head} <= {', '.join(rule_body)}"
+    return f"{rule.conf:.2f}", f"({rule.holds}/{rule.fires})", f"{rule_head} <= {', '.join(rule_body)}"
