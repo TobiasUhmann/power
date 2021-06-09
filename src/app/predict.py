@@ -7,10 +7,11 @@ from app.common import add_sidebar_param_split_dir, add_sidebar_param_text_dir, 
     add_sidebar_param_texter_pkl
 from data.irt.text.text_dir import TextDir
 from data.power.ruler_pkl import RulerPkl
-from data.power.split.facts_tsv import Fact
 from data.power.split.split_dir import SplitDir
 from data.power.texter_pkl import TexterPkl
 from models.ent import Ent
+from models.fact import Fact
+from models.rel import Rel
 from power.aggregator import Aggregator
 
 
@@ -45,11 +46,26 @@ def _create_main_page(split_dir: SplitDir, text_dir: TextDir, ruler_pkl: RulerPk
 
     ent, subset = _select_entity(split_dir)
 
-    _show_entity_facts(split_dir, ent, subset)
+    train_facts = split_dir.train_facts_tsv.load()
+
+    if subset == 'valid':
+        known_facts = split_dir.valid_facts_known_tsv.load()
+        unknown_facts = split_dir.valid_facts_unknown_tsv.load()
+    elif subset == 'test':
+        known_facts = split_dir.test_facts_known_tsv.load()
+        unknown_facts = split_dir.test_facts_unknown_tsv.load()
+    else:
+        raise ValueError(f'Invalid subset "{subset}"')
+
+    train_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in train_facts]
+    known_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in known_facts]
+    unknown_facts = [Fact(Ent(row.head, row.head_lbl), Rel(row.rel, row.rel_lbl), Ent(row.tail, row.tail_lbl)) for row in unknown_facts]
+
+    _show_entity_facts(ent, known_facts, unknown_facts)
 
     ent_texts = _show_entity_texts(text_dir, ent, subset)
 
-    _show_predictions(ruler_pkl, texter_pkl, ent, ent_texts)
+    _show_predictions(ruler_pkl, texter_pkl, ent, ent_texts, train_facts, known_facts, unknown_facts)
 
 
 def _select_entity(split_dir: SplitDir) -> Tuple[Ent, str]:
@@ -87,28 +103,20 @@ def _select_entity(split_dir: SplitDir) -> Tuple[Ent, str]:
     return ent, subset
 
 
-def _show_entity_facts(split_dir: SplitDir, ent: Ent, subset: str) -> None:
-    if subset == 'valid':
-        known_facts: List[Fact] = split_dir.valid_facts_known_tsv.load()
-        unknown_facts: List[Fact] = split_dir.valid_facts_unknown_tsv.load()
-    elif subset == 'test':
-        known_facts: List[Fact] = split_dir.test_facts_known_tsv.load()
-        unknown_facts: List[Fact] = split_dir.test_facts_unknown_tsv.load()
-    else:
-        raise ValueError()
+def _show_entity_facts(ent: Ent, known_facts: List[Fact], unknown_facts: List[Fact]) -> None:
 
-    known_ent_facts = [fact for fact in known_facts if fact.head == ent.id]
-    unknown_ent_facts = [fact for fact in unknown_facts if fact.head == ent.id]
+    known_ent_facts = [fact for fact in known_facts if fact.head.id == ent.id]
+    unknown_ent_facts = [fact for fact in unknown_facts if fact.head.id == ent.id]
 
     strip = _strip_wikidata_label
 
     st.header('Known Facts')
     for fact in known_ent_facts:
-        st.write(f'{strip(fact.head_lbl)}, {strip(fact.rel_lbl)}, {strip(fact.tail_lbl)}')
+        st.write(f'{strip(fact.head.lbl)}, {strip(fact.rel.lbl)}, {strip(fact.tail.lbl)}')
 
     st.header('Unknown Facts')
     for fact in unknown_ent_facts:
-        st.write(f'{strip(fact.head_lbl)}, {strip(fact.rel_lbl)}, {strip(fact.tail_lbl)}')
+        st.write(f'{strip(fact.head.lbl)}, {strip(fact.rel.lbl)}, {strip(fact.tail.lbl)}')
 
 
 def _show_entity_texts(text_dir: TextDir, ent: Ent, subset: str) -> Set[str]:
@@ -128,7 +136,15 @@ def _show_entity_texts(text_dir: TextDir, ent: Ent, subset: str) -> Set[str]:
     return ent_texts
 
 
-def _show_predictions(ruler_pkl: RulerPkl, texter_pkl: TexterPkl, ent: Ent, ent_texts: Set[str]):
+def _show_predictions(
+        ruler_pkl: RulerPkl,
+        texter_pkl: TexterPkl,
+        ent: Ent,
+        ent_texts: Set[str],
+        train_facts: List[Fact],
+        known_facts: List[Fact],
+        unknown_facts: List[Fact]
+) -> None:
     """
     Load the Power model, make predictions for the selected entity,
     and list the predictions as expandable sections that reveal the
@@ -146,8 +162,21 @@ def _show_predictions(ruler_pkl: RulerPkl, texter_pkl: TexterPkl, ent: Ent, ent_
 
     for pred in preds:
         strip = _strip_wikidata_label
-        expander_title = '{:.2f}% - {}, {}, {}'.format(
-            pred.conf * 100, strip(pred.fact.head.lbl), strip(pred.fact.rel.lbl), strip(pred.fact.tail.lbl))
+
+        if pred.fact in train_facts:
+            train_known_true_false = 'TRAIN'
+        elif pred.fact in known_facts:
+            train_known_true_false = 'KNOWN'
+        elif pred.fact in unknown_facts:
+            train_known_true_false = 'TRUE'
+        else:
+            train_known_true_false = 'FALSE'
+
+        expander_title = '{:.2f}% - {}, {}, {} ({})'.format(pred.conf * 100,
+                                                            strip(pred.fact.head.lbl),
+                                                            strip(pred.fact.rel.lbl),
+                                                            strip(pred.fact.tail.lbl),
+                                                            train_known_true_false)
 
         with st.beta_expander(expander_title, expanded=False):
             st.subheader('Rules')
