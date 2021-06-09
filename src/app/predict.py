@@ -1,3 +1,4 @@
+import re
 from typing import List, Set, Tuple
 
 import streamlit as st
@@ -99,13 +100,15 @@ def _show_entity_facts(split_dir: SplitDir, ent: Ent, subset: str) -> None:
     known_ent_facts = [fact for fact in known_facts if fact.head == ent.id]
     unknown_ent_facts = [fact for fact in unknown_facts if fact.head == ent.id]
 
+    strip = _strip_wikidata_label
+
     st.header('Known Facts')
     for fact in known_ent_facts:
-        st.write(f'{fact.head_lbl}, {fact.rel_lbl}, {fact.tail_lbl}')
+        st.write(f'{strip(fact.head_lbl)}, {strip(fact.rel_lbl)}, {strip(fact.tail_lbl)}')
 
     st.header('Unknown Facts')
     for fact in unknown_ent_facts:
-        st.write(f'{fact.head_lbl}, {fact.rel_lbl}, {fact.tail_lbl}')
+        st.write(f'{strip(fact.head_lbl)}, {strip(fact.rel_lbl)}, {strip(fact.tail_lbl)}')
 
 
 def _show_entity_texts(text_dir: TextDir, ent: Ent, subset: str) -> Set[str]:
@@ -142,8 +145,9 @@ def _show_predictions(ruler_pkl: RulerPkl, texter_pkl: TexterPkl, ent: Ent, ent_
     preds = power.predict(ent, list(ent_texts))
 
     for pred in preds:
+        strip = _strip_wikidata_label
         expander_title = '{:.2f}% - {}, {}, {}'.format(
-            pred.conf * 100, pred.fact.head.lbl, pred.fact.rel.lbl, pred.fact.tail.lbl)
+            pred.conf * 100, strip(pred.fact.head.lbl), strip(pred.fact.rel.lbl), strip(pred.fact.tail.lbl))
 
         with st.beta_expander(expander_title, expanded=False):
             st.subheader('Rules')
@@ -159,3 +163,7 @@ def _show_predictions(ruler_pkl: RulerPkl, texter_pkl: TexterPkl, ent: Ent, ent_
                     st.write(sent)
             else:
                 st.write('None')
+
+
+def _strip_wikidata_label(label: str) -> str:
+    return re.sub(r'[QP]\d*:', '', label)
