@@ -74,13 +74,6 @@ def _create_main_page(split_dir: SplitDir, text_dir: TextDir, ruler_pkl: RulerPk
 
 
 def _select_entity(split_dir: SplitDir) -> Tuple[Ent, str]:
-    """
-    Show
-    - Radio buttons that allows switching between valid and test entities
-    - Spinner to select entity by ID
-    - Text field that shows the selected entity's label
-    """
-
     st.header('Entity')
 
     valid_test_selection = st.radio('', ['Valid Entity', 'Test Entity'])
@@ -88,20 +81,21 @@ def _select_entity(split_dir: SplitDir) -> Tuple[Ent, str]:
     if valid_test_selection == 'Valid Entity':
         subset = 'valid'
         ent_to_lbl = split_dir.valid_entities_tsv.load()
-
     elif valid_test_selection == 'Test Entity':
         subset = 'test'
         ent_to_lbl = split_dir.test_entities_tsv.load()
-
     else:
         raise ValueError()
 
-    min_id = min(ent_to_lbl.keys())
-    max_id = max(ent_to_lbl.keys())
+    prefix = st.text_input('Entity prefix', value='A')
 
-    cols = st.beta_columns([25, 75])
-    ent_id = cols[0].number_input('ID', key='_ent_id', min_value=min_id, max_value=max_id, value=min_id)
-    cols[1].text_input('Label', key='_ent_lbl', value=ent_to_lbl[ent_id])
+    options = ['%s (%d)' % (_strip_wikidata_label(ent_to_lbl[ent]), ent) for ent in ent_to_lbl.keys()]
+    filtered_ent_names = [opt for opt in options if opt.startswith(prefix)]
+    filtered_ent_names.sort()
+
+    selected_option = st.selectbox('Entity (ID)', filtered_ent_names)
+    regex = r'^.+ \((\d+)\)$'  # any string followed by space and number in parentheses, e.g. "Foo bar (123)"
+    ent_id = int(re.match(regex, selected_option).group(1))  # get number, e.g. 123
 
     ent = Ent(ent_id, ent_to_lbl[ent_id])
 
