@@ -39,6 +39,7 @@ class Texter(Module):
         self.classes = classes
 
     def predict(self, ent: Ent, sents: List[str]) -> List[Pred]:
+        print(sents)
         encoded = self.tokenizer(sents, padding=True, truncation=True, max_length=64, return_tensors='pt')
 
         self.train()

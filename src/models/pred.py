@@ -12,3 +12,8 @@ class Pred:
     sents: List[Tuple[str, float]]
     rules: List[Rule]
 
+    def __str__(self) -> str:
+        return f'Pred(fact={self.fact}, conf={self.conf})'
+
+    def __repr__(self) -> str:
+        return f'Pred(fact={self.fact}, conf={self.conf})'
